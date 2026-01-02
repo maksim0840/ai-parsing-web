@@ -1,0 +1,77 @@
+syntax = "proto3";
+package extraction_result.v1;  // namespace для .proto файла
+
+option java_package = "io.github.maksim0840.extraction_result.v1";  // package для генерации .java классов из .proto файла
+option java_multiple_files = true;  // для удобной генерации и обращения (каждый message/service генерируется в отдельный .java файл)
+
+import "google/protobuf/struct.proto";      // универсальный json-объект
+import "google/protobuf/timestamp.proto";   // timestamp
+
+
+// ===== Модель =====
+
+message ExtractionResultProto {
+  string id = 1;
+  string url = 2;
+  string user_id = 3;
+  google.protobuf.Struct json_result = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+
+// ===== Запросы сервису extraction-results =====
+
+// Запрос на создание записи по параметрам
+message CreateExtractionResultRequest {
+    string url = 1;
+    string user_id = 2;
+    google.protobuf.Struct json_result = 3;
+}
+
+// Запросы на получение записи по id
+message GetExtractionResultRequest {
+    string id = 1;
+}
+
+// Запрос на получение списка записей по фильтрам
+message GetListExtractionResultRequest {
+    optional string user_id = 1;
+    optional google.protobuf.Timestamp created_from = 2;
+    optional google.protobuf.Timestamp created_to = 3;
+    int32 page_num = 4;
+    int32 page_size = 5;
+    optional bool sort_created_desc = 6;
+}
+
+// Удалить запись по id
+message DeleteExtractionResultRequest {
+    string id = 1;
+}
+
+
+// ===== Ответы от сервиса extraction-results =====
+
+message CreateExtractionResultResponse {
+    ExtractionResultProto extraction_result = 1;
+}
+
+message GetExtractionResultResponse {
+    ExtractionResultProto extraction_result = 1;
+}
+
+message GetListExtractionResultResponse {
+    repeated ExtractionResultProto extraction_results = 1;
+}
+
+message DeleteExtractionResultResponse {
+}
+
+
+// ===== Сервис (gRPC api) =====
+
+service ExtractionResultService {
+  rpc Create(CreateExtractionResultRequest) returns (CreateExtractionResultResponse);
+  rpc Get(GetExtractionResultRequest) returns (GetExtractionResultResponse);
+  rpc GetList(GetListExtractionResultRequest) returns (GetListExtractionResultResponse);
+  rpc Delete(DeleteExtractionResultRequest) returns (DeleteExtractionResultResponse);
+}
