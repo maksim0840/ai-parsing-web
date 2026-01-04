@@ -1,5 +1,6 @@
 package io.github.maksim0840.extractionresults.domain;
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -20,6 +21,7 @@ import java.util.Map;
 })
 @Getter
 @Setter
+@Builder
 public class ExtractionResult {
     @Id
     private String id;                      // по умолчанию в MongoDB поле _id имеет тип ObjectId (12 байт), который удобнее хранить в строке

@@ -14,25 +14,6 @@ java {
     }
 }
 
-// Преобразование proto файлов в java классы
-protobuf {
-    protoc {
-        artifact = "com.google.protobuf:protoc:3.25.5"
-    }
-    plugins {
-        create("grpc") {
-            artifact = "io.grpc:protoc-gen-grpc-java:1.78.0"
-        }
-    }
-    generateProtoTasks {
-        all().configureEach {
-            plugins {
-                create("grpc")
-            }
-        }
-    }
-}
-
 repositories {
     mavenCentral()
 }
@@ -50,14 +31,5 @@ dependencies {
 
     // gRPC server
     implementation("net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE")
-    implementation(platform("io.grpc:grpc-bom:1.78.0"))
-    implementation("io.grpc:grpc-stub")
-    implementation("io.grpc:grpc-protobuf")
-    implementation(platform("com.google.protobuf:protobuf-bom:3.25.5"))
-    implementation("com.google.protobuf:protobuf-java")
-    implementation("com.google.protobuf:protobuf-java-util")
-
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation(project(":internal-api")) // общие зависимости для proto контрактов
 }

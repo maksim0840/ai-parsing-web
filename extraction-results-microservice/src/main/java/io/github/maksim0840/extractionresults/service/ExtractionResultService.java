@@ -40,7 +40,7 @@ public class ExtractionResultService {
         }
     }
 
-    public List<ExtractionResult> getListExtractionResultBySpecPaging(String userId, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc) {
+    public List<ExtractionResult> getListExtractionResultByPageWithFiltering(String userId, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc) {
         // Настраиваем сортировку
         Sort.Direction sortDir = Sort.Direction.DESC;
         if (isSortDesc != null) sortDir = isSortDesc ? Sort.Direction.DESC : Sort.Direction.ASC;

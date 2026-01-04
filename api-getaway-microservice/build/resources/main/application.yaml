@@ -1,8 +1,0 @@
-server:
-  port: 8080
-
-grpc:
-  client:
-    extractionResults:
-      address: static://localhost:9090
-      negotiationType: plaintext

@@ -1,0 +1,5 @@
+rootProject.name = "ai-parsing-web"
+
+include("internal-api")
+include("extraction-results-microservice")
+include("api-getaway-microservice")
