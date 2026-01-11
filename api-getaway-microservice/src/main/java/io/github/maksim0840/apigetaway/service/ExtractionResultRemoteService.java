@@ -2,6 +2,7 @@ package io.github.maksim0840.apigetaway.service;
 
 import io.github.maksim0840.apigetaway.dto.ExtractionResultDTO;
 import io.github.maksim0840.apigetaway.grpc.ExtractionResultGrpcClient;
+import io.github.maksim0840.apigetaway.mapper.JsonStringMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -17,7 +18,8 @@ public class ExtractionResultRemoteService {
         this.grpcClient = grpcClient;
     }
 
-    public ExtractionResultDTO createExtractionResult(String url, String userId, Map<String, Object> jsonResult) {
+    public ExtractionResultDTO createExtractionResult(String url, String userId, String jsonStr) {
+        Map<String, Object> jsonResult = JsonStringMapper.stringToMap(jsonStr);
         return grpcClient.create(url, userId, jsonResult);
     }
 

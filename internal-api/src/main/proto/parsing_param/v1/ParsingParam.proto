@@ -1,0 +1,76 @@
+syntax = "proto3";
+package parsing_param.v1;  // namespace для .proto файла
+
+option java_package = "io.github.maksim0840.parsing_param.v1";  // package для генерации .java классов из .proto файла
+option java_multiple_files = true;  // для удобной генерации и обращения (каждый message/service генерируется в отдельный .java файл)
+
+import "google/protobuf/timestamp.proto";   // timestamp
+
+
+// ===== Модель =====
+
+message ParsingParamProto {
+  int64 id = 1;
+  int64 user_id = 2;
+  string name = 3;
+  string description = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+
+// ===== Запросы сервису users-info (ParsingParam domain) =====
+
+// Запрос на создание записи по параметрам
+message CreateParsingParamRequest {
+  int64 user_id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+// Запросы на получение записи по id
+message GetParsingParamRequest {
+  int64 id = 1;
+}
+
+// Запрос на получение списка записей по фильтрам
+message GetListParsingParamRequest {
+  optional int64 user_id = 1;
+  optional google.protobuf.Timestamp created_from = 2;
+  optional google.protobuf.Timestamp created_to = 3;
+  int32 page_num = 4;
+  int32 page_size = 5;
+  optional bool sort_created_desc = 6;
+}
+
+// Удалить запись по id
+message DeleteParsingParamRequest {
+  int64 id = 1;
+}
+
+
+// ===== Ответы от сервиса users-info (ParsingParam domain) =====
+
+message CreateParsingParamResponse {
+  ParsingParamProto parsing_param = 1;
+}
+
+message GetParsingParamResponse {
+  ParsingParamProto parsing_param = 1;
+}
+
+message GetListParsingParamResponse {
+  repeated ParsingParamProto parsing_params = 1;
+}
+
+message DeleteParsingParamResponse {
+}
+
+
+// ===== Сервис (gRPC api) =====
+
+service ParsingParamService {
+  rpc Create(CreateParsingParamRequest) returns (CreateParsingParamResponse);
+  rpc Get(GetParsingParamRequest) returns (GetParsingParamResponse);
+  rpc GetList(GetListParsingParamRequest) returns (GetListParsingParamResponse);
+  rpc Delete(DeleteParsingParamRequest) returns (DeleteParsingParamResponse);
+}

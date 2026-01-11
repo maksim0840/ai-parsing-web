@@ -9,7 +9,9 @@ import org.springframework.data.mongodb.core.query.Query;
 import java.time.Instant;
 import java.util.List;
 
-// Реализация методов, выполняющие сложные кастомные запросы
+/**
+ * Реализация методов, выполняющих сложные кастомные запросы к базе данных
+ */
 public class ExtractionResultRepositoryImpl implements ExtractionResultRepositoryCustom {
 
     // Объект для работы с низкоуровневыми запросами к MongoDB

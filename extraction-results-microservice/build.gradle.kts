@@ -1,7 +1,6 @@
 plugins {
     id("org.springframework.boot") version "3.4.2"
     id("io.spring.dependency-management") version "1.1.7"
-    id("com.google.protobuf") version "0.9.6" // автоматизация пайплайна работы с protobuf
     java
 }
 
@@ -22,9 +21,6 @@ dependencies {
     // Lombok
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
-
-    // Spring
-    implementation("org.springframework.boot:spring-boot-starter-web")
 
     // MongoDB
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")

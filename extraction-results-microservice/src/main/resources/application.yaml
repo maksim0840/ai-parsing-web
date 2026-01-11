@@ -1,10 +1,10 @@
-spring:
-  application:
-    name: extraction-results-microservice
+#spring:
+#  application:
+#    name: extraction-results-microservice
 
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/extraction_results
+data:
+  mongodb:
+    uri: mongodb://localhost:27017/extraction_results
 
 grpc:
   server:

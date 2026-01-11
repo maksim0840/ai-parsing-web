@@ -19,7 +19,7 @@ message ExtractionResultProto {
 }
 
 
-// ===== Запросы сервису extraction-results =====
+// ===== Запросы сервису extraction-results (ExtractionResult domain) =====
 
 // Запрос на создание записи по параметрам
 message CreateExtractionResultRequest {
@@ -49,7 +49,7 @@ message DeleteExtractionResultRequest {
 }
 
 
-// ===== Ответы от сервиса extraction-results =====
+// ===== Ответы от сервиса extraction-results (ExtractionResult domain) =====
 
 message CreateExtractionResultResponse {
     ExtractionResultProto extraction_result = 1;

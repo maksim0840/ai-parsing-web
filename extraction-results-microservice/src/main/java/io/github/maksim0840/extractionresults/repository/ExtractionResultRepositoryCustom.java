@@ -7,7 +7,9 @@ import org.springframework.data.domain.Pageable;
 import java.time.Instant;
 import java.util.List;
 
-// Описание методов, выполняющие сложные запросы
+/**
+ * Описание методов для обработки сложных запросов к базе данных
+ */
 public interface ExtractionResultRepositoryCustom {
     List<ExtractionResult> searchWithFiltering(String userId, Instant dateFrom, Instant dateTo, Pageable pageable);
 }

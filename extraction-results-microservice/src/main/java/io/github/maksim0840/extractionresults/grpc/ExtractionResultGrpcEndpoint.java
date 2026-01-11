@@ -3,20 +3,23 @@ package io.github.maksim0840.extractionresults.grpc;
 import io.github.maksim0840.extraction_result.v1.*;
 import io.github.maksim0840.extractionresults.domain.ExtractionResult;
 import io.github.maksim0840.extractionresults.exception.NotFoundException;
-import io.github.maksim0840.extractionresults.mapper.ProtoMapperDoc;
+import io.github.maksim0840.extractionresults.mapper.ProtoDomainExtractionResultMapper;
 import io.github.maksim0840.extractionresults.service.ExtractionResultService;
 import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ProtoJsonMapper;
-import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ProtoTimeMapper;
+import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Сервис, который регистрируется на grpc-сервере и реализует методы, вызываемые при получении соответствующего rpc запроса.
+ * Отвечает за получение rpc запроса, обработку параметров и отправку ответа обратно grpc-клиенту.
+ */
 @GrpcService
 public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.ExtractionResultServiceImplBase {
     private final ExtractionResultService extractionResultService;
@@ -25,11 +28,12 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
         this.extractionResultService = extractionResultService;
     }
 
+    @Override
     public void create(CreateExtractionResultRequest request,
                        StreamObserver<CreateExtractionResultResponse> observerResponse) {
         String url = request.getUrl();
         String userId = request.getUserId();
-        Map<String, Object> jsonResult = new HashMap<>();;
+        Map<String, Object> jsonResult;
         try {
             jsonResult = ProtoJsonMapper.structToMap(request.getJsonResult());
         } catch (RuntimeException e) {
@@ -39,7 +43,7 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
 
         try {
             ExtractionResult extractionResult = extractionResultService.createExtractionResult(url, userId, jsonResult);
-            ExtractionResultProto extractionResultProto = ProtoMapperDoc.docToProto(extractionResult);
+            ExtractionResultProto extractionResultProto = ProtoDomainExtractionResultMapper.domainToProto(extractionResult);
             CreateExtractionResultResponse response = CreateExtractionResultResponse.newBuilder()
                     .setExtractionResult(extractionResultProto).build();
 
@@ -61,7 +65,7 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
 
         try {
             ExtractionResult extractionResult = extractionResultService.getExtractionResultById(id);
-            ExtractionResultProto extractionResultProto = ProtoMapperDoc.docToProto(extractionResult);
+            ExtractionResultProto extractionResultProto = ProtoDomainExtractionResultMapper.domainToProto(extractionResult);
             GetExtractionResultResponse response = GetExtractionResultResponse.newBuilder()
                             .setExtractionResult(extractionResultProto).build();
 
@@ -87,7 +91,7 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
         try {
             List<ExtractionResult> extractionResults = extractionResultService.getListExtractionResultByPageWithFiltering(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc);
             List<ExtractionResultProto> extractionResultsProto = extractionResults.stream()
-                            .map(ProtoMapperDoc::docToProto)
+                            .map(ProtoDomainExtractionResultMapper::domainToProto)
                             .toList();
             GetListExtractionResultResponse response = GetListExtractionResultResponse.newBuilder()
                             .addAllExtractionResults(extractionResultsProto).build();

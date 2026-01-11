@@ -1,4 +1,4 @@
-package io.github.maksim0840.internalapi.extraction_result.v1.mapper;
+package io.github.maksim0840.internalapi.common.v1.mapper;
 
 import com.google.protobuf.Timestamp;
 

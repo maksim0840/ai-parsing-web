@@ -1,0 +1,104 @@
+syntax = "proto3";
+package user.v1;  // namespace для .proto файла
+
+option java_package = "io.github.maksim0840.user.v1";  // package для генерации .java классов из .proto файла
+option java_multiple_files = true;  // для удобной генерации и обращения (каждый message/service генерируется в отдельный .java файл)
+
+import "google/protobuf/timestamp.proto";   // timestamp
+
+
+// ===== Модель =====
+
+enum UserRoleProto {
+  USER_ROLE_UNSPECIFIED = 0;  // роль не указана (0 = значение по умолчанию)
+  VISITOR = 1;
+  USER = 2;
+  ADMIN = 3;
+}
+
+message UserProto {
+  int64 id = 1;
+  string name = 2;
+  string password_hash = 3;
+  UserRoleProto role = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+
+// ===== Запросы сервису users-info (User domain) =====
+
+// Запрос на создание записи по параметрам
+message CreateUserRequest {
+  string name = 1;
+  string password = 2;
+  UserRoleProto role = 3;
+}
+
+// Запросы на получение записи по id
+message GetUserRequest {
+  int64 id = 1;
+}
+
+// Запрос на получение списка записей по фильтрам
+message GetListUserRequest {
+  optional UserRoleProto role = 1;
+  optional google.protobuf.Timestamp created_from = 2;
+  optional google.protobuf.Timestamp created_to = 3;
+  int32 page_num = 4;
+  int32 page_size = 5;
+  optional bool sort_created_desc = 6;
+}
+
+// Удалить запись по id
+message DeleteUserRequest {
+  int64 id = 1;
+}
+
+// Задать роль по id
+message SetUserRoleRequest {
+  int64 id = 1;
+  UserRoleProto role = 2;
+}
+
+// Проверить пароль
+message CheckUserPasswordRequest {
+  int64 id = 1;
+  string password = 2;
+}
+
+
+// ===== Ответы от сервиса users-info (User domain) =====
+
+message CreateUserResponse {
+  UserProto user = 1;
+}
+
+message GetUserResponse {
+  UserProto user = 1;
+}
+
+message GetListUserResponse {
+  repeated UserProto users = 1;
+}
+
+message DeleteUserResponse {
+}
+
+message SetUserRoleResponse {
+    UserProto user = 1;
+}
+
+message CheckUserPasswordResponse {
+    bool match = 1;
+}
+
+// ===== Сервис (gRPC api) =====
+
+service UserService {
+  rpc Create(CreateUserRequest) returns (CreateUserResponse);
+  rpc Get(GetUserRequest) returns (GetUserResponse);
+  rpc GetList(GetListUserRequest) returns (GetListUserResponse);
+  rpc Delete(DeleteUserRequest) returns (DeleteUserResponse);
+  rpc SetRole(SetUserRoleRequest) returns (SetUserRoleResponse);
+  rpc CheckPassword(CheckUserPasswordRequest) returns (CheckUserPasswordResponse);
+}

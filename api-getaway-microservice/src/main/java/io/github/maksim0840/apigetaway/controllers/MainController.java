@@ -1,6 +1,7 @@
 package io.github.maksim0840.apigetaway.controllers;
 
 import io.github.maksim0840.apigetaway.dto.DescriptionParams;
+import io.github.maksim0840.apigetaway.service.ExtractionResultRemoteService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,6 +12,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 @RequestMapping("/parse")
 public class MainController {
+
+    private final ExtractionResultRemoteService extractionResultRemoteService;
+
+    public MainController(ExtractionResultRemoteService extractionResultRemoteService) {
+        this.extractionResultRemoteService = extractionResultRemoteService;
+    }
 
     @GetMapping({"", "/"})
     public String parseHome(Model model) {
@@ -37,7 +44,11 @@ public class MainController {
     @PostMapping("/startparsing")
     public String sendParsingParams(@ModelAttribute(value = "params") DescriptionParams descriptionParams) {
         String url = descriptionParams.getUrl();
+        String jsonStr = descriptionParams.getJsonStr();
+        extractionResultRemoteService.createExtractionResult(url, "0", jsonStr);
+
         System.out.println("url: " + url);
+        System.out.println("jsonStr: " + jsonStr);
         return "parse";
     }
 

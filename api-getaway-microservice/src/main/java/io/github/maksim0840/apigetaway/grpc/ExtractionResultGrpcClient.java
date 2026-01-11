@@ -3,10 +3,10 @@ package io.github.maksim0840.apigetaway.grpc;
 import io.github.maksim0840.apigetaway.dto.ExtractionResultDTO;
 import io.github.maksim0840.apigetaway.exception.DataNotFoundException;
 import io.github.maksim0840.apigetaway.exception.DataUnavailableException;
-import io.github.maksim0840.apigetaway.mapper.ProtoMapperDTO;
+import io.github.maksim0840.apigetaway.mapper.ProtoDTOExtractionResultMapper;
 import io.github.maksim0840.extraction_result.v1.*;
 import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ProtoJsonMapper;
-import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ProtoTimeMapper;
+import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import net.devh.boot.grpc.client.inject.GrpcClient;
@@ -32,16 +32,9 @@ public class ExtractionResultGrpcClient {
         try {
             CreateExtractionResultResponse response = blockingStub.create(request);
             ExtractionResultProto extractionResultProto = response.getExtractionResult();
-            return ProtoMapperDTO.protoToDto(extractionResultProto);
+            return ProtoDTOExtractionResultMapper.protoToDto(extractionResultProto);
         } catch (StatusRuntimeException e) {
-            Status.Code code = e.getStatus().getCode();
-            String description = e.getStatus().getDescription();
-
-            switch (code) {
-                case INVALID_ARGUMENT -> throw new IllegalArgumentException(description, e);
-                case UNAVAILABLE -> throw new DataUnavailableException(description, e);
-                default -> throw new RuntimeException();
-            }
+            throw GrpcExceptionMapper.map(e);
         }
     }
 
@@ -53,44 +46,30 @@ public class ExtractionResultGrpcClient {
         try {
             GetExtractionResultResponse response = blockingStub.get(request);
             ExtractionResultProto extractionResultProto = response.getExtractionResult();
-            return ProtoMapperDTO.protoToDto(extractionResultProto);
+            return ProtoDTOExtractionResultMapper.protoToDto(extractionResultProto);
         } catch (StatusRuntimeException e) {
-            Status.Code code = e.getStatus().getCode();
-            String description = e.getStatus().getDescription();
-
-            switch (code) {
-                case INVALID_ARGUMENT -> throw new IllegalArgumentException(description, e);
-                case NOT_FOUND -> throw new DataNotFoundException(description, e);
-                case UNAVAILABLE -> throw new DataUnavailableException(description, e);
-                default -> throw new RuntimeException();
-            }
+            throw GrpcExceptionMapper.map(e);
         }
     }
 
     public List<ExtractionResultDTO> getList(String userId, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc) {
-        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
-                .setUserId(userId)
-                .setCreatedFrom(ProtoTimeMapper.instantToTimestamp(dateFrom))
-                .setCreatedTo(ProtoTimeMapper.instantToTimestamp(dateTo))
+        GetListExtractionResultRequest.Builder requestBuilder = GetListExtractionResultRequest.newBuilder()
                 .setPageNum(pageNum)
-                .setPageSize(pageSize)
-                .setSortCreatedDesc(isSortDesc)
-                .build();
+                .setPageSize(pageSize);
+        if (userId != null) requestBuilder.setUserId(userId);
+        if (dateFrom != null) requestBuilder.setCreatedFrom(ProtoTimeMapper.instantToTimestamp(dateFrom));
+        if (dateTo != null) requestBuilder.setCreatedTo(ProtoTimeMapper.instantToTimestamp(dateTo));
+        if (isSortDesc != null) requestBuilder.setSortCreatedDesc(isSortDesc);
+        GetListExtractionResultRequest request = requestBuilder.build();
 
         try {
             GetListExtractionResultResponse response = blockingStub.getList(request);
             List<ExtractionResultProto> extractionResultsProto = response.getExtractionResultsList();
             return extractionResultsProto.stream()
-                    .map(ProtoMapperDTO::protoToDto)
+                    .map(ProtoDTOExtractionResultMapper::protoToDto)
                     .toList();
         } catch (StatusRuntimeException e) {
-            Status.Code code = e.getStatus().getCode();
-            String description = e.getStatus().getDescription();
-
-            switch (code) {
-                case UNAVAILABLE -> throw new DataUnavailableException(description, e);
-                default -> throw new RuntimeException();
-            }
+            throw GrpcExceptionMapper.map(e);
         }
     }
 
@@ -102,15 +81,7 @@ public class ExtractionResultGrpcClient {
         try {
             DeleteExtractionResultResponse response = blockingStub.delete(request);
         } catch (StatusRuntimeException e) {
-            Status.Code code = e.getStatus().getCode();
-            String description = e.getStatus().getDescription();
-
-            switch (code) {
-                case INVALID_ARGUMENT -> throw new IllegalArgumentException(description, e);
-                case NOT_FOUND -> throw new DataNotFoundException(description, e);
-                case UNAVAILABLE -> throw new DataUnavailableException(description, e);
-                default -> throw new RuntimeException();
-            }
+            throw GrpcExceptionMapper.map(e);
         }
     }
 }

@@ -1,0 +1,13 @@
+#spring:
+#  application:
+#    name: extraction-results-microservice
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/users_info
+    username: postgres
+    password: postgres
+
+grpc:
+  server:
+    port: 9091

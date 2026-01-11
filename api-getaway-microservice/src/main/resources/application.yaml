@@ -6,3 +6,6 @@ grpc:
     extractionResults:
       address: static://localhost:9090
       negotiationType: plaintext
+    usersInfo:
+      address: static://localhost:9091
+      negotiationType: plaintext

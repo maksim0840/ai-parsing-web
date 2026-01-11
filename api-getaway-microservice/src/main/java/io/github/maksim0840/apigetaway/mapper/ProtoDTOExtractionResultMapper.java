@@ -1,21 +1,12 @@
 package io.github.maksim0840.apigetaway.mapper;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.protobuf.Struct;
-import com.google.protobuf.Timestamp;
-import com.google.protobuf.util.JsonFormat;
 import io.github.maksim0840.apigetaway.dto.ExtractionResultDTO;
 import io.github.maksim0840.extraction_result.v1.ExtractionResultProto;
 import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ProtoJsonMapper;
-import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ProtoTimeMapper;
+import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 
-import java.time.Instant;
-import java.util.Map;
-
-public class ProtoMapperDTO {
-
-    private static final ObjectMapper OM = new ObjectMapper();
+public class ProtoDTOExtractionResultMapper {
 
     public static ExtractionResultProto dtoToProto(ExtractionResultDTO dto) {
         return ExtractionResultProto.newBuilder()
