@@ -62,12 +62,22 @@ public class ExtractionResultService {
     }
 
     public void deleteExtractionResultById(String id) {
+        if (!checkExistenceExtractionResultById(id)) {
+            throw new NotFoundException("MongoDB extractionResult didn't exist (id: " + id + ")");
+        }
+
         try {
             extractionResultsRepository.deleteById(id);
-        } catch (EmptyResultDataAccessException e) {
-            throw new NotFoundException("MongoDB extractionResult didn't exist (id: " + id + ")");
         } catch (DataAccessException e) {
             throw new RuntimeException("MongoDB extractionResult delete failed", e);
+        }
+    }
+
+    private Boolean checkExistenceExtractionResultById(String id) {
+        try {
+            return extractionResultsRepository.existsById(id);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("MongoDB extractionResult check existence failed", e);
         }
     }
 }

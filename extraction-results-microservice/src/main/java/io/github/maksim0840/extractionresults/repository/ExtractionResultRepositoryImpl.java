@@ -24,9 +24,19 @@ public class ExtractionResultRepositoryImpl implements ExtractionResultRepositor
     @Override
     public List<ExtractionResult> searchWithFiltering(String userId, Instant dateFrom, Instant dateTo, Pageable pageable) {
         Criteria criteria = new Criteria();
-        if (userId != null) criteria = criteria.and("userId").is(userId);
-        if (dateFrom != null) criteria = criteria.and("createdDate").gte(dateFrom);  // createdDate >= dateFrom
-        if (dateTo != null) criteria = criteria.and("createdDate").lte(dateTo);  // createdDate <= dateTo
+
+        if (userId != null) {
+            criteria = criteria.and("userId").is(userId);
+        }
+
+        // обязательно рассмотреть вариант комбинации параметров, иначе разные условия and над одним и тем же полем будут конфликтовать друг с другом
+        if (dateFrom != null && dateTo != null) {
+            criteria = criteria.and("createdAt").gte(dateFrom).lte(dateTo);
+        } else if (dateFrom != null) {
+            criteria = criteria.and("createdAt").gte(dateFrom);  // createdDate >= dateFrom
+        } else if (dateTo != null) {
+            criteria = criteria.and("createdAt").lte(dateTo);  // createdDate <= dateTo
+        }
 
         Query query = new Query(criteria).with(pageable);
 

@@ -26,7 +26,7 @@ import java.util.Map;
 @Builder
 public class ExtractionResult {
     @Id
-    private String id;                      // по умолчанию в MongoDB поле _id имеет тип ObjectId (12 байт), который удобнее хранить в строке
+    private String id;                      // по умолчанию в MongoDB поле _id имеет тип ObjectId, который удобнее хранить в строке
     private String url;
     private String userId;
     private Map<String, Object> jsonResult; // результат парсинга и корректировки данных

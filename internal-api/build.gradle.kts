@@ -6,6 +6,12 @@ plugins {
 group = "io.github.maksim0840"
 version = "1.0.0"
 
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
+
 // Преобразование proto файлов в java классы
 protobuf {
     protoc {
