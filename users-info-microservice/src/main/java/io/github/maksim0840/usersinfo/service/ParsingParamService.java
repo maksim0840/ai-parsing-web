@@ -70,12 +70,22 @@ public class ParsingParamService {
     }
 
     public void deleteParsingParamById(Long id) {
+        if (!checkExistenceParsingParamById(id)) {
+            throw new NotFoundException("PostgreSQL parsingParam didn't exist (id: " + id + ")");
+        }
+
         try {
             parsingParamRepository.deleteById(id);
-        } catch (EmptyResultDataAccessException e) {
-            throw new NotFoundException("PostgreSQL parsingParam didn't exist (id: " + id + ")");
         } catch (DataAccessException e) {
             throw new RuntimeException("PostgreSQL parsingParam delete failed", e);
+        }
+    }
+
+    private boolean checkExistenceParsingParamById(Long id) {
+        try {
+            return parsingParamRepository.existsById(id);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("PostgreSQL parsingParam check existence failed", e);
         }
     }
 

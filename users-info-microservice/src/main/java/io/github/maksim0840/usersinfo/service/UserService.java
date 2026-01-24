@@ -80,10 +80,12 @@ public class UserService {
     }
 
     public void deleteUserById(Long id) {
+        if (!checkExistenceUserById(id)) {
+            throw new NotFoundException("PostgreSQL user didn't exist (id: " + id + ")");
+        }
+
         try {
             userRepository.deleteById(id);
-        } catch (EmptyResultDataAccessException e) {
-            throw new NotFoundException("PostgreSQL user didn't exist (id: " + id + ")");
         } catch (DataAccessException e) {
             throw new RuntimeException("PostgreSQL user delete failed", e);
         }
@@ -105,6 +107,14 @@ public class UserService {
             throw new EncryptionIllegalArgumentException("User's password illegal argument", e);
         } catch (RuntimeException e) {
             throw new EncryptionException("User's password check failed", e);
+        }
+    }
+
+    private boolean checkExistenceUserById(Long id) {
+        try {
+            return userRepository.existsById(id);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("PostgreSQL user check existence failed", e);
         }
     }
 }

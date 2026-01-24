@@ -6,12 +6,14 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.util.List;
 
 @Entity
 @Table(name = "users")
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @Builder
@@ -30,11 +32,20 @@ public class User {
     @CreatedDate                            // автозаполнение даты при сохранении
     private Instant createdAt;
 
+    public User() {}
+
     public User(String name, String passwordHash, io.github.maksim0840.internalapi.user.v1.enums.UserRole role) {
         this.name = name;
         this.passwordHash = passwordHash;
         this.role = role;
     }
 
-    public User() {}
+    public User(Long id, List<ParsingParam> parsingParams, String name, String passwordHash, UserRole role, Instant createdAt) {
+        this.id = id;
+        this.parsingParams = parsingParams;
+        this.name = name;
+        this.passwordHash = passwordHash;
+        this.role = role;
+        this.createdAt = createdAt;
+    }
 }

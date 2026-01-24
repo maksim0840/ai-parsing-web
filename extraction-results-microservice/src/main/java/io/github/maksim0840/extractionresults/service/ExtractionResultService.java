@@ -73,7 +73,7 @@ public class ExtractionResultService {
         }
     }
 
-    private Boolean checkExistenceExtractionResultById(String id) {
+    private boolean checkExistenceExtractionResultById(String id) {
         try {
             return extractionResultsRepository.existsById(id);
         } catch (DataAccessException e) {

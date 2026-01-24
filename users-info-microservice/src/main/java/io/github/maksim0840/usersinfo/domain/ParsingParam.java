@@ -31,11 +31,19 @@ public class ParsingParam {
     @CreatedDate                            // автозаполнение даты при сохранении
     private Instant createdAt;
 
+    public ParsingParam() {}
+
     public ParsingParam(User user, String name, String description) {
         this.user = user;
         this.name = name;
         this.description = description;
     }
 
-    public ParsingParam() {}
+    public ParsingParam(Long id, User user, String name, String description, Instant createdAt) {
+        this.id = id;
+        this.user = user;
+        this.name = name;
+        this.description = description;
+        this.createdAt = createdAt;
+    }
 }

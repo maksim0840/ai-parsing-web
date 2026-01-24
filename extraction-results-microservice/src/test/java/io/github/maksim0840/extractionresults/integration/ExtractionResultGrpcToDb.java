@@ -109,8 +109,8 @@ public class ExtractionResultGrpcToDb {
         Instant timeAfter = Instant.now();
 
         // Проверяем валидность полей ответа от gRPC сервера
-        assertExtractionResultProtoValidity(request1.getUrl(), request1.getUserId(), map1, responseProto1, timeBefore, timeAfter);
-        assertExtractionResultProtoValidity(request2.getUrl(), request2.getUserId(), map2, responseProto2, timeBefore, timeAfter);
+        assertExtractionResultProtoFieldsValidity(request1.getUrl(), request1.getUserId(), map1, responseProto1, timeBefore, timeAfter);
+        assertExtractionResultProtoFieldsValidity(request2.getUrl(), request2.getUserId(), map2, responseProto2, timeBefore, timeAfter);
         assertThat(responseProto1.getId()).isNotEqualTo(responseProto2.getId());
 
         // Получаем результаты записи в бд
@@ -118,10 +118,31 @@ public class ExtractionResultGrpcToDb {
         ExtractionResult responseRepo2 = repository.findById(responseProto2.getId()).orElseThrow();
 
         // Проверяем валидность записанной в базу данных информации
-        assertExtractionResultValidity(request1.getUrl(), request1.getUserId(), map1, responseRepo1, timeBefore, timeAfter);
-        assertExtractionResultValidity(request2.getUrl(), request2.getUserId(), map2, responseRepo2, timeBefore, timeAfter);
+        assertExtractionResultFieldsValidity(request1.getUrl(), request1.getUserId(), map1, responseRepo1, timeBefore, timeAfter);
+        assertExtractionResultFieldsValidity(request2.getUrl(), request2.getUserId(), map2, responseRepo2, timeBefore, timeAfter);
         assertThat(responseRepo1.getId()).isNotEqualTo(responseRepo2.getId());
         assertThat(repository.count()).isEqualTo(2);
+    }
+
+    @Test
+    void createWithEmptyUrl() {
+        Map<String, Object> map = Map.of(
+                "value", 910.990099);
+        CreateExtractionResultRequest request = CreateExtractionResultRequest.newBuilder()
+                .setUserId("&&**##123")
+                .setJsonResult(ProtoJsonMapper.mapToStruct(map))
+                .build();
+
+        Instant timeBefore = Instant.now();
+        ExtractionResultProto responseProto = blockingStub.create(request).getExtractionResult();
+        Instant timeAfter = Instant.now();
+
+        assertExtractionResultProtoFieldsValidity("", request.getUserId(), map, responseProto, timeBefore, timeAfter);
+
+        ExtractionResult responseRepo = repository.findById(responseProto.getId()).orElseThrow();
+
+        assertExtractionResultFieldsValidity("", request.getUserId(), map, responseRepo, timeBefore, timeAfter);
+        assertThat(repository.count()).isEqualTo(1);
     }
 
     /*
@@ -131,7 +152,7 @@ public class ExtractionResultGrpcToDb {
     - запись успешно создаётся и доступна по id
     */
     @Test
-    void createWithSkippedParam() {
+    void createWithEmptyUserId() {
         Map<String, Object> map = Map.of(
                 "online", true);
         CreateExtractionResultRequest request = CreateExtractionResultRequest.newBuilder()
@@ -143,11 +164,11 @@ public class ExtractionResultGrpcToDb {
         ExtractionResultProto responseProto = blockingStub.create(request).getExtractionResult();
         Instant timeAfter = Instant.now();
 
-        assertExtractionResultProtoValidity(request.getUrl(), "", map, responseProto, timeBefore, timeAfter);
+        assertExtractionResultProtoFieldsValidity(request.getUrl(), "", map, responseProto, timeBefore, timeAfter);
 
         ExtractionResult responseRepo = repository.findById(responseProto.getId()).orElseThrow();
 
-        assertExtractionResultValidity(request.getUrl(), "", map, responseRepo, timeBefore, timeAfter);
+        assertExtractionResultFieldsValidity(request.getUrl(), "", map, responseRepo, timeBefore, timeAfter);
         assertThat(repository.count()).isEqualTo(1);
     }
 
@@ -170,11 +191,11 @@ public class ExtractionResultGrpcToDb {
         ExtractionResultProto responseProto = blockingStub.create(request).getExtractionResult();
         Instant timeAfter = Instant.now();
 
-        assertExtractionResultProtoValidity(request.getUrl(), request.getUserId(), map, responseProto, timeBefore, timeAfter);
+        assertExtractionResultProtoFieldsValidity(request.getUrl(), request.getUserId(), map, responseProto, timeBefore, timeAfter);
 
         ExtractionResult responseRepo = repository.findById(responseProto.getId()).orElseThrow();
 
-        assertExtractionResultValidity(request.getUrl(), request.getUserId(),  map, responseRepo, timeBefore, timeAfter);
+        assertExtractionResultFieldsValidity(request.getUrl(), request.getUserId(),  map, responseRepo, timeBefore, timeAfter);
         assertThat(repository.count()).isEqualTo(1);
     }
 
@@ -205,16 +226,16 @@ public class ExtractionResultGrpcToDb {
         ExtractionResultProto responseProto = blockingStub.create(request).getExtractionResult();
         Instant timeAfter = Instant.now();
 
-        assertExtractionResultProtoValidity(request.getUrl(), request.getUserId(), map, responseProto, timeBefore, timeAfter);
+        assertExtractionResultProtoFieldsValidity(request.getUrl(), request.getUserId(), map, responseProto, timeBefore, timeAfter);
 
         ExtractionResult responseRepo = repository.findById(responseProto.getId()).orElseThrow();
 
-        assertExtractionResultValidity(request.getUrl(), request.getUserId(), map, responseRepo, timeBefore, timeAfter);
+        assertExtractionResultFieldsValidity(request.getUrl(), request.getUserId(), map, responseRepo, timeBefore, timeAfter);
         assertThat(repository.count()).isEqualTo(1);
     }
 
     @Test
-    void getExistingData() {
+    void getSeveralExistingData() {
         Map<String, Object> map1 = Map.of(
                 "profile", Map.of(
                         "city", "London",
@@ -409,8 +430,6 @@ public class ExtractionResultGrpcToDb {
                 () -> blockingStub.getList(request)
         );
 
-        System.out.println(ex.getStatus().getDescription());
-
         // Проверяем подробности ошибки
         assertThat(ex.getStatus().getCode()).isEqualTo(Status.Code.UNAVAILABLE);
         assertThat(ex.getStatus().getDescription()).contains("size").contains("less than one");
@@ -435,7 +454,7 @@ public class ExtractionResultGrpcToDb {
     }
 
     @Test
-    void deleteExistingData() {
+    void deleteSeveralExistingData() {
         Map<String, Object> map1 = Map.of(
                 "profile", Map.of(
                         "city", "London",
@@ -449,10 +468,8 @@ public class ExtractionResultGrpcToDb {
         );
         ExtractionResult entity2 = new ExtractionResult("abc".repeat(50), "\uD83D\uDD25user\uD83D\uDD25", map2);
 
-        Instant timeBefore = Instant.now();
         repository.save(entity1);
         repository.save(entity2);
-        Instant timeAfter = Instant.now();
 
         DeleteExtractionResultRequest request1 = DeleteExtractionResultRequest.newBuilder().setId(entity1.getId()).build();
         DeleteExtractionResultRequest request2 = DeleteExtractionResultRequest.newBuilder().setId(entity2.getId()).build();
@@ -534,44 +551,42 @@ public class ExtractionResultGrpcToDb {
         mongoTemplate.getCollection(collection).insertMany(docs);
     }
 
-    private void assertExtractionResultProtoValidity(
-            String url,
-            String userId,
-            Map<String, Object> map,
-            ExtractionResultProto proto,
+    private void assertExtractionResultProtoFieldsValidity(
+            String expectedUrl,
+            String expectedUserId,
+            Map<String, Object> expectedMap,
+            ExtractionResultProto actualProto,
             Instant timeBefore,
             Instant timeAfter
     ) {
-        assertThat(proto.getId()).isNotBlank();
-        assertThat(ObjectId.isValid(proto.getId())).isTrue();
+        assertThat(actualProto.getId()).isNotBlank();
+        assertThat(ObjectId.isValid(actualProto.getId())).isTrue();
 
-        assertThat(proto.getUrl()).isEqualTo(url);
-        assertThat(proto.getUserId()).isEqualTo(userId);
-        assertThat(ProtoJsonMapper.structToMap(proto.getJsonResult())).isEqualTo(map);
+        assertThat(actualProto.getUrl()).isEqualTo(expectedUrl);
+        assertThat(actualProto.getUserId()).isEqualTo(expectedUserId);
+        assertThat(ProtoJsonMapper.structToMap(actualProto.getJsonResult())).isEqualTo(expectedMap);
 
-        assertThat(ProtoTimeMapper.timestampToInstant(proto.getCreatedAt()))
+        assertThat(ProtoTimeMapper.timestampToInstant(actualProto.getCreatedAt()))
                 .isBetween(timeBefore.minusSeconds(2), timeAfter.plusSeconds(2));
-
     }
 
-    private void assertExtractionResultValidity(
-            String url,
-            String userId,
-            Map<String, Object> map,
-            ExtractionResult domain,
+    private void assertExtractionResultFieldsValidity(
+            String expectedUrl,
+            String expectedUserId,
+            Map<String, Object> expectedMap,
+            ExtractionResult actualDomain,
             Instant timeBefore,
             Instant timeAfter
     ) {
-        assertThat(domain.getId()).isNotBlank();
-        assertThat(ObjectId.isValid(domain.getId())).isTrue();
+        assertThat(actualDomain.getId()).isNotBlank();
+        assertThat(ObjectId.isValid(actualDomain.getId())).isTrue();
 
-        assertThat(domain.getUrl()).isEqualTo(url);
-        assertThat(domain.getUserId()).isEqualTo(userId);
-        assertThat(domain.getJsonResult()).isEqualTo(map);
+        assertThat(actualDomain.getUrl()).isEqualTo(expectedUrl);
+        assertThat(actualDomain.getUserId()).isEqualTo(expectedUserId);
+        assertThat(actualDomain.getJsonResult()).isEqualTo(expectedMap);
 
-        assertThat(domain.getCreatedAt())
+        assertThat(actualDomain.getCreatedAt())
                 .isBetween(timeBefore.minusSeconds(2), timeAfter.plusSeconds(2));
-
     }
 
     private void assertExtractionResultDomainProtoValidity(
