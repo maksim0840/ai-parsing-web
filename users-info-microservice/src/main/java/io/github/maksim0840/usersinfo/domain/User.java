@@ -12,8 +12,16 @@ import java.time.Instant;
 import java.util.List;
 
 @Entity
-@Table(name = "users")
-@EntityListeners(AuditingEntityListener.class)
+@EntityListeners(AuditingEntityListener.class)  // добавляем слушателя жизненного цикла JPA-сущности (для автоматического проставления CreatedDate)
+@Table(name = "users",
+        indexes = {
+                // составной индекс ("role, created_at")
+                @Index(name = "idx_users_role_created_at", columnList = "role, created_at"),
+                // отдельный индекс для "created_at"
+                @Index(name = "idx_users_created_at", columnList = "created_at")
+                // отдельный индекс для "role" не требуется, т.к. его заменяет leftmost prefix из составного ("role, created_at")
+        }
+)
 @Getter
 @Setter
 @Builder
@@ -26,10 +34,12 @@ public class User {
     private List<ParsingParam> parsingParams;
 
     private String name;
+    @Column(name = "password_hash")     // названия колонок с составными именами лучше указать явно
     private String passwordHash;
-    @Enumerated(EnumType.STRING)    // сохранить enum в виде строки с именем константы
+    @Enumerated(EnumType.STRING)        // сохранить enum в виде строки с именем константы
     private UserRole role;
-    @CreatedDate                            // автозаполнение даты при сохранении
+    @CreatedDate                        // автозаполнение даты при сохранении
+    @Column(name = "created_at")
     private Instant createdAt;
 
     public User() {}

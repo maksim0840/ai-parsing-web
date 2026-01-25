@@ -76,6 +76,7 @@ public class ExtractionResultGrpcToDb {
         repository.deleteAll();
     }
 
+
     /*
     Проверяет happy-path для create:
     - gRPC create корректно возвращает заполненный ExtractionResult (id, url, userId, jsonResult, createdAt)
@@ -118,12 +119,18 @@ public class ExtractionResultGrpcToDb {
         ExtractionResult responseRepo2 = repository.findById(responseProto2.getId()).orElseThrow();
 
         // Проверяем валидность записанной в базу данных информации
-        assertExtractionResultFieldsValidity(request1.getUrl(), request1.getUserId(), map1, responseRepo1, timeBefore, timeAfter);
-        assertExtractionResultFieldsValidity(request2.getUrl(), request2.getUserId(), map2, responseRepo2, timeBefore, timeAfter);
+        assertExtractionResultDomainFieldsValidity(request1.getUrl(), request1.getUserId(), map1, responseRepo1, timeBefore, timeAfter);
+        assertExtractionResultDomainFieldsValidity(request2.getUrl(), request2.getUserId(), map2, responseRepo2, timeBefore, timeAfter);
         assertThat(responseRepo1.getId()).isNotEqualTo(responseRepo2.getId());
         assertThat(repository.count()).isEqualTo(2);
     }
 
+    /*
+    Проверяет поведение create при отсутствии url в запросе:
+    - сервер принимает запрос без url (в protobuf это становится пустой строкой)
+    - в ответе и в базе url сохраняется как ""
+    - запись успешно создаётся, поля (id/createdAt/userId/jsonResult) заполнены корректно
+    */
     @Test
     void createWithEmptyUrl() {
         Map<String, Object> map = Map.of(
@@ -141,7 +148,7 @@ public class ExtractionResultGrpcToDb {
 
         ExtractionResult responseRepo = repository.findById(responseProto.getId()).orElseThrow();
 
-        assertExtractionResultFieldsValidity("", request.getUserId(), map, responseRepo, timeBefore, timeAfter);
+        assertExtractionResultDomainFieldsValidity("", request.getUserId(), map, responseRepo, timeBefore, timeAfter);
         assertThat(repository.count()).isEqualTo(1);
     }
 
@@ -168,16 +175,16 @@ public class ExtractionResultGrpcToDb {
 
         ExtractionResult responseRepo = repository.findById(responseProto.getId()).orElseThrow();
 
-        assertExtractionResultFieldsValidity(request.getUrl(), "", map, responseRepo, timeBefore, timeAfter);
+        assertExtractionResultDomainFieldsValidity(request.getUrl(), "", map, responseRepo, timeBefore, timeAfter);
         assertThat(repository.count()).isEqualTo(1);
     }
 
     /*
-     Проверяет, что create корректно обрабатывает пустой jsonResult:
-     - запрос с jsonResult = {} успешно создаёт запись
-     - в ответе и в Mongo сохраняется пустая Map без потери данных
-     - остальные поля (id/createdAt/url/userId) заполнены корректно
-     */
+    Проверяет, что create корректно обрабатывает пустой jsonResult:
+    - запрос с jsonResult = {} успешно создаёт запись
+    - в ответе и в Mongo сохраняется пустая Map без потери данных
+    - остальные поля (id/createdAt/url/userId) заполнены корректно
+    */
     @Test
     void createWithEmptyJson() {
         Map<String, Object> map = Map.of();
@@ -195,7 +202,7 @@ public class ExtractionResultGrpcToDb {
 
         ExtractionResult responseRepo = repository.findById(responseProto.getId()).orElseThrow();
 
-        assertExtractionResultFieldsValidity(request.getUrl(), request.getUserId(),  map, responseRepo, timeBefore, timeAfter);
+        assertExtractionResultDomainFieldsValidity(request.getUrl(), request.getUserId(),  map, responseRepo, timeBefore, timeAfter);
         assertThat(repository.count()).isEqualTo(1);
     }
 
@@ -230,10 +237,18 @@ public class ExtractionResultGrpcToDb {
 
         ExtractionResult responseRepo = repository.findById(responseProto.getId()).orElseThrow();
 
-        assertExtractionResultFieldsValidity(request.getUrl(), request.getUserId(), map, responseRepo, timeBefore, timeAfter);
+        assertExtractionResultDomainFieldsValidity(request.getUrl(), request.getUserId(), map, responseRepo, timeBefore, timeAfter);
         assertThat(repository.count()).isEqualTo(1);
     }
 
+
+    /*
+    Проверяет happy-path для get по существующим данным:
+    - заранее сохраняет две сущности ExtractionResult в Mongo (через репозиторий)
+    - отправляет два gRPC get-запроса по их id
+    - проверяет, что сервер возвращает корректные данные (id/url/userId/jsonResult/createdAt)
+      и что два ответа соответствуют двум разным записям
+    */
     @Test
     void getSeveralExistingData() {
         Map<String, Object> map1 = Map.of(
@@ -264,7 +279,12 @@ public class ExtractionResultGrpcToDb {
         assertThat(responseProto1.getId()).isNotEqualTo(responseProto2.getId());
     }
 
-
+    /*
+    Проверяет обработку get для несуществующего/невалидного id:
+    - создаёт одну запись в базе, затем запрашивает get по другому id ("*@$")
+    - ожидает StatusRuntimeException со статусом NOT_FOUND
+    - проверяет, что описание ошибки содержит текст "not found" и сам запрошенный id
+    */
     @Test
     void getWrongIdNotFoundException() {
         ExtractionResult entity = new ExtractionResult("url", "userid", Map.of("age", 40));
@@ -284,6 +304,15 @@ public class ExtractionResultGrpcToDb {
         assertThat(ex.getStatus().getDescription()).contains("not found").contains("*@$");
     }
 
+
+    /*
+    Проверяет getList при указании всех параметров:
+    - фильтрация по userId
+    - фильтрация по диапазону createdAt [createdFrom; createdTo]
+    - пагинация (pageNum/pageSize)
+    - сортировка по createdAt по убыванию (sortCreatedDesc=true)
+    - ожидает строго определённый порядок id в ответе
+    */
     @Test
     void getListAllParams() {
         GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
@@ -300,6 +329,12 @@ public class ExtractionResultGrpcToDb {
         checkGetListRequest(request, expectedResultIds);
     }
 
+    /*
+    Проверяет getList без опциональных фильтров:
+    - передаёт только pageNum/pageSize
+    - ожидает, что сервер вернёт все записи (в пределах размера страницы)
+    - проверяет порядок результатов согласно дефолтной сортировке сервера (в тесте ожидается убывание)
+    */
     @Test
     void getListNoOptionalParams() {
         GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
@@ -312,6 +347,12 @@ public class ExtractionResultGrpcToDb {
         checkGetListRequest(request, expectedResultIds);
     }
 
+    /*
+    Проверяет сортировку в getList по возрастанию createdAt:
+    - передаёт sortCreatedDesc=false
+    - ожидает, что записи вернутся от самых ранних к самым поздним
+    - дополнительно проверяет корректность содержимого каждого элемента
+    */
     @Test
     void getListAscSorting() {
         GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
@@ -325,6 +366,12 @@ public class ExtractionResultGrpcToDb {
         checkGetListRequest(request, expectedResultIds);
     }
 
+    /*
+    Проверяет фильтрацию getList по userId:
+    - задаёт userId="3"
+    - ожидает, что вернутся только записи данного пользователя
+    - проверяет порядок результатов согласно сортировке сервера
+    */
     @Test
     void getListByUserId() {
         GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
@@ -338,6 +385,12 @@ public class ExtractionResultGrpcToDb {
         checkGetListRequest(request, expectedResultIds);
     }
 
+    /*
+    Проверяет фильтрацию getList по нижней границе createdFrom:
+    - задаёт createdFrom (начиная с 2026-01-05)
+    - ожидает, что вернутся записи с createdAt >= createdFrom
+    - проверяет порядок и корректность данных
+    */
     @Test
     void getListByCreatedFrom() {
         GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
@@ -351,6 +404,12 @@ public class ExtractionResultGrpcToDb {
         checkGetListRequest(request, expectedResultIds);
     }
 
+    /*
+    Проверяет фильтрацию getList по верхней границе createdTo:
+    - задаёт createdTo (до 2026-01-05)
+    - ожидает, что вернутся записи с createdAt <= createdTo (или согласно правилам сервера для границы)
+    - проверяет порядок и корректность данных
+    */
     @Test
     void getListByCreatedTo() {
         GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
@@ -364,6 +423,12 @@ public class ExtractionResultGrpcToDb {
         checkGetListRequest(request, expectedResultIds);
     }
 
+    /*
+    Проверяет фильтрацию getList по диапазону createdAt:
+    - задаёт createdFrom и createdTo
+    - ожидает, что вернутся записи внутри указанного интервала
+    - проверяет порядок и корректность данных
+    */
     @Test
     void getListDatesBetween() {
         GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
@@ -379,6 +444,11 @@ public class ExtractionResultGrpcToDb {
 
     }
 
+    /*
+    Проверяет поведение getList при конфликтном диапазоне дат:
+    - задаёт createdFrom позже, чем createdTo
+    - ожидает, что сервер вернёт пустой список (без падения/исключения)
+    */
     @Test
     void getListConflictDatesNoData() {
         GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
@@ -393,6 +463,12 @@ public class ExtractionResultGrpcToDb {
         checkGetListRequest(request, expectedResultIds);
     }
 
+    /*
+    Проверяет пагинацию getList на “средней” странице:
+    - задаёт pageNum=2 и pageSize=3
+    - ожидает конкретный срез данных (строго определённые id в ответе)
+    - проверяет порядок и корректность каждого элемента
+    */
     @Test
     void getListMidPage() {
         GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
@@ -405,6 +481,11 @@ public class ExtractionResultGrpcToDb {
         checkGetListRequest(request, expectedResultIds);
     }
 
+    /*
+    Проверяет поведение getList при выходе за пределы страниц:
+    - задаёт слишком большой pageNum относительно размера выборки
+    - ожидает пустой результат
+    */
     @Test
     void getListExceedingPageNum() {
         GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
@@ -417,6 +498,12 @@ public class ExtractionResultGrpcToDb {
         checkGetListRequest(request, expectedResultIds);
     }
 
+    /*
+     Проверяет валидацию параметров getList: pageSize = 0
+     - отправляет запрос с pageSize=0
+     - ожидает StatusRuntimeException со статусом UNAVAILABLE
+     - проверяет, что описание ошибки содержит упоминание некорректного размера (less than one)
+     */
     @Test
     void getListZeroPageSizeUnavailableException() {
         GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
@@ -435,6 +522,12 @@ public class ExtractionResultGrpcToDb {
         assertThat(ex.getStatus().getDescription()).contains("size").contains("less than one");
     }
 
+    /*
+    Проверяет валидацию параметров getList: отрицательный pageNum
+    - отправляет запрос с pageNum=-1
+    - ожидает StatusRuntimeException со статусом UNAVAILABLE
+    - проверяет, что описание ошибки содержит упоминание некорректного индекса (less than zero)
+    */
     @Test
     void getListNegativePageNumUnavailableException() {
         GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
@@ -453,6 +546,13 @@ public class ExtractionResultGrpcToDb {
         assertThat(ex.getStatus().getDescription()).contains("index").contains("less than zero");
     }
 
+
+    /*
+    Проверяет happy-path для delete по существующим данным:
+    - сохраняет две сущности в базе
+    - удаляет их по очереди через gRPC delete
+    - проверяет, что количество записей в репозитории уменьшается 2 -> 1 -> 0
+    */
     @Test
     void deleteSeveralExistingData() {
         Map<String, Object> map1 = Map.of(
@@ -482,6 +582,12 @@ public class ExtractionResultGrpcToDb {
     }
 
 
+    /*
+    Проверяет обработку delete для несуществующего/невалидного id:
+    - создаёт одну запись в базе, затем пытается удалить другую ("*@$")
+    - ожидает StatusRuntimeException со статусом NOT_FOUND
+    - проверяет, что описание ошибки содержит текст "didn't exist" и запрошенный id
+    */
     @Test
     void deleteWrongIdNotFoundException() {
         ExtractionResult entity = new ExtractionResult("url", "userid", Map.of("age", 40));
@@ -501,6 +607,8 @@ public class ExtractionResultGrpcToDb {
         assertThat(ex.getStatus().getDescription()).contains("didn't exist").contains("*@$");
     }
 
+
+    // Вспомогательный метод для тестов getList
     void checkGetListRequest(GetListExtractionResultRequest request, List<String> expectedResultIds) {
         List<ExtractionResult> entities = List.of(
                 ExtractionResult.builder().id(expand24("1")).url("url1").userId("1").jsonResult(Map.of("age", 10.0)).createdAt(Instant.parse("2026-01-01T00:00:00.000Z")).build(),
@@ -536,6 +644,7 @@ public class ExtractionResultGrpcToDb {
         return "0".repeat(24 - id.length()) + id;
     }
 
+    // Низкоуровневая вставка тестовых данных напрямую в MongoDB
     void rawDbInsert(List<ExtractionResult> entities) {
         String collection = mongoTemplate.getCollectionName(ExtractionResult.class);
 
@@ -551,6 +660,7 @@ public class ExtractionResultGrpcToDb {
         mongoTemplate.getCollection(collection).insertMany(docs);
     }
 
+    // Проверяет валидность полей ExtractionResultProto (ответ gRPC, обычно после create)
     private void assertExtractionResultProtoFieldsValidity(
             String expectedUrl,
             String expectedUserId,
@@ -570,7 +680,8 @@ public class ExtractionResultGrpcToDb {
                 .isBetween(timeBefore.minusSeconds(2), timeAfter.plusSeconds(2));
     }
 
-    private void assertExtractionResultFieldsValidity(
+    // Проверяет валидность полей доменной сущности ExtractionResult, прочитанной из БД
+    private void assertExtractionResultDomainFieldsValidity(
             String expectedUrl,
             String expectedUserId,
             Map<String, Object> expectedMap,
@@ -589,6 +700,7 @@ public class ExtractionResultGrpcToDb {
                 .isBetween(timeBefore.minusSeconds(2), timeAfter.plusSeconds(2));
     }
 
+    // Проверяет соответствие одной и той же сущности в двух представлениях (domain vs proto)
     private void assertExtractionResultDomainProtoValidity(
             ExtractionResult domain,
             ExtractionResultProto proto,
@@ -607,6 +719,5 @@ public class ExtractionResultGrpcToDb {
             assertThat(domain.getCreatedAt())
                     .isBetween(timeBefore.minusSeconds(2), timeAfter.plusSeconds(2));
         }
-
     }
 }

@@ -7,6 +7,8 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.CompoundIndexes;
+import org.springframework.data.mongodb.core.index.IndexDirection;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
@@ -18,8 +20,11 @@ import java.util.Map;
  */
 @Document("extraction_results")
 @CompoundIndexes({
-        // Создаём составной индекс по возрастанию userId и убыванию createdAt
-        @CompoundIndex(name = "user_created_idx", def = "{'userId': 1, 'createdAt': -1}")
+        // составной индекс по возрастанию userId и убыванию createdAt
+        @CompoundIndex(name = "user_created_idx", def = "{'userId': 1, 'createdAt': -1}"),
+        // отдельный индекс для createdAt
+        @CompoundIndex(name = "created_desc_idx", def = "{'createdAt': -1}")
+        // отдельный индекс для "userId" не требуется, т.к. его заменяет leftmost prefix из составного ("userId, createdAt")
 })
 @Getter
 @Setter

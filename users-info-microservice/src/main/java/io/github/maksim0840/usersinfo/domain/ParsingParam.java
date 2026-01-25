@@ -8,11 +8,21 @@ import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 
 @Entity
-@Table(name = "parsing_params")
+@EntityListeners(AuditingEntityListener.class)  // добавляем слушателя жизненного цикла JPA-сущности (для автоматического проставления CreatedDate)
+@Table(name = "parsing_params",
+        indexes = {
+                // составной индекс ("user_id, created_at")
+                @Index(name = "idx_parsing_params_user_created_at", columnList = "user_id, created_at"),
+                // отдельный индекс для "created_at"
+                @Index(name = "idx_parsing_params_created_at", columnList = "created_at")
+                // отдельный индекс для "user_id" не требуется, т.к. его заменяет leftmost prefix из составного ("user_id, created_at")
+        }
+)
 @Getter
 @Setter
 @Builder
@@ -29,6 +39,7 @@ public class ParsingParam {
     private String name;
     private String description;
     @CreatedDate                            // автозаполнение даты при сохранении
+    @Column(name = "created_at")            // названия колонок с составными именами лучше указать явно
     private Instant createdAt;
 
     public ParsingParam() {}

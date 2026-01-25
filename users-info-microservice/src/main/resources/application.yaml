@@ -7,6 +7,9 @@ spring:
     url: jdbc:postgresql://localhost:5432/users_info
     username: postgres
     password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: update # автосоздание/обновление схемы
 
 grpc:
   server:
