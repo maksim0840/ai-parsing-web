@@ -73,7 +73,6 @@ public class ParsingParamService {
         if (!checkExistenceParsingParamById(id)) {
             throw new NotFoundException("PostgreSQL parsingParam didn't exist (id: " + id + ")");
         }
-
         try {
             parsingParamRepository.deleteById(id);
         } catch (DataAccessException e) {

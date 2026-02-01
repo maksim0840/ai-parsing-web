@@ -4,9 +4,11 @@ import io.github.maksim0840.extraction_result.v1.*;
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 import io.github.maksim0840.internalapi.user.v1.enums.UserRole;
 import io.github.maksim0840.internalapi.user.v1.mapper.ProtoUserRoleMapper;
+import io.github.maksim0840.parsing_param.v1.GetListParsingParamRequest;
 import io.github.maksim0840.parsing_param.v1.ParsingParamServiceGrpc;
 import io.github.maksim0840.user.v1.*;
 import io.github.maksim0840.usersinfo.Main;
+import io.github.maksim0840.usersinfo.domain.ParsingParam;
 import io.github.maksim0840.usersinfo.domain.User;
 import io.github.maksim0840.usersinfo.repository.ParsingParamRepository;
 import io.github.maksim0840.usersinfo.repository.UserRepository;
@@ -76,7 +78,9 @@ public class UserGrpcToDb {
 
     // Репозиторий для отправки запросов к базе данных
     @Autowired
-    UserRepository repository;
+    UserRepository userRepository;
+    @Autowired
+    ParsingParamRepository parsingParamRepository;
 
     // Объект для более низкоуровневых операций с базой данных (по сравнению с репозиторием)
     @Autowired
@@ -85,7 +89,7 @@ public class UserGrpcToDb {
     // Очищаем базу перед каждым новым тестом
     @BeforeEach
     void cleanDb() {
-        repository.deleteAll();
+        userRepository.deleteAll();
     }
 
 
@@ -124,14 +128,14 @@ public class UserGrpcToDb {
         assertThat(responseProto1.getId()).isNotEqualTo(responseProto2.getId());
 
         // Получаем результаты записи в бд
-        User responseRepo1 = repository.findById(responseProto1.getId()).orElseThrow();
-        User responseRepo2 = repository.findById(responseProto2.getId()).orElseThrow();
+        User responseRepo1 = userRepository.findById(responseProto1.getId()).orElseThrow();
+        User responseRepo2 = userRepository.findById(responseProto2.getId()).orElseThrow();
 
         // Проверяем валидность записанной в базу данных информации
         assertUserDomainFieldsValidity(request1.getName(), request1.getPassword(), role1, timeBefore, timeAfter, responseRepo1);
         assertUserDomainFieldsValidity(request2.getName(), request2.getPassword(), role2, timeBefore, timeAfter, responseRepo2);
         assertThat(responseRepo1.getId()).isNotEqualTo(responseRepo2.getId());
-        assertThat(repository.count()).isEqualTo(2);
+        assertThat(userRepository.count()).isEqualTo(2);
     }
 
     /*
@@ -154,10 +158,10 @@ public class UserGrpcToDb {
 
         assertUserProtoFieldsValidity("", request.getPassword(), role, timeBefore, timeAfter, responseProto);
 
-        User responseRepo = repository.findById(responseProto.getId()).orElseThrow();
+        User responseRepo = userRepository.findById(responseProto.getId()).orElseThrow();
 
         assertUserDomainFieldsValidity("", request.getPassword(), role, timeBefore, timeAfter, responseRepo);
-        assertThat(repository.count()).isEqualTo(1);
+        assertThat(userRepository.count()).isEqualTo(1);
     }
 
     /*
@@ -180,10 +184,10 @@ public class UserGrpcToDb {
 
         assertUserProtoFieldsValidity(request.getName(), "", role, timeBefore, timeAfter, responseProto);
 
-        User responseRepo = repository.findById(responseProto.getId()).orElseThrow();
+        User responseRepo = userRepository.findById(responseProto.getId()).orElseThrow();
 
         assertUserDomainFieldsValidity(request.getName(), "", role, timeBefore, timeAfter, responseRepo);
-        assertThat(repository.count()).isEqualTo(1);
+        assertThat(userRepository.count()).isEqualTo(1);
     }
 
     /*
@@ -227,8 +231,8 @@ public class UserGrpcToDb {
         User entity2 = new User("boris_test", PasswordEncryption.makeHash(password2), UserRole.VISITOR);
 
         Instant timeBefore = Instant.now();
-        repository.save(entity1);
-        repository.save(entity2);
+        userRepository.save(entity1);
+        userRepository.save(entity2);
         Instant timeAfter = Instant.now();
 
         GetUserRequest request1 = GetUserRequest.newBuilder().setId(entity1.getId()).build();
@@ -253,7 +257,7 @@ public class UserGrpcToDb {
         String password = "'ILLK'*prep*2";
         User entity = new User("ivan.petrov", PasswordEncryption.makeHash(password), UserRole.USER);
 
-        repository.save(entity);
+        userRepository.save(entity);
 
         GetUserRequest request = GetUserRequest.newBuilder().setId(12).build();
 
@@ -406,6 +410,26 @@ public class UserGrpcToDb {
     }
 
     /*
+    Проверяет фильтрацию getList пользователей по диапазону дат createdFrom/createdTo, который “не совпадает” с точными датами в тестовой БД, но включает все записи
+    - отправляет запрос с createdFrom="2025-01-01" и createdTo="2027-01-01" (границы шире дат у созданных пользователей), pageNum=0, pageSize=100
+    - ожидает, что фильтрация отработает без ошибок и вернёт всех пользователей, попадающих в диапазон (в данном наборе — все 10)
+    - проверяет, что результаты возвращаются в ожидаемом порядке (сортировка по createdAt/id согласно реализации сервиса) и соответствуют ожидаемым userId (через checkGetListRequest)
+    */
+    @Test
+    void getListNotFromDbDatesBetween() {
+        GetListUserRequest request = GetListUserRequest.newBuilder()
+                .setCreatedFrom(ProtoTimeMapper.instantToTimestamp(Instant.parse("2025-01-01T00:00:00.000Z")))
+                .setCreatedTo(ProtoTimeMapper.instantToTimestamp(Instant.parse("2027-01-01T00:00:00.000Z")))
+                .setPageNum(0)
+                .setPageSize(100)
+                .build();
+
+        List<Long> expectedUserIds = List.of(10L, 9L, 8L, 7L, 6L, 5L, 4L, 3L, 2L, 1L);
+
+        checkGetListRequest(request, expectedUserIds);
+    }
+
+    /*
     Проверяет поведение getList при конфликтном диапазоне дат:
     - задаёт createdFrom позже, чем createdTo
     - ожидает пустой список (без исключения)
@@ -515,17 +539,17 @@ public class UserGrpcToDb {
         User entity1 = new User("daria.qa", PasswordEncryption.makeHash("Em0ji_\uD83D\uDD25_P@ss9"), UserRole.ADMIN);
         User entity2 = new User("eve.user", PasswordEncryption.makeHash("V!olet-88-Keys"), UserRole.USER);
 
-        repository.save(entity1);
-        repository.save(entity2);
+        userRepository.save(entity1);
+        userRepository.save(entity2);
 
         DeleteUserRequest request1 = DeleteUserRequest.newBuilder().setId(entity1.getId()).build();
         DeleteUserRequest request2 = DeleteUserRequest.newBuilder().setId(entity2.getId()).build();
 
-        assertThat(repository.count()).isEqualTo(2);
+        assertThat(userRepository.count()).isEqualTo(2);
         blockingStub.delete(request1);
-        assertThat(repository.count()).isEqualTo(1);
+        assertThat(userRepository.count()).isEqualTo(1);
         blockingStub.delete(request2);
-        assertThat(repository.count()).isEqualTo(0);
+        assertThat(userRepository.count()).isEqualTo(0);
     }
 
     /*
@@ -539,7 +563,7 @@ public class UserGrpcToDb {
     void deleteWrongIdNotFoundException() {
         User entity = new User("student", PasswordEncryption.makeHash("not a password"), UserRole.VISITOR);
 
-        repository.save(entity);
+        userRepository.save(entity);
 
         DeleteUserRequest request = DeleteUserRequest.newBuilder().setId(-2).build();
 
@@ -550,6 +574,36 @@ public class UserGrpcToDb {
 
         assertThat(ex.getStatus().getCode()).isEqualTo(Status.Code.NOT_FOUND);
         assertThat(ex.getStatus().getDescription()).contains("didn't exist").contains("-2");
+    }
+
+    /*
+    Проверяет каскадное удаление зависимых сущностей при удалении пользователя (User -> ParsingParam)
+    - создаёт пользователя и сохраняет его в БД
+    - создаёт две записи ParsingParam, привязанные к этому пользователю, и сохраняет их
+    - убеждается, что в БД 1 пользователь и 2 зависимых параметра
+    - вызывает gRPC метод delete по id пользователя
+    - ожидает, что удаление пользователя приведёт к каскадному удалению всех связанных ParsingParam
+    - проверяет, что в БД не осталось ни пользователя, ни его зависимых параметров
+    */
+    @Test
+    void deleteOnCascade() {
+        User entity = new User("mmnsm", PasswordEncryption.makeHash("mmnsm_pass"), UserRole.USER);
+        userRepository.save(entity);
+
+        ParsingParam parsingParam1 = new ParsingParam(entity,"name1", "description1");
+        ParsingParam parsingParam2 = new ParsingParam(entity,"name2", "description2");
+        parsingParamRepository.save(parsingParam1);
+        parsingParamRepository.save(parsingParam2);
+
+        assertThat(userRepository.count()).isEqualTo(1);
+        assertThat(parsingParamRepository.count()).isEqualTo(2);
+
+        DeleteUserRequest request = DeleteUserRequest.newBuilder().setId(entity.getId()).build();
+        blockingStub.delete(request);
+
+        // Пользователь удалился вместе с зависимыми от него параметрами
+        assertThat(userRepository.count()).isEqualTo(0);
+        assertThat(parsingParamRepository.count()).isEqualTo(0);
     }
 
 
@@ -565,8 +619,8 @@ public class UserGrpcToDb {
         User entity1 = new User("user+tag", PasswordEncryption.makeHash("t@g+user_4"), UserRole.ADMIN);
         User entity2 = new User("space user", PasswordEncryption.makeHash("sp ace__PW9!"), UserRole.VISITOR);
 
-        repository.save(entity1);
-        repository.save(entity2);
+        userRepository.save(entity1);
+        userRepository.save(entity2);
 
         // Проверяем, что в базе находятся старые роли
         assertThat(entity1.getRole()).isEqualTo(UserRole.ADMIN);
@@ -585,8 +639,8 @@ public class UserGrpcToDb {
         UserProto responseProto2 = blockingStub.setRole(request2).getUser();
 
         // Получаем новые (изменённые) объекты из базы данных
-        User updatedEntity1 = repository.findById(entity1.getId()).orElseThrow();
-        User updatedEntity2 = repository.findById(entity2.getId()).orElseThrow();
+        User updatedEntity1 = userRepository.findById(entity1.getId()).orElseThrow();
+        User updatedEntity2 = userRepository.findById(entity2.getId()).orElseThrow();
 
         // Проверяем, что роли изменились (в response и в реальной базе данных)
         assertThat(ProtoUserRoleMapper.protoToDomain(responseProto1.getRole())).isEqualTo(UserRole.USER);
@@ -605,7 +659,7 @@ public class UserGrpcToDb {
     void setRoleNoChanges() {
         User entity = new User("admin.test", PasswordEncryption.makeHash("Adm1n$ecret!!"), UserRole.ADMIN);
 
-        repository.save(entity);
+        userRepository.save(entity);
 
         assertThat(entity.getRole()).isEqualTo(UserRole.ADMIN);
 
@@ -615,7 +669,7 @@ public class UserGrpcToDb {
                 .build();
         UserProto responseProto = blockingStub.setRole(request).getUser();
 
-        User updatedEntity = repository.findById(entity.getId()).orElseThrow();
+        User updatedEntity = userRepository.findById(entity.getId()).orElseThrow();
 
         assertThat(ProtoUserRoleMapper.protoToDomain(responseProto.getRole())).isEqualTo(UserRole.ADMIN);
         assertThat(updatedEntity.getRole()).isEqualTo(UserRole.ADMIN);
@@ -633,7 +687,7 @@ public class UserGrpcToDb {
     void setRoleEmptyRoleInvalidArgumentException() {
         User entity = new User("boris_01", PasswordEncryption.makeHash("borisPASS_2026"), UserRole.USER);
 
-        repository.save(entity);
+        userRepository.save(entity);
 
         assertThat(entity.getRole()).isEqualTo(UserRole.USER);
 
@@ -664,7 +718,7 @@ public class UserGrpcToDb {
     void setRoleWrongIdNotFoundException() {
         User entity = new User("unicode_пользователь", PasswordEncryption.makeHash("Пароль#2026"), UserRole.VISITOR);
 
-        repository.save(entity);
+        userRepository.save(entity);
 
         assertThat(entity.getRole()).isEqualTo(UserRole.VISITOR);
 
@@ -698,8 +752,8 @@ public class UserGrpcToDb {
         User entity1 = new User("a", PasswordEncryption.makeHash("A_very_long_password_0000000001!"), UserRole.VISITOR);
         User entity2 = new User("a", PasswordEncryption.makeHash("Jd-2026-Strong*Pw"), UserRole.USER);
 
-        repository.save(entity1);
-        repository.save(entity2);
+        userRepository.save(entity1);
+        userRepository.save(entity2);
 
         // Проверяем, что в базе находятся заданные пароли и их проверка корректно работает
         assertThat(PasswordEncryption.checkMatching("A_very_long_password_0000000001!", entity1.getPasswordHash())).isTrue();
@@ -731,8 +785,8 @@ public class UserGrpcToDb {
         User entity1 = new User("grb", PasswordEncryption.makeHash("FirePass!23"), UserRole.VISITOR);
         User entity2 = new User("kit123", PasswordEncryption.makeHash("OldPassword13748"), UserRole.USER);
 
-        repository.save(entity1);
-        repository.save(entity2);
+        userRepository.save(entity1);
+        userRepository.save(entity2);
 
         // Проверяем, что в базе находятся заданные пароли и их проверка корректно работает
         assertThat(PasswordEncryption.checkMatching("FirePass!23", entity1.getPasswordHash())).isTrue();
@@ -763,7 +817,7 @@ public class UserGrpcToDb {
     void checkPasswordEmptyPassword() {
         User entity = new User("empty mt", PasswordEncryption.makeHash(""), UserRole.ADMIN);
 
-        repository.save(entity);
+        userRepository.save(entity);
 
         // Проверяем, что в базе находятся заданные пароли и их проверка корректно работает
         assertThat(PasswordEncryption.checkMatching("", entity.getPasswordHash())).isTrue();
@@ -787,7 +841,7 @@ public class UserGrpcToDb {
     void checkPasswordWrongIdNotFoundException() {
         User entity = new User("user_name", PasswordEncryption.makeHash("123"), UserRole.USER);
 
-        repository.save(entity);
+        userRepository.save(entity);
 
         CheckUserPasswordRequest request = CheckUserPasswordRequest.newBuilder()
                 .setId(-1)
@@ -821,7 +875,7 @@ public class UserGrpcToDb {
 
         // Вставляем данные в базу данных
         rawDbInsert(entities);
-        assertThat(repository.count()).isEqualTo(entities.size());
+        assertThat(userRepository.count()).isEqualTo(entities.size());
 
         // Отправляем gRPC серверу запрос
         List<UserProto> actualUsersProto = blockingStub.getList(request).getUsersList();
@@ -831,7 +885,7 @@ public class UserGrpcToDb {
         for (int i = 0; i < expectedUserIds.size(); i++) {
             int expectedPasswordIdx = Math.toIntExact(expectedUserIds.get(i)) - 1;
             String expectedPassword = passwords.get(expectedPasswordIdx);
-            User userDomain = repository.findById(expectedUserIds.get(i)).orElseThrow();
+            User userDomain = userRepository.findById(expectedUserIds.get(i)).orElseThrow();
             UserProto userProto = actualUsersProto.get(i);
             assertUserDomainProtoValidity(userDomain, userProto, expectedPassword, null, null);
         }

@@ -2,6 +2,7 @@ package io.github.maksim0840.usersinfo.grpc;
 
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 import io.github.maksim0840.parsing_param.v1.*;
+import io.github.maksim0840.user.v1.DeleteUserResponse;
 import io.github.maksim0840.usersinfo.domain.ParsingParam;
 import io.github.maksim0840.usersinfo.exception.NotFoundException;
 import io.github.maksim0840.usersinfo.mapper.ProtoDomainParsingParamMapper;
@@ -89,9 +90,12 @@ public class ParsingParamGrpcEndpoint extends ParsingParamServiceGrpc.ParsingPar
     @Override
     public void delete(DeleteParsingParamRequest request, StreamObserver<DeleteParsingParamResponse> observerResponse) {
         Long id = request.getId();
-
         try {
             parsingParamService.deleteParsingParamById(id);
+            DeleteParsingParamResponse response = DeleteParsingParamResponse.newBuilder().build();
+
+            observerResponse.onNext(response);
+            observerResponse.onCompleted();
         } catch (NotFoundException e) {
             observerResponse.onError(error(Status.NOT_FOUND, e.getMessage()));
         } catch (RuntimeException e) {

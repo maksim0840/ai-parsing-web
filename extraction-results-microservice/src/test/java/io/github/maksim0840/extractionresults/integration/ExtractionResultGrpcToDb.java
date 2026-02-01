@@ -5,6 +5,7 @@ import io.github.maksim0840.extractionresults.domain.ExtractionResult;
 import io.github.maksim0840.extractionresults.repository.ExtractionResultRepository;
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ProtoJsonMapper;
+import io.github.maksim0840.parsing_param.v1.GetListParsingParamRequest;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import net.devh.boot.grpc.client.inject.GrpcClient;
@@ -445,6 +446,26 @@ public class ExtractionResultGrpcToDb {
     }
 
     /*
+    Проверяет фильтрацию getList по диапазону дат createdFrom/createdTo, который “не совпадает” с точными датами в базе, но включает все записи
+    - отправляет запрос с createdFrom="2025-01-01" и createdTo="2027-01-01" (границы шире дат в тестовой БД), pageNum=0, pageSize=100
+    - ожидает, что фильтрация выполнится без исключений и вернёт все записи, попадающие в диапазон (в данном наборе — все 10)
+    - проверяет, что возвращённые результаты идут в ожидаемом порядке и соответствуют ожидаемым id (через checkGetListRequest)
+    */
+    @Test
+    void getListNotFromDbDatesBetween() {
+        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
+                .setCreatedFrom(ProtoTimeMapper.instantToTimestamp(Instant.parse("2025-01-01T00:00:00.000Z")))
+                .setCreatedTo(ProtoTimeMapper.instantToTimestamp(Instant.parse("2027-01-01T00:00:00.000Z")))
+                .setPageNum(0)
+                .setPageSize(100)
+                .build();
+
+        List<String> expectedResultIds = List.of(expand24("10"), expand24("9"), expand24("8"), expand24("7"), expand24("6"), expand24("5"), expand24("4"), expand24("3"), expand24("2"), expand24("1"));
+
+        checkGetListRequest(request, expectedResultIds);
+    }
+
+    /*
     Проверяет поведение getList при конфликтном диапазоне дат:
     - задаёт createdFrom позже, чем createdTo
     - ожидает, что сервер вернёт пустой список (без падения/исключения)
@@ -546,6 +567,25 @@ public class ExtractionResultGrpcToDb {
         assertThat(ex.getStatus().getDescription()).contains("index").contains("less than zero");
     }
 
+    /*
+    Проверяет фильтрацию getList по userId, которого нет в базе
+    - отправляет запрос с userId="1919" (такого пользователя/записей нет), pageNum=0, pageSize=100
+    - ожидает, что сервер вернёт пустой список результатов (без исключений)
+    - дополнительно (внутри checkGetListRequest) проверяет, что размер списка равен 0 и порядок/поля совпадают (тривиально для пустого результата)
+    */
+    @Test
+    void getListNotFromDbUserId() {
+        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
+                .setUserId("1919")
+                .setPageNum(0)
+                .setPageSize(100)
+                .build();
+
+        List<String> expectedResultIds = List.of();
+
+        checkGetListRequest(request, expectedResultIds);
+    }
+
 
     /*
     Проверяет happy-path для delete по существующим данным:
@@ -580,7 +620,6 @@ public class ExtractionResultGrpcToDb {
         blockingStub.delete(request2);
         assertThat(repository.count()).isEqualTo(0);
     }
-
 
     /*
     Проверяет обработку delete для несуществующего/невалидного id:
@@ -633,9 +672,9 @@ public class ExtractionResultGrpcToDb {
 
         // Проверяем порядок и соответствие полей
         for (int i = 0; i < expectedResultIds.size(); i++) {
-            ExtractionResult expectedResult = repository.findById(expectedResultIds.get(i)).orElseThrow();
-            ExtractionResultProto actualResultProto = actualResultsProto.get(i);
-            assertExtractionResultDomainProtoValidity(expectedResult, actualResultProto, null, null);
+            ExtractionResult extractionResultDomain = repository.findById(expectedResultIds.get(i)).orElseThrow();
+            ExtractionResultProto extractionResultProto = actualResultsProto.get(i);
+            assertExtractionResultDomainProtoValidity(extractionResultDomain, extractionResultProto, null, null);
         }
     }
 
