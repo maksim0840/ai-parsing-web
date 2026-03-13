@@ -4,3 +4,5 @@ include("internal-api")
 include("extraction-results-microservice")
 include("users-info-microservice")
 include("api-gateway-microservice")
+
+include("parsing-task-orchestrator-microservice")
