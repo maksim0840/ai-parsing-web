@@ -11,3 +11,13 @@ spring:
 
 server:
   port: 8080
+
+
+rabbitmq:
+  html_parser_queue:
+    request_name: html_parser_queue_request
+    response_name: html_parser_queue_response
+
+  text_recognition_queue:
+    request_name: text_recognition_queue_request
+    response_name: text_recognition_queue_response

@@ -10,11 +10,9 @@ import time
 import shutil
 
 # Максимальное количество одновременно обрабатываемых страниц (~ создаваемых контекстов)
-MAX_PLAYWRIGHT_CONTEXTS_CONCURRENCY = 5
+MAX_PLAYWRIGHT_CONTEXTS_CONCURRENCY = 3
 # Максимальное количество одновременно сохраняемых картинок со всех страниц (защита системы от перегрузки)
 MAX_IMG_SAVE_CONCURRENCY_GLOBAL = 20
-# Максимальное количество одновременно сохраняемых картинок с одной страницы (чтобы одна страница не забила весь лимит)
-MAX_IMG_SAVE_CONCURRENCY_PAGE = 8
 
 
 @dataclass(kw_only=True)
@@ -60,9 +58,12 @@ class HTMLParser:
         self.playwright = None
         self.browser = None
         self.contexts_sem = asyncio.Semaphore(MAX_PLAYWRIGHT_CONTEXTS_CONCURRENCY)
-        self.global_img_sem = asyncio.Semaphore(MAX_IMG_SAVE_CONCURRENCY_GLOBAL)
+        self.img_save_tasks = asyncio.Queue()
+        self.img_save_workers = []
 
     async def start(self):
+        await self.stop()
+        # Запускаем браузер playwright
         self.playwright = await async_playwright().start()
         launch_kwargs = {
             "channel": "chrome",
@@ -70,60 +71,79 @@ class HTMLParser:
             "args": ["--disable-blink-features=AutomationControlled"],
         }
         self.browser = await self.playwright.chromium.launch(**launch_kwargs)
+
+        # Запускаем воркеров для обработки ответов
+        self.img_save_workers = [
+            asyncio.create_task(self.save_image_from_page_response_worker())
+            for i in range(MAX_IMG_SAVE_CONCURRENCY_GLOBAL)
+        ]
         
     async def stop(self):
-        await self.browser.close()
-        self.browser = None
-        await self.playwright.stop()
-        self.playwright = None
+        # Закрываем браузер playwright
+        if (self.browser is not None):
+            await self.browser.close()
+            self.browser = None
+        if (self.playwright is not None):
+            await self.playwright.stop()
+            self.playwright = None
+
+        # Останавливаем воркеров
+        if (len(self.img_save_workers) > 0):
+            for i in range(MAX_IMG_SAVE_CONCURRENCY_GLOBAL):
+                await self.img_save_tasks.put(None) # флаг остановки
+            await asyncio.gather(*self.img_save_workers, return_exceptions=True)
+            self.img_save_tasks = asyncio.Queue()
+            self.img_save_workers = []
 
 
     # Скачивание html страницы и контента внутри
-    async def download_html_content(self, url, download_images=True,
-                                    html_out_path="out.html", images_out_dir="images",
-                                    proxy=None, user_agent=None, additional_page_load_timeout_s=0,
-                                    settings=PageComplexity.DEFAULT.value):
+    async def download_html_content(self, url, download_images=True,                                          # основные параметры
+                                    headers={}, cookies={}, proxy={},                                         # заголовки
+                                    html_out_path="out.html", images_out_dir="images",                        # выходные файлы
+                                    settings=PageComplexity.DEFAULT.value, additional_page_load_timeout_s=0): # задержки
         if (self.browser is None):
             return {"success": False, "message": "closed browser"} 
 
         async with self.contexts_sem:
-            page_img_sem = asyncio.Semaphore(MAX_IMG_SAVE_CONCURRENCY_PAGE)
-            img_tasks = []
+            loop = asyncio.get_running_loop()
+            img_task_futures = [] # объекты-результаты выполнения функции по скачиванию изображения
             closing = False
-            img_urls = set()
 
             # Настраиваем заголовки
-            context_kwargs = {
-                "locale": "ru-RU",
-                "timezone_id": "Europe/Moscow",
-                "viewport": {"width": 1366, "height": 768},
-            }
-            if (user_agent): 
-                context_kwargs["user_agent"] = user_agent
-            if (proxy): 
+            context_kwargs = {}
+            if (headers): 
+                context_kwargs["extra_http_headers"] = headers
+            if (cookies): 
+                context_kwargs["storage_state"] = {
+                    "cookies": cookies
+                }
+            if (proxy):
                 context_kwargs["proxy"] = {
                     "server": f"http://{proxy['ip']}:{proxy['port']}",
-                    "username": proxy["username"],
-                    "password": proxy["password"]
                 }
-            context = await self.browser.new_context(**context_kwargs)
+                if (proxy.get("username")): context_kwargs["proxy"]["username"] = proxy["username"]
+                if (proxy.get("password")): context_kwargs["proxy"]["password"] = proxy["userpasswordname"]
+            try:
+                context = await self.browser.new_context(**context_kwargs)
+            except Exception as e:
+                return {"success": False, "message": str(e)}
 
             page= None
             try:
                 # Открываем страницу
                 page = await context.new_page()
 
-                # Подписываемся на все сетевые ответы страницы для скачивания изображений + создаём дирректорию под изображения
-                def on_response(resp):
+                # Создаём и отправляем задачу на скачивание изображения воркерам
+                async def on_response(resp):
                     if closing:
                         return
-                    img_tasks.append(
-                        asyncio.create_task(
-                            self.save_image_from_page_response(resp, images_out_dir, page_img_sem, saved_urls=img_urls)
-                        )
-                    )
+                    future = loop.create_future()
+                    img_task_futures.append(future)
+                    await self.img_save_tasks.put((resp, images_out_dir, future))
+
+                # Подписываемся на все сетевые ответы страницы + создаём дирректорию под изображения
                 if (download_images):
-                    HTMLParser.create_and_clear_dir(images_out_dir)
+                    await asyncio.to_thread(HTMLParser.create_and_clear_dir, images_out_dir)
                     page.on("response", on_response)
 
                 # Переходим по url и ожидаем подгрузки контента
@@ -137,9 +157,9 @@ class HTMLParser:
 
                 # Сохраняем html код страницы
                 html = await page.content()
-                with open(html_out_path, "w", encoding="utf-8") as f:
-                    f.write(html)
+                await asyncio.to_thread(HTMLParser.write_file, html_out_path, html)
             except Exception as e:
+                await context.close()
                 return {"success": False, "message": str(e)}
             finally:
                 # Останавливаем поиск изображений
@@ -149,50 +169,41 @@ class HTMLParser:
                     except: pass
                 
                 # Дожидаемся завершения задач
-                if img_tasks:
-                    await asyncio.gather(*img_tasks, return_exceptions=True)
+                await asyncio.gather(*img_task_futures, return_exceptions=True)
 
                 await context.close()
             return {"success": True, "message": "OK"} 
 
 
     # Получаем сетевой ответ веб-страницы и скачиваем его, если это изображение
-    async def save_image_from_page_response(self, response, img_dir, page_img_sem, saved_urls=None):
-        if saved_urls is None:
-            saved_urls = set()
-        try:
-            # Проверяем, что ответ является изображением
-            content_type = (response.headers.get("content-type") or "").lower()
-            resource_type = response.request.resource_type.lower()
-            # print(f"content_type: {content_type}; resource_type: {resource_type}")
-            if (resource_type != "image") and (not content_type.startswith("image/")):
+    async def save_image_from_page_response_worker(self):
+        while True:
+            task = await self.img_save_tasks.get()
+            if (task is None): # флаг остановки
                 return
-            
-            # Проверяем наличие данного изображения в числе уже скачанных
-            url = response.url
-            if url in saved_urls:
-                return
-            saved_urls.add(url)
+            response, img_dir, future = task
 
-            async with page_img_sem:
-                async with self.global_img_sem:
-                    # Сохраняем изображение на диск
-                    body = await response.body()
-                    img_ext = HTMLParser.get_img_extension(content_type, url)
-                    img_name = HTMLParser.get_img_name(url)
-                    img_path = os.path.join(img_dir, img_name + img_ext)
-                    with open(img_path, "wb") as f:
-                        f.write(body)
-        except Exception as e:
-            # print(e)
-            pass
+            try:
+                # Проверяем, что ответ является изображением
+                content_type = (response.headers.get("content-type") or "").lower()
+                resource_type = response.request.resource_type.lower()
+                # print(f"content_type: {content_type}; resource_type: {resource_type}")
+                if (resource_type != "image") and (not content_type.startswith("image/")):
+                    future.cancel()
+                    continue
+                
+                # Сохраняем изображение на диск
+                url = response.url
+                body = await response.body()
+                img_ext = HTMLParser.get_img_extension(content_type, url)
+                img_name = HTMLParser.get_img_name(url)
+                img_path = os.path.join(img_dir, img_name + img_ext)
+                await asyncio.to_thread(HTMLParser.write_file, img_path, body)
+                future.set_result(img_path)
+            except Exception as e:
+                future.set_exception(e)
+                # print(e)
 
-
-    # Очистка и создание новой дирректирии
-    @staticmethod
-    def create_and_clear_dir(dir):
-        shutil.rmtree(dir, ignore_errors=True)
-        os.makedirs(dir, exist_ok=True)
 
     # Скрол страницы, пока не убедимся, что дошли до конца (или пока не случится timeout)
     @staticmethod
@@ -241,7 +252,22 @@ class HTMLParser:
     @staticmethod
     def get_img_name(url):
         return hashlib.sha1(url.encode("utf-8")).hexdigest()[:16]
-
+    
+    # Сохранить в файл
+    @staticmethod
+    def write_file(path, data):
+        if isinstance(data, (bytes, bytearray, memoryview)):
+            with open(path, "wb") as f:
+                f.write(data)
+        else:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(data)
+    
+    # Очистка и создание новой дирректирии
+    @staticmethod
+    def create_and_clear_dir(dir):
+        shutil.rmtree(dir, ignore_errors=True)
+        os.makedirs(dir, exist_ok=True)
 
 
 async def main():
@@ -255,13 +281,14 @@ async def main():
     try:
         r = await html_parser.download_html_content(
             url=url, 
-            user_agent=user_agent, 
+            headers={"User-Agent": user_agent}, 
             additional_page_load_timeout_s=3,
             settings=PageComplexity.DEFAULT.value
         )
         print(r["success"], r["message"])
     finally:
         await html_parser.stop()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

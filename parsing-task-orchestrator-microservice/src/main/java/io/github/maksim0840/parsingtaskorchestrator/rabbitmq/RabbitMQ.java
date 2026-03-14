@@ -1,26 +1,29 @@
 package io.github.maksim0840.parsingtaskorchestrator.rabbitmq;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 public class RabbitMQ {
     private final RabbitTemplate rabbitTemplate;
 
+    @Value("${rabbitmq.html_parser_queue.request_name}")
+    private String htmlParserRequestQueueName;
+
+    @Value("${rabbitmq.text_recognition_queue.request_name}")
+    private String textRecognitionRequestQueueName;
+
     public RabbitMQ(RabbitTemplate rabbitTemplate) {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    private void send(String queueName, String message) {
-        rabbitTemplate.convertAndSend(queueName, message);
+    public void sendToHtmlParserQueue(String message) {
+        rabbitTemplate.convertAndSend(htmlParserRequestQueueName, message);
     }
 
-    public void sendHtmlParserMessage(String message) {
-        send("html_parser_request", message);
-    }
-
-    public void sendTextRecognitionMessage(String message) {
-        send("text_recognition_request", message);
+    public void sendToTextRecognitionQueue(String message) {
+        rabbitTemplate.convertAndSend(textRecognitionRequestQueueName, message);
     }
 
 }
