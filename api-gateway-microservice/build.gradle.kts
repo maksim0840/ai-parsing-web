@@ -19,6 +19,9 @@ repositories {
 }
 
 dependencies {
+    // S3 storage
+    implementation("software.amazon.awssdk:s3:2.20.0")
+
     // Lombok
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")

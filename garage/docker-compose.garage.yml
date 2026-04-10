@@ -1,0 +1,15 @@
+services:
+  garage:
+    image: dxflrs/garage:v2.2.0
+    container_name: garage
+    restart: unless-stopped
+    ports:
+      - "3900:3900"  # S3 API
+      - "3901:3901"  # internal RPC
+      - "3902:3902"  # web
+      - "3903:3903"  # admin API
+      - "3904:3904"  # k2v
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - ./meta:/var/lib/garage/meta
+      - ./data:/var/lib/garage/data
