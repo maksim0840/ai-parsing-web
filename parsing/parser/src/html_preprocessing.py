@@ -308,7 +308,7 @@ class HTMLPreprocessing:
         with open(html_path, "rb") as file:
             return file.read()
     
-    staticmethod
+    @staticmethod
     def write_html_bytes(html_path, html_bytes):
         with open(html_path, "w", encoding="utf-8") as f:
             f.write(html_bytes)
@@ -335,5 +335,5 @@ class HTMLPreprocessing:
                 await self.write_html_bytes_to_s3(html_path, processed_html_bytes)
 
             except Exception as e:
-                return {"success": False, "message": str(e), "response": None}
+                return {"success": False, "message": str(e), "response": {}}
             return {"success": True, "message": "OK", "response": {"html_path": html_path}}

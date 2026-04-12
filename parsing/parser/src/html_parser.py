@@ -116,7 +116,7 @@ class HTMLParser:
         additional_page_load_timeout_s=0
     ):
         if (self.browser is None):
-            return {"success": False, "message": "closed browser", "response": None} 
+            return {"success": False, "message": "closed browser", "response": {}} 
 
         async with self.contexts_sem:
             loop = asyncio.get_running_loop()
@@ -144,7 +144,7 @@ class HTMLParser:
                 context = await self.browser.new_context(**context_kwargs)
                 await context.add_cookies(cookies_list)
             except Exception as e:
-                return {"success": False, "message": str(e), "response": None}
+                return {"success": False, "message": str(e), "response": {}}
 
             page= None
             try:
@@ -186,7 +186,7 @@ class HTMLParser:
                 # await asyncio.to_thread(HTMLParser.write_file_bytes, html_path, html_bytes)
                 await self.save_file_to_s3(html_path, html_bytes)
             except Exception as e:
-                return {"success": False, "message": str(e), "response": None}
+                return {"success": False, "message": str(e), "response": {}}
             finally:
                 # Останавливаем поиск изображений
                 closing = True

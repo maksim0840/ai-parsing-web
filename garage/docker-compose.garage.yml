@@ -13,16 +13,28 @@ services:
       - ./garage.toml:/etc/garage.toml:ro
       - ./meta:/var/lib/garage/meta
       - ./data:/var/lib/garage/data
+    networks:
+      - garage-net
       
-  webui: # web интерфейс
+  webui: # веб интерфейс
     image: khairul169/garage-webui:latest
     container_name: garage-webui
     restart: unless-stopped
+    depends_on:
+      - garage
     ports:
       - "3909:3909"
     volumes:
       - ./garage.toml:/etc/garage.toml:ro
     environment:
       API_BASE_URL: "http://garage:3903"
-      S3_ENDPOINT_URL: "http://garage:3900"      
+      API_ADMIN_KEY: "VjUAjjXzl5YAooBWTaj0NbTTE3HCB7eZGgmsRqXuTng="
+      S3_ENDPOINT_URL: "http://garage:3900"
+      S3_REGION: "garage"
+    networks:
+      - garage-net
+
+networks:
+  garage-net:
+    driver: bridge
      

@@ -1,4 +1,4 @@
-from faststream.rabbit import RabbitBroker
+from faststream.rabbit import RabbitBroker, RabbitRouter
 from faststream import FastStream
 import asyncio
 from parser.src.html_parser import HTMLParser, PageComplexity
@@ -7,8 +7,7 @@ import json
 from dotenv import load_dotenv
 import os
 
-# загружаем .env файл конфигурации
-load_dotenv("parser/parser_settings.env")
+load_dotenv("parser/parser_settings.env") # загружаем .env файл конфигурации
 
 QUEUE_HTML_PARSING_REQUEST = os.getenv("QUEUE_HTML_PARSING_REQUEST")
 QUEUE_HTML_PARSING_RESPONSE = os.getenv("QUEUE_HTML_PARSING_RESPONSE")
@@ -37,7 +36,6 @@ html_preprocessing = HTMLPreprocessing()
 
 @broker.subscriber(QUEUE_HTML_PARSING_REQUEST)
 async def habdle_html_parsing(msg: dict):
-    print(msg)
     url = msg.get("url")
     html_out_dir = msg.get("html_out_dir")
     images_out_dir = msg.get("images_out_dir")
@@ -48,30 +46,39 @@ async def habdle_html_parsing(msg: dict):
     page_complexity = msg.get("page_complexity", "DEFAULT")
     additional_page_load_timeout_s = msg.get("additional_page_load_timeout_s", 0)
     
-    if (not url): return
-    if (not html_out_dir): return
-    if (not images_out_dir): return
+    if (not url): 
+        await send_html_parsing_response({"success": False, "message": "Not specified parameter 'url' for parsing", "response": {}})
+        return
+    if (not html_out_dir): 
+        await send_html_parsing_response({"success": False, "message": "Not specified parameter 'html_out_dir' for parsing", "response": {}})
+        return
+    if (not images_out_dir): 
+        await send_html_parsing_response({"success": False, "message": "Not specified parameter 'images_out_dir' for parsing", "response": {}})
+        return
 
     try:
         headers_dict = json.loads(headers)
     except Exception as e:
+        await send_html_parsing_response({"success": False, "message": "Unable to convert headers to JSON format", "response": {}})
         return
     try:
         cookies_dict = json.loads(cookies)
     except:
+        await send_html_parsing_response({"success": False, "message": "Unable to convert cookies to JSON format", "response": {}})
         return
     try:
         proxy_dict = json.loads(proxy)
     except:
+        await send_html_parsing_response({"success": False, "message": "Unable to convert proxy to JSON format", "response": {}})
         return
     
     if (page_complexity == "LIGHT"): page_complexity_enum = PageComplexity.LIGHT.value
     elif (page_complexity == "DEFAULT"): page_complexity_enum = PageComplexity.DEFAULT.value
     elif (page_complexity == "DIFFICULT"): page_complexity_enum = PageComplexity.DIFFICULT.value
     else:
+        await send_html_parsing_response({"success": False, "message": "Unknown page complexity type", "response": {}})
         return
     
-    print("start parsing")
     r = await html_parser.download_html_content(
         url=url,
         html_out_dir=html_out_dir,
@@ -83,7 +90,7 @@ async def habdle_html_parsing(msg: dict):
         settings=page_complexity_enum,
         additional_page_load_timeout_s=additional_page_load_timeout_s
     )
-    print(r)
+    await send_html_parsing_response(r)
 
 
 
@@ -107,9 +114,10 @@ async def habdle_html_preprocessing(msg: dict):
     object_processing = msg.get("object_processing", False)
     source_processing = msg.get("source_processing", False)
 
-    if (not html_path): return
+    if (not html_path): 
+        await send_html_preprocessing_response({"success": False, "message": "Not specified parameter 'html_path' for preprocessing", "response": {}})
+        return
 
-    print("start preprocessing")
     r = await html_preprocessing.apply_preprocessing(
         html_path=html_path,
         noscript_processing=noscript_processing,
@@ -129,8 +137,15 @@ async def habdle_html_preprocessing(msg: dict):
         object_processing=object_processing,
         source_processing=source_processing
     )
-    print(r)
+    await send_html_preprocessing_response(r)
 
+
+
+async def send_html_parsing_response(response):
+    await broker.publish(response, queue=QUEUE_HTML_PARSING_RESPONSE)
+
+async def send_html_preprocessing_response(response):
+    await broker.publish(response, queue=QUEUE_HTML_PREPROCESSING_RESPONSE)
 
 
 async def main():
