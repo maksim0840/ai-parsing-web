@@ -18,6 +18,10 @@ rabbitmq:
     request_name: html_parser_queue_request
     response_name: html_parser_queue_response
 
+  html_preprocessing_queue:
+    request_name: html_preprocessing_queue_request
+    response_name: html_preprocessing_queue_response
+
   text_recognition_queue:
     request_name: text_recognition_queue_request
     response_name: text_recognition_queue_response

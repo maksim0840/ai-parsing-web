@@ -15,6 +15,12 @@ public class RabbitConfiguration {
     @Value("${rabbitmq.html_parser_queue.response_name}")
     private String htmlParserResponseQueueName;
 
+    @Value("${rabbitmq.html_preprocessing_queue.request_name}")
+    private String htmlPreprocessingRequestQueueName;
+
+    @Value("${rabbitmq.html_preprocessing_queue.response_name}")
+    private String htmlPreprocessingResponseQueueName;
+
     @Value("${rabbitmq.text_recognition_queue.request_name}")
     private String textRecognitionRequestQueueName;
 
@@ -35,6 +41,16 @@ public class RabbitConfiguration {
     @Bean
     public Queue htmlParserResponseQueue() {
         return new Queue(htmlParserResponseQueueName, false);
+    }
+
+    @Bean
+    public Queue htmlPreprocessingRequestQueue() {
+        return new Queue(htmlPreprocessingRequestQueueName, false);
+    }
+
+    @Bean
+    public Queue htmlPreprocessingResponseQueue() {
+        return new Queue(htmlPreprocessingResponseQueueName, false);
     }
 
     @Bean

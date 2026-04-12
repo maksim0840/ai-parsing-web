@@ -1,18 +1,27 @@
 from contextlib import asynccontextmanager
 from aiobotocore.session import get_session
-from botocore.exceptions import ClientError
 import asyncio
+from dotenv import load_dotenv
+import os
 
-DEFAULT_BUCKET_NAME = "garage-default-bucket"
-TTL_7D_BUCKET_NAME = "garage-ttl-7d-bucket"
+load_dotenv("common/s3_settings.env")
+
+S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY")
+S3_SECRET_KEY = os.getenv("S3_SECRET_KEY")
+S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL")
+S3_TIME_TO_LIVE_FLAG = True if os.getenv("S3_TIME_TO_LIVE_FLAG") == "True" else False
+
+DEFAULT_BUCKET_NAME = os.getenv("DEFAULT_BUCKET_NAME")
+TTL_7D_BUCKET_NAME = os.getenv("TTL_7D_BUCKET_NAME")
+
 
 class S3Storage:
     def __init__(
             self, 
-            access_key : str,
-            secret_key : str,
-            endpoint_url : str,
-            withTimeToLive : bool
+            access_key : str = S3_ACCESS_KEY,
+            secret_key : str = S3_SECRET_KEY,
+            endpoint_url : str = S3_ENDPOINT_URL,
+            withTimeToLive : bool = S3_TIME_TO_LIVE_FLAG
     ):
         self.config = {
             "aws_access_key_id": access_key,
@@ -27,12 +36,16 @@ class S3Storage:
     async def get_client(self):
         async with self.session.create_client("s3", **self.config) as client:
             yield client
+    
+    async def file_exists(self, s3_object_key) -> bool:
+        try:
+            async with self.get_client() as client:
+                await client.head_object(Bucket=self.bucket_name, Key=s3_object_key)
+            return True
+        except Exception as e:
+            return False
         
-    async def delete_file(self, s3_object_key):
-        async with self.get_client() as client:
-            await client.delete_object(Bucket=self.bucket_name, Key=s3_object_key)
-
-    async def upload_file_bytes(self, file_bytes, s3_object_key):
+    async def upload_file_bytes(self, s3_object_key, file_bytes):
         async with self.get_client() as client:
             await client.put_object(Bucket=self.bucket_name, Key=s3_object_key, Body=file_bytes)
     
@@ -41,27 +54,46 @@ class S3Storage:
             response = await client.get_object(Bucket=self.bucket_name, Key=s3_object_key)
             async with response["Body"] as stream:
                 return await stream.read()
-            
-    async def file_exists(self, s3_object_key) -> bool:
-        try:
-            async with self.get_client() as client:
-                await client.head_object(Bucket=self.bucket_name, Key=s3_object_key)
-            return True
-        except Exception as e:
-            return False
+    
+    async def get_object_keys_by_prefix(self, prefix):
+        continuation_token = None
+        s3_object_keys = []
+
+        async with self.get_client() as client:
+            while True:
+                params = {
+                    "Bucket": self.bucket_name,
+                    "Prefix": prefix,
+                }
+                if continuation_token:
+                    params["ContinuationToken"] = continuation_token
+
+                response = await client.list_objects_v2(**params)
+                contents = response.get("Contents", [])
+                s3_object_keys += [obj["Key"] for obj in contents]
+
+                if not response.get("IsTruncated"):
+                    break
+                continuation_token = response.get("NextContinuationToken")
+
+        return s3_object_keys
+
+    async def delete_file(self, s3_object_key):
+        async with self.get_client() as client:
+            await client.delete_object(Bucket=self.bucket_name, Key=s3_object_key)
 
 
-async def main():
-    s3_client = S3Storage(
-        access_key="GKb1b6b3a6cae1445a5a17a087",
-        secret_key="549eff9a670f17cd878edb8f5ffa170f0f1935f96dcc2c501928730f47850f2c",
-        endpoint_url="http://localhost:3900",
-        withTimeToLive=False
-    )
-    print(await s3_client.file_exists("cat.jpeg"))
-    print(await s3_client.download_file_bytes("cat.jpeg"))
-    # await s3_client.upload_file("cat.jpeg")
+# async def main():
+#     s3_client = S3Storage(
+#         access_key="GKb1b6b3a6cae1445a5a17a087",
+#         secret_key="549eff9a670f17cd878edb8f5ffa170f0f1935f96dcc2c501928730f47850f2c",
+#         endpoint_url="http://localhost:3900",
+#         withTimeToLive=False
+#     )
+#     print(await s3_client.file_exists("cat.jpeg"))
+#     print(await s3_client.download_file_bytes("cat.jpeg"))
+#     # await s3_client.upload_file("cat.jpeg")
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     asyncio.run(main())
 

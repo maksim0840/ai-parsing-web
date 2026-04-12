@@ -8,11 +8,16 @@ import re
 import hashlib
 import time
 import shutil
+from common.src.s3_storage_connection import S3Storage
+from dotenv import load_dotenv
+import os
+
+load_dotenv("parser/parser_settings.env") # загружаем .env файл конфигурации
 
 # Максимальное количество одновременно обрабатываемых страниц (~ создаваемых контекстов)
-MAX_PLAYWRIGHT_CONTEXTS_CONCURRENCY = 3
+MAX_PLAYWRIGHT_CONTEXTS_CONCURRENCY = int(os.getenv("MAX_PLAYWRIGHT_CONTEXTS_CONCURRENCY"))
 # Максимальное количество одновременно сохраняемых картинок со всех страниц (защита системы от перегрузки)
-MAX_IMG_SAVE_CONCURRENCY_GLOBAL = 20
+MAX_IMG_SAVE_CONCURRENCY_GLOBAL = int(os.getenv("MAX_IMG_SAVE_CONCURRENCY_GLOBAL"))
 
 
 @dataclass(kw_only=True)
@@ -60,6 +65,7 @@ class HTMLParser:
         self.contexts_sem = asyncio.Semaphore(MAX_PLAYWRIGHT_CONTEXTS_CONCURRENCY)
         self.img_save_tasks = asyncio.Queue()
         self.img_save_workers = []
+        self.s3_storage = S3Storage()
 
     async def start(self):
         await self.stop()
@@ -97,12 +103,20 @@ class HTMLParser:
 
 
     # Скачивание html страницы и контента внутри
-    async def download_html_content(self, url, download_images=True,                                          # основные параметры
-                                    headers={}, cookies={}, proxy={},                                         # заголовки
-                                    html_out_path="out.html", images_out_dir="images",                        # выходные файлы
-                                    settings=PageComplexity.DEFAULT.value, additional_page_load_timeout_s=0): # задержки
+    async def download_html_content(
+        self,
+        url,
+        html_out_dir,
+        images_out_dir,
+        download_images=False,
+        headers={},     # словарь {header_name: header_value}
+        cookies={},     # словарь {cookie_name: cookie_value}
+        proxy={},       # словарь http прокси с ключами {"ip": ..., "port": ..., "username": <optional>, "password": <optional>}
+        settings=PageComplexity.DEFAULT.value,
+        additional_page_load_timeout_s=0
+    ):
         if (self.browser is None):
-            return {"success": False, "message": "closed browser"} 
+            return {"success": False, "message": "closed browser", "response": None} 
 
         async with self.contexts_sem:
             loop = asyncio.get_running_loop()
@@ -111,25 +125,35 @@ class HTMLParser:
 
             # Настраиваем заголовки
             context_kwargs = {}
+            cookies_list = []
             if (headers): 
                 context_kwargs["extra_http_headers"] = headers
             if (cookies): 
-                context_kwargs["storage_state"] = {
-                    "cookies": cookies
-                }
+                cookies_list = [{
+                    "name": key,
+                    "value": value,
+                    "url": url
+                } for key, value in cookies.items()]
             if (proxy):
                 context_kwargs["proxy"] = {
                     "server": f"http://{proxy['ip']}:{proxy['port']}",
                 }
                 if (proxy.get("username")): context_kwargs["proxy"]["username"] = proxy["username"]
-                if (proxy.get("password")): context_kwargs["proxy"]["password"] = proxy["userpasswordname"]
+                if (proxy.get("password")): context_kwargs["proxy"]["password"] = proxy["password"]
             try:
                 context = await self.browser.new_context(**context_kwargs)
+                await context.add_cookies(cookies_list)
             except Exception as e:
-                return {"success": False, "message": str(e)}
+                return {"success": False, "message": str(e), "response": None}
 
             page= None
             try:
+                # Создаём и очищаем дирректории для сохранения изобрпажений и html страницы
+                # await asyncio.to_thread(HTMLParser.create_and_clear_dir, html_out_dir)
+                # await asyncio.to_thread(HTMLParser.create_and_clear_dir, images_out_dir)
+                await self.delete_s3_objects_by_prefix(html_out_dir)
+                await self.delete_s3_objects_by_prefix(images_out_dir)
+
                 # Открываем страницу
                 page = await context.new_page()
 
@@ -141,9 +165,8 @@ class HTMLParser:
                     img_task_futures.append(future)
                     await self.img_save_tasks.put((resp, images_out_dir, future))
 
-                # Подписываемся на все сетевые ответы страницы + создаём дирректорию под изображения
+                # Подписываемся на все сетевые ответы страницы
                 if (download_images):
-                    await asyncio.to_thread(HTMLParser.create_and_clear_dir, images_out_dir)
                     page.on("response", on_response)
 
                 # Переходим по url и ожидаем подгрузки контента
@@ -157,10 +180,13 @@ class HTMLParser:
 
                 # Сохраняем html код страницы
                 html = await page.content()
-                await asyncio.to_thread(HTMLParser.write_file, html_out_path, html)
+                html_bytes = html.encode("utf-8")
+                html_name = HTMLParser.get_hash(url)
+                html_path = os.path.join(html_out_dir, html_name + ".html")
+                # await asyncio.to_thread(HTMLParser.write_file_bytes, html_path, html_bytes)
+                await self.save_file_to_s3(html_path, html_bytes)
             except Exception as e:
-                await context.close()
-                return {"success": False, "message": str(e)}
+                return {"success": False, "message": str(e), "response": None}
             finally:
                 # Останавливаем поиск изображений
                 closing = True
@@ -169,10 +195,10 @@ class HTMLParser:
                     except: pass
                 
                 # Дожидаемся завершения задач
-                await asyncio.gather(*img_task_futures, return_exceptions=True)
-
+                future_task_results = await asyncio.gather(*img_task_futures, return_exceptions=True)
+                imgs_path = [x for x in future_task_results if isinstance(x, str)]
                 await context.close()
-            return {"success": True, "message": "OK"} 
+            return {"success": True, "message": "OK", "response": {"html_path": html_path, "imgs_path": imgs_path}} 
 
 
     # Получаем сетевой ответ веб-страницы и скачиваем его, если это изображение
@@ -196,9 +222,10 @@ class HTMLParser:
                 url = response.url
                 body = await response.body()
                 img_ext = HTMLParser.get_img_extension(content_type, url)
-                img_name = HTMLParser.get_img_name(url)
+                img_name = HTMLParser.get_hash(url)
                 img_path = os.path.join(img_dir, img_name + img_ext)
-                await asyncio.to_thread(HTMLParser.write_file, img_path, body)
+                # await asyncio.to_thread(HTMLParser.write_file_bytes, img_path, body)
+                await self.save_file_to_s3(img_path, body)
                 future.set_result(img_path)
             except Exception as e:
                 future.set_exception(e)
@@ -248,20 +275,16 @@ class HTMLParser:
         m = re.search(r"\.(jpg|jpeg|png|webp|gif|svg|avif|bmp|ico)(?:\?|#|$)", url, re.I)
         return f".{m.group(1).lower()}" if m else ".bin"
 
-    # Формируем имя картинки, как хэш от его url
+    # Формируем hash из строки
     @staticmethod
-    def get_img_name(url):
-        return hashlib.sha1(url.encode("utf-8")).hexdigest()[:16]
+    def get_hash(s):
+        return hashlib.sha1(s.encode("utf-8")).hexdigest()[:16]
     
     # Сохранить в файл
     @staticmethod
-    def write_file(path, data):
-        if isinstance(data, (bytes, bytearray, memoryview)):
-            with open(path, "wb") as f:
-                f.write(data)
-        else:
-            with open(path, "w", encoding="utf-8") as f:
-                f.write(data)
+    def write_file_bytes(path, data):
+        with open(path, "wb") as f:
+            f.write(data)
     
     # Очистка и создание новой дирректирии
     @staticmethod
@@ -269,26 +292,12 @@ class HTMLParser:
         shutil.rmtree(dir, ignore_errors=True)
         os.makedirs(dir, exist_ok=True)
 
+    # Сохранить файл в s3 хранилище
+    async def save_file_to_s3(self, path, data):
+        await self.s3_storage.upload_file_bytes(s3_object_key=path, file_bytes=data)
 
-async def main():
-    url = "https://impulse.t1.ru/"
-    # url = "https://вэбцентр.рф/playground/tpost/ik7pp010g1-festival-finansovoi-gramotnosti-i-predpr"
-    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
-    
-    html_parser = HTMLParser()
-    await html_parser.start()
-
-    try:
-        r = await html_parser.download_html_content(
-            url=url, 
-            headers={"User-Agent": user_agent}, 
-            additional_page_load_timeout_s=3,
-            settings=PageComplexity.DEFAULT.value
-        )
-        print(r["success"], r["message"])
-    finally:
-        await html_parser.stop()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    # Удалить все файлы в s3 хранилище, которые начинаются с префикса prefix
+    async def delete_s3_objects_by_prefix(self, prefix):
+        obj_keys = await self.s3_storage.get_object_keys_by_prefix(prefix)
+        for key in obj_keys:
+            await self.s3_storage.delete_file(key)

@@ -13,3 +13,16 @@ services:
       - ./garage.toml:/etc/garage.toml:ro
       - ./meta:/var/lib/garage/meta
       - ./data:/var/lib/garage/data
+      
+  webui: # web интерфейс
+    image: khairul169/garage-webui:latest
+    container_name: garage-webui
+    restart: unless-stopped
+    ports:
+      - "3909:3909"
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+    environment:
+      API_BASE_URL: "http://garage:3903"
+      S3_ENDPOINT_URL: "http://garage:3900"      
+     

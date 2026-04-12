@@ -1,8 +1,15 @@
 from bs4 import BeautifulSoup
 from html import unescape
 import asyncio
+from common.src.s3_storage_connection import S3Storage
+from dotenv import load_dotenv
+import os
 
-MAX_CONCURRENT_PREPROCESSING = 2
+load_dotenv("parser/parser_settings.env") # загружаем .env файл конфигурации
+
+# Максимальное количество одновременно обрабатываемых html файлов
+MAX_CONCURRENT_PREPROCESSING = int(os.getenv("MAX_CONCURRENT_PREPROCESSING"))
+
 
 # WHITELIST формируется из известных аргументов тегов, используемых на различных сайтах или связанных с узкой специализацией сайта
 # теги html: https://developer.mozilla.org/ru/docs/Web/HTML/Reference/Elements
@@ -251,11 +258,12 @@ def delete_tag(soup, tag_name, keep_tag_func=None):
 class HTMLPreprocessing:
     def __init__(self):
         self.sem = asyncio.Semaphore(MAX_CONCURRENT_PREPROCESSING)
-
+        self.s3_storage = S3Storage()
+    
+    # Обновить html (урезать теги в соотвествии с заданными правилами)
     @staticmethod
     def preprocessing_pipeline(
-        html : str,
-        html_save_path : str,
+        html_bytes,
         noscript_processing=False,
         link_processing=False,
         style_processing=False,
@@ -273,33 +281,59 @@ class HTMLPreprocessing:
         object_processing=False,
         source_processing=False
     ):
-        soup = BeautifulSoup(html, "lxml")
+        soup = BeautifulSoup(html_bytes, "lxml")
 
-        try:
-            if (noscript_processing): decode_noscript(soup)
-            if (link_processing): delete_tag(soup, "link")
-            if (style_processing): delete_tag(soup, "style")
-            if (meta_processing): delete_tag(soup, "meta", keep_tag_func=keep_meta)
-            if (script_processing): delete_tag(soup, "script", keep_tag_func=keep_script)
-            if (canvas_processing): delete_tag(soup, "canvas", keep_tag_func=keep_canvas)
-            if (svg_processing): delete_svg_internal_components(soup)
-            if (area_processing): clear_area(soup)
-            if (img_processing): clear_img(soup)
-            if (video_processing): clear_video(soup)
-            if (audio_processing): clear_audio(soup)
-            if (iframe_processing): clear_iframe(soup)
-            if (portal_processing): clear_portal(soup)
-            if (embed_processing): clear_embed(soup)
-            if (object_processing): clear_object(soup)
-            if (source_processing): clear_source(soup)
-        except Exception as e:
-            return {"success": False, "message": str(e)}
-        
-        with open(html_save_path, "w", encoding="utf-8") as f:
-            f.write(str(soup))
-        return {"success": True, "message": "OK"}
+        if (noscript_processing): decode_noscript(soup)
+        if (link_processing): delete_tag(soup, "link")
+        if (style_processing): delete_tag(soup, "style")
+        if (meta_processing): delete_tag(soup, "meta", keep_tag_func=keep_meta)
+        if (script_processing): delete_tag(soup, "script", keep_tag_func=keep_script)
+        if (canvas_processing): delete_tag(soup, "canvas", keep_tag_func=keep_canvas)
+        if (svg_processing): delete_svg_internal_components(soup)
+        if (area_processing): clear_area(soup)
+        if (img_processing): clear_img(soup)
+        if (video_processing): clear_video(soup)
+        if (audio_processing): clear_audio(soup)
+        if (iframe_processing): clear_iframe(soup)
+        if (portal_processing): clear_portal(soup)
+        if (embed_processing): clear_embed(soup)
+        if (object_processing): clear_object(soup)
+        if (source_processing): clear_source(soup)
+
+        return str(soup).encode("utf-8")
     
 
-    async def apply_preprocessing(self, html, html_save_path, **kwargs):
+    @staticmethod
+    def read_html_bytes(html_path):
+        with open(html_path, "rb") as file:
+            return file.read()
+    
+    staticmethod
+    def write_html_bytes(html_path, html_bytes):
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(html_bytes)
+
+    async def read_html_bytes_from_s3(self, html_path):
+        return await self.s3_storage.download_file_bytes(s3_object_key=html_path)
+
+    async def write_html_bytes_to_s3(self, html_path, html_bytes):
+        return await self.s3_storage.upload_file_bytes(s3_object_key=html_path, file_bytes=html_bytes)
+
+
+    async def apply_preprocessing(self, html_path, **kwargs):
         async with self.sem:
-            return await asyncio.to_thread(HTMLPreprocessing.preprocessing_pipeline, html, html_save_path, **kwargs)
+            try:
+                # Прочитать файл
+                # html_bytes = await asyncio.to_thread(HTMLPreprocessing.read_html_bytes, html_path)
+                html_bytes = await self.read_html_bytes_from_s3(html_path)
+
+                # Обработать теги
+                processed_html_bytes = await asyncio.to_thread(HTMLPreprocessing.preprocessing_pipeline, html_bytes, **kwargs)
+                
+                # Перезаписать новый html файл с обработанными тегами
+                # await asyncio.to_thread(HTMLPreprocessing.write_html_bytes, html_path, processed_html_bytes)
+                await self.write_html_bytes_to_s3(html_path, processed_html_bytes)
+
+            except Exception as e:
+                return {"success": False, "message": str(e), "response": None}
+            return {"success": True, "message": "OK", "response": {"html_path": html_path}}
