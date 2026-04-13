@@ -30,13 +30,13 @@ text_recognition_model = TextRecognition()
 
 @broker.subscriber(QUEUE_TEXT_RECOGNITION_REQUEST)
 async def habdle_text_recognition(msg: dict):
-    images_dir = msg.get("images_dir")
+    image_paths = msg.get("image_paths")
     
-    if (not images_dir): 
-        await send_text_recognition_response({"success": False, "message": "Not specified parameter 'images_dir' for text recognition", "response": {}})
+    if (not image_paths): 
+        await send_text_recognition_response({"success": False, "message": "Not specified parameter 'image_paths' for text recognition", "response": {}})
         return
     
-    r = await text_recognition_model.run_ocr(images_dir=images_dir)
+    r = await text_recognition_model.run_ocr(image_paths=image_paths)
     await send_text_recognition_response(r) 
 
 

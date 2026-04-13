@@ -151,8 +151,8 @@ class HTMLParser:
                 # Создаём и очищаем дирректории для сохранения изобрпажений и html страницы
                 # await asyncio.to_thread(HTMLParser.create_and_clear_dir, html_out_dir)
                 # await asyncio.to_thread(HTMLParser.create_and_clear_dir, images_out_dir)
-                await self.delete_s3_objects_by_prefix(html_out_dir)
-                await self.delete_s3_objects_by_prefix(images_out_dir)
+                # await self.delete_s3_objects_by_prefix(html_out_dir)
+                # await self.delete_s3_objects_by_prefix(images_out_dir)
 
                 # Открываем страницу
                 page = await context.new_page()
@@ -196,9 +196,9 @@ class HTMLParser:
                 
                 # Дожидаемся завершения задач
                 future_task_results = await asyncio.gather(*img_task_futures, return_exceptions=True)
-                imgs_path = [x for x in future_task_results if isinstance(x, str)]
+                image_paths = [x for x in future_task_results if isinstance(x, str)]
                 await context.close()
-            return {"success": True, "message": "OK", "response": {"html_path": html_path, "imgs_path": imgs_path}} 
+            return {"success": True, "message": "OK", "response": {"html_path": html_path, "image_paths": image_paths}} 
 
 
     # Получаем сетевой ответ веб-страницы и скачиваем его, если это изображение

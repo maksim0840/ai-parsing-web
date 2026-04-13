@@ -96,7 +96,7 @@ async def habdle_html_parsing(msg: dict):
 
 @broker.subscriber(QUEUE_HTML_PREPROCESSING_REQUEST)
 async def habdle_html_preprocessing(msg: dict):
-    html_path = msg.get("html_path")
+    html_paths = msg.get("html_paths")
     noscript_processing = msg.get("noscript_processing", False)
     link_processing = msg.get("link_processing", False)
     style_processing = msg.get("style_processing", False)
@@ -114,12 +114,12 @@ async def habdle_html_preprocessing(msg: dict):
     object_processing = msg.get("object_processing", False)
     source_processing = msg.get("source_processing", False)
 
-    if (not html_path): 
-        await send_html_preprocessing_response({"success": False, "message": "Not specified parameter 'html_path' for preprocessing", "response": {}})
+    if (not html_paths): 
+        await send_html_preprocessing_response({"success": False, "message": "Not specified parameter 'html_paths' for preprocessing", "response": {}})
         return
 
     r = await html_preprocessing.apply_preprocessing(
-        html_path=html_path,
+        html_paths=html_paths,
         noscript_processing=noscript_processing,
         link_processing=link_processing,
         style_processing=style_processing,

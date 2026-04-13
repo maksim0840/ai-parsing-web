@@ -82,21 +82,21 @@ class TextRecognition:
         return await self.s3_storage.download_file_bytes(s3_object_key=img_path)
     
 
-    async def run_ocr(self, images_dir):
-        text_by_img = {}
+    async def run_ocr(self, image_paths):
+        text_by_image = {}
         async with self.sem:
             try:
                 # Пути до всех изображений внутри дирректории
-                # imgs_path = await asyncio.to_thread(TextRecognition.get_imgs_path_from_dir, images_dir)
-                imgs_path = await self.get_imgs_path_from_s3(images_dir)
+                # image_paths = await asyncio.to_thread(TextRecognition.get_imgs_path_from_dir, images_dir)
+                # image_paths = await self.get_imgs_path_from_s3(images_dir)
 
                 # Для каждого изображения получаем его байты и прогоняем через модель для получения текста
-                for path in imgs_path:
+                for path in image_paths:
                     # bytes = await asyncio.to_thread(TextRecognition.get_img_bytes, path)
                     bytes = await self.get_img_bytes_s3(path)
                     text = await asyncio.to_thread(TextRecognition.predict_ocr, self, path, bytes)
-                    text_by_img[path] = text
+                    text_by_image[path] = text
 
             except Exception as e:
                 return {"success": False, "message": str(e), "response": {}}
-            return {"success": True, "message": "OK", "response": {"text_by_img": text_by_img}}    
+            return {"success": True, "message": "OK", "response": {"text_by_image": text_by_image}}    
