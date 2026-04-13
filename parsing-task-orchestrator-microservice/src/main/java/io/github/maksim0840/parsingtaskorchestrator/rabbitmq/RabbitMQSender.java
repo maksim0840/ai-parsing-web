@@ -5,16 +5,19 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
-public class RabbitMQ {
+public class RabbitMQSender {
     private final RabbitTemplate rabbitTemplate;
 
     @Value("${rabbitmq.html_parser_queue.request_name}")
     private String htmlParserRequestQueueName;
 
+    @Value("${rabbitmq.html_preprocessing_queue.request_name}")
+    private String htmlPreprocessingRequestQueueName;
+
     @Value("${rabbitmq.text_recognition_queue.request_name}")
     private String textRecognitionRequestQueueName;
 
-    public RabbitMQ(RabbitTemplate rabbitTemplate) {
+    public RabbitMQSender(RabbitTemplate rabbitTemplate) {
         this.rabbitTemplate = rabbitTemplate;
     }
 
@@ -22,9 +25,12 @@ public class RabbitMQ {
         rabbitTemplate.convertAndSend(htmlParserRequestQueueName, message);
     }
 
+    public void sendToHtmlPreprocessingRequestQueue(String message) {
+        rabbitTemplate.convertAndSend(htmlPreprocessingRequestQueueName, message);
+    }
+
     public void sendToTextRecognitionQueue(String message) {
         rabbitTemplate.convertAndSend(textRecognitionRequestQueueName, message);
     }
-
 }
 

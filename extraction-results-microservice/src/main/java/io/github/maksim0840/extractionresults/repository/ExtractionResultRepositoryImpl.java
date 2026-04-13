@@ -1,4 +1,4 @@
-package io.github.maksim0840.extractionresults.repository;
+ёpackage io.github.maksim0840.extractionresults.repository;
 
 import io.github.maksim0840.extractionresults.domain.ExtractionResult;
 import org.springframework.data.domain.Pageable;

@@ -322,19 +322,16 @@ class HTMLPreprocessing:
 
     async def apply_preprocessing(self, html_paths, **kwargs):
         async with self.sem:
-            try:
-                for path in html_paths:
-                    # Прочитать файл
-                    # html_bytes = await asyncio.to_thread(HTMLPreprocessing.read_html_bytes, html_path)
-                    html_bytes = await self.read_html_bytes_from_s3(path)
+            for path in html_paths:
+                # Прочитать файл
+                # html_bytes = await asyncio.to_thread(HTMLPreprocessing.read_html_bytes, html_path)
+                html_bytes = await self.read_html_bytes_from_s3(path)
 
-                    # Обработать теги
-                    processed_html_bytes = await asyncio.to_thread(HTMLPreprocessing.preprocessing_pipeline, html_bytes, **kwargs)
-                    
-                    # Перезаписать новый html файл с обработанными тегами
-                    # await asyncio.to_thread(HTMLPreprocessing.write_html_bytes, html_path, processed_html_bytes)
-                    await self.write_html_bytes_to_s3(path, processed_html_bytes)
+                # Обработать теги
+                processed_html_bytes = await asyncio.to_thread(HTMLPreprocessing.preprocessing_pipeline, html_bytes, **kwargs)
+                
+                # Перезаписать новый html файл с обработанными тегами
+                # await asyncio.to_thread(HTMLPreprocessing.write_html_bytes, html_path, processed_html_bytes)
+                await self.write_html_bytes_to_s3(path, processed_html_bytes)
 
-            except Exception as e:
-                return {"success": False, "message": str(e), "response": {}}
-            return {"success": True, "message": "OK", "response": {"html_paths": html_paths}}
+            return {"html_paths": html_paths}

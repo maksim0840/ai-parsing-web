@@ -25,9 +25,12 @@ dependencies {
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
 
-    // PostgreSQL
-    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    runtimeOnly("org.postgresql:postgresql")
+    // Json Mapping
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2")
+    
+    // MongoDB
+    implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
 
     // gRPC server
     implementation("net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE")

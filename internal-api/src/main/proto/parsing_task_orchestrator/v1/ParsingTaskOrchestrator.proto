@@ -1,0 +1,95 @@
+syntax = "proto3";
+package parsing_task_orchestrator.v1;  // namespace для .proto файла
+
+option java_package = "io.github.maksim0840.parsing_task_orchestrator.v1";  // package для генерации .java классов из .proto файла
+option java_multiple_files = true;  // для удобной генерации и обращения (каждый message/service генерируется в отдельный .java файл)
+
+// ===== Модель =====
+
+message HtmlParserRequestProto {
+  string task_id = 1;
+  string url = 2;
+  string html_out_dir = 3;
+  string images_out_dir = 4;
+  optional bool download_images = 5;
+  map<string, string> headers = 6;
+  map<string, string> cookies = 7;
+  map<string, string> proxy = 8;
+  optional string page_complexity = 9;
+  optional int32 additional_page_load_timeout_s = 10;
+}
+
+message HtmlPreprocessingRequestProto {
+  string task_id = 1;
+  repeated string html_paths = 2;
+  optional bool noscript_processing = 3;
+  optional bool link_processing = 4;
+  optional bool style_processing = 5;
+  optional bool meta_processing = 6;
+  optional bool script_processing = 7;
+  optional bool canvas_processing = 8;
+  optional bool svg_processing = 9;
+  optional bool area_processing = 10;
+  optional bool img_processing = 11;
+  optional bool video_processing = 12;
+  optional bool audio_processing = 13;
+  optional bool iframe_processing= 14;
+  optional bool portal_processing = 15;
+  optional bool embed_processing = 16;
+  optional bool object_processing = 17;
+  optional bool source_processing = 18;
+}
+
+message TextRecognitionRequestProto {
+  string task_id = 1;
+  repeated string image_paths = 2;
+}
+
+message HtmlParserResponseProto {
+  string task_id = 1;
+  bool success = 2;
+  string message = 3;
+  string html_path = 4;
+  repeated string image_paths = 5;
+}
+
+message HtmlPreprocessingResponseProto {
+  string task_id = 1;
+  bool success = 2;
+  string message = 3;
+  repeated string html_paths = 4;
+}
+
+message TextRecognitionResponseProto {
+  string task_id = 1;
+  bool success = 2;
+  string message = 3;
+  map<string, string> text_by_image = 4;
+}
+
+
+// ===== Запросы к сервису parsing-task-orchestrator =====
+
+message ParsingRequest {
+    string task_id = 1;
+    optional HtmlParserRequestProto html_parser_request = 2;
+    optional HtmlPreprocessingRequestProto html_preprocessing_request = 3;
+    optional TextRecognitionRequestProto text_recognition_request = 4;
+}
+
+
+// ===== Ответы от сервиса parsing-task-orchestrator =====
+
+message ParsingResponse {
+    string task_id = 1;
+    optional HtmlParserResponseProto html_parser_response = 2;
+    optional HtmlPreprocessingResponseProto html_preprocessing_response = 3;
+    optional TextRecognitionResponseProto text_recognition_response = 4;
+}
+
+
+// ===== Сервис (gRPC api) =====
+
+service ParsingService {
+  rpc Start(ParsingRequest) returns (ParsingResponse);
+}
