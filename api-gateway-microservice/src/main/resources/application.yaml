@@ -3,9 +3,16 @@ server:
 
 grpc:
   client:
-    extractionResults:
+    extraction_results:
       address: static://localhost:9090
       negotiationType: plaintext
-    usersInfo:
+    users_info:
       address: static://localhost:9091
       negotiationType: plaintext
+    parsing_orchestrator_entry:
+      address: static://localhost:9092
+      negotiationType: plaintext
+
+  server:
+    port: 9093 # parsing_orchestrator_result
+

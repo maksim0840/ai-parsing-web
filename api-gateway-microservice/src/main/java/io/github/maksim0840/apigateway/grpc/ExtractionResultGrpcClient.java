@@ -16,7 +16,7 @@ import java.util.Map;
 @Service
 public class ExtractionResultGrpcClient {
 
-    @GrpcClient("extractionResults")
+    @GrpcClient("extraction_results")
     private ExtractionResultServiceGrpc.ExtractionResultServiceBlockingStub blockingStub;
 
     public ExtractionResultDTO create(String url, String userId, Map<String, Object> jsonResult) {

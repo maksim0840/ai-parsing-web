@@ -1,0 +1,54 @@
+syntax = "proto3";
+package parsing_task_orchestrator.v1;  // namespace для .proto файла
+
+option java_package = "io.github.maksim0840.parsing_task_orchestrator.v1";  // package для генерации .java классов из .proto файла
+option java_multiple_files = true;  // для удобной генерации и обращения (каждый message/service генерируется в отдельный .java файл)
+
+// ===== Модель =====
+
+message HtmlParserResponseProto {
+  string task_id = 1;
+  bool success = 2;
+  string message = 3;
+  string html_path = 4;
+  repeated string image_paths = 5;
+}
+
+message HtmlPreprocessingResponseProto {
+  string task_id = 1;
+  bool success = 2;
+  string message = 3;
+  repeated string html_paths = 4;
+}
+
+message TextRecognitionResponseProto {
+  string task_id = 1;
+  bool success = 2;
+  string message = 3;
+  map<string, string> text_by_image = 4;
+}
+
+
+// ===== Запросы (parsing-task-orchestrator) -> (api-gateway) =====
+
+message OrchestratorResultRequest {
+    string task_id = 1;
+    optional HtmlParserResponseProto html_parser_response = 2;
+    optional HtmlPreprocessingResponseProto html_preprocessing_response = 3;
+    optional TextRecognitionResponseProto text_recognition_response = 4;
+}
+
+
+// ===== Ответы (api-gateway) -> (parsing-task-orchestrator) =====
+
+message OrchestratorResultResponse {
+    string task_id = 1;
+    bool success = 2;
+}
+
+
+// ===== Сервис (gRPC api) =====
+
+service OrchestratorResultService {
+  rpc FinishParsing(OrchestratorResultRequest) returns (OrchestratorResultResponse);
+}

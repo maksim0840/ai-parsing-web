@@ -3,7 +3,7 @@ package io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingRequestDTO;
 import io.github.maksim0840.parsing_task_orchestrator.v1.HtmlPreprocessingRequestProto;
 
-public class ProtoHtmlPreprocessingRequestMapper {
+public class HtmlPreprocessingRequestMapper {
 
     public static HtmlPreprocessingRequestProto dtoToProto(HtmlPreprocessingRequestDTO dto) {
         HtmlPreprocessingRequestProto.Builder protoBuilder = HtmlPreprocessingRequestProto.newBuilder();

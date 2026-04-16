@@ -45,32 +45,10 @@ message TextRecognitionRequestProto {
   repeated string image_paths = 2;
 }
 
-message HtmlParserResponseProto {
-  string task_id = 1;
-  bool success = 2;
-  string message = 3;
-  string html_path = 4;
-  repeated string image_paths = 5;
-}
 
-message HtmlPreprocessingResponseProto {
-  string task_id = 1;
-  bool success = 2;
-  string message = 3;
-  repeated string html_paths = 4;
-}
+// ===== Запросы (api-gateway) -> (parsing-task-orchestrator) =====
 
-message TextRecognitionResponseProto {
-  string task_id = 1;
-  bool success = 2;
-  string message = 3;
-  map<string, string> text_by_image = 4;
-}
-
-
-// ===== Запросы к сервису parsing-task-orchestrator =====
-
-message ParsingRequest {
+message OrchestratorEntryRequest {
     string task_id = 1;
     optional HtmlParserRequestProto html_parser_request = 2;
     optional HtmlPreprocessingRequestProto html_preprocessing_request = 3;
@@ -78,18 +56,16 @@ message ParsingRequest {
 }
 
 
-// ===== Ответы от сервиса parsing-task-orchestrator =====
+// ===== Ответы (parsing-task-orchestrator) -> (api-gateway) =====
 
-message ParsingResponse {
+message OrchestratorEntryResponse {
     string task_id = 1;
-    optional HtmlParserResponseProto html_parser_response = 2;
-    optional HtmlPreprocessingResponseProto html_preprocessing_response = 3;
-    optional TextRecognitionResponseProto text_recognition_response = 4;
+    bool success = 2;
 }
 
 
 // ===== Сервис (gRPC api) =====
 
-service ParsingService {
-  rpc Start(ParsingRequest) returns (ParsingResponse);
+service OrchestratorEntryService {
+  rpc StartParsing(OrchestratorEntryRequest) returns (OrchestratorEntryResponse);
 }

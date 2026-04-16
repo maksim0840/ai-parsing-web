@@ -13,6 +13,7 @@ import java.util.Map;
 @Document("tasks")
 @Getter
 @Setter
+@Builder
 public class Task {
     @Id
     private String id;

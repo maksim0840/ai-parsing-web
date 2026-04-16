@@ -15,7 +15,7 @@ import java.util.List;
 @Service
 public class ParsingParamGrpcClient {
 
-    @GrpcClient("usersInfo")
+    @GrpcClient("users_info")
     ParsingParamServiceGrpc.ParsingParamServiceBlockingStub blockingStub;
 
     public ParsingParamDTO create(Long userId, String name, String description) {

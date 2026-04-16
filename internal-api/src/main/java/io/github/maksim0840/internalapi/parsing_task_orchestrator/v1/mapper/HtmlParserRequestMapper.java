@@ -3,7 +3,7 @@ package io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlParserRequestDTO;
 import io.github.maksim0840.parsing_task_orchestrator.v1.HtmlParserRequestProto;
 
-public class ProtoHtmlParserRequestMapper {
+public class HtmlParserRequestMapper {
 
     public static HtmlParserRequestProto dtoToProto(HtmlParserRequestDTO dto) {
         HtmlParserRequestProto.Builder protoBuilder = HtmlParserRequestProto.newBuilder();
