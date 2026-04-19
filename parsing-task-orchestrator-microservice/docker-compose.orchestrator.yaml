@@ -1,0 +1,52 @@
+services:
+
+  orchestrator:
+    build:
+      context: ..   # главная директория ai-parsing-web
+      dockerfile: parsing-task-orchestrator-microservice/Dockerfile
+    image: orchestrator:dev
+    networks:
+      - rabbitmq-net
+      - mongodb-orchestrator-net
+    depends_on:
+      - mongodb_orchestrator
+      - rabbitmq
+      
+  mongodb_orchestrator:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: tasks
+    networks:
+      - mongodb-orchestrator-net
+    volumes:
+      - mongodb_orchestrator_data:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    hostname: rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5673:5672"     # AMQP
+      - "15673:15672"   # Web UI
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - rabbitmq-net
+
+ 
+volumes:
+  mongodb_orchestrator_data:
+  rabbitmq_data:
+  
+  
+networks:
+  mongodb-orchestrator-net:
+  rabbitmq-net:
+    external: true
+    name: rabbitmq-net

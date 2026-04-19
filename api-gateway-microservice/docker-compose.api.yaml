@@ -1,0 +1,14 @@
+services:
+
+  api:
+    build:
+      context: ..   # главная директория ai-parsing-web
+      dockerfile: users-info-microservice/Dockerfile
+    image: users:dev
+  networks:
+    - garage-net
+      
+networks:
+  garage-net:
+    external: true
+    name: garage-net

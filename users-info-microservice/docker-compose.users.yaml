@@ -1,0 +1,33 @@
+services:
+
+  users:
+    build:
+      context: ..   # главная директория ai-parsing-web
+      dockerfile: users-info-microservice/Dockerfile
+    image: users:dev
+    networks:
+      - postgresql-users-net
+    depends_on:
+      - postgresql_users
+      
+  postgresql_users:
+    image: postgres:17
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: users_info
+    networks:
+      - postgresql-users-net
+    volumes:
+      - postgresql_users_data:/data/db
+ 
+ 
+volumes:
+  postgresql_users_data:
+  
+  
+networks:
+  postgresql-users-net:

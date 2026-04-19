@@ -4,7 +4,7 @@
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/users_info
+    url: jdbc:postgresql://postgresql_users:5432/users_info
     username: postgres
     password: postgres
   jpa:

@@ -1,0 +1,31 @@
+services:
+
+  results:
+    build:
+      context: ..   # главная директория ai-parsing-web
+      dockerfile: extraction-results-microservice/Dockerfile
+    image: results:dev
+    networks:
+      - mongodb-results-net
+    depends_on:
+      - mongodb_results
+      
+  mongodb_results:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_DATABASE: extraction_results
+    networks:
+      - mongodb-results-net
+    volumes:
+      - mongodb_results_data:/data/db
+ 
+ 
+volumes:
+  mongodb_results_data:
+  
+  
+networks:
+  mongodb-results-net:

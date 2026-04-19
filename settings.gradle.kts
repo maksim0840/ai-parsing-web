@@ -1,8 +1,14 @@
 rootProject.name = "ai-parsing-web"
 
-include("internal-api")
-include("extraction-results-microservice")
-include("users-info-microservice")
-include("api-gateway-microservice")
+fun includeIfExists(projectName: String) {
+    val dir = file(projectName)
+    if (dir.isDirectory) {
+        include(projectName)
+    }
+}
 
-include("parsing-task-orchestrator-microservice")
+includeIfExists("internal-api")
+includeIfExists("extraction-results-microservice")
+includeIfExists("users-info-microservice")
+includeIfExists("api-gateway-microservice")
+includeIfExists("parsing-task-orchestrator-microservice")

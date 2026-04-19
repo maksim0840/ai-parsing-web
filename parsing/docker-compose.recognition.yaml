@@ -1,7 +1,7 @@
 services:
   app:
     build:
-      context: .
+      context: ..
       dockerfile: text_recognition/Dockerfile
     image: recognition:dev
     container_name: recognition
