@@ -37,4 +37,5 @@ services:
 networks:
   garage-net:
     driver: bridge
-     
+    external: true
+    name: garage-net

@@ -4,10 +4,10 @@ import asyncio
 from parser.src.html_parser import HTMLParser, PageComplexity
 from parser.src.html_preprocessing import HTMLPreprocessing
 import json
-from dotenv import load_dotenv
 import os
 
-load_dotenv("parser/parser_settings.env") # загружаем .env файл конфигурации
+# from dotenv import load_dotenv
+# load_dotenv("parser/parser_settings.env") # загружаем .env файл конфигурации
 
 QUEUE_HTML_PARSING_REQUEST = os.getenv("QUEUE_HTML_PARSING_REQUEST")
 QUEUE_HTML_PARSING_RESPONSE = os.getenv("QUEUE_HTML_PARSING_RESPONSE")

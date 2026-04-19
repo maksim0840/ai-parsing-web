@@ -1,6 +1,7 @@
 package io.github.maksim0840.apigateway.grpc;
 
 import io.github.maksim0840.apigateway.dto.ExtractionResultDTO;
+import io.github.maksim0840.apigateway.mapper.GrpcExceptionMapper;
 import io.github.maksim0840.apigateway.mapper.ProtoDTOExtractionResultMapper;
 import io.github.maksim0840.extraction_result.v1.*;
 import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ProtoJsonMapper;

@@ -6,10 +6,10 @@ import cairosvg
 import asyncio
 from pathlib import Path
 from common.src.s3_storage_connection import S3Storage
-from dotenv import load_dotenv
 import os
 
-load_dotenv("text_recognition/recognition_settings.env") # загружаем .env файл конфигурации
+# from dotenv import load_dotenv
+# load_dotenv("text_recognition/recognition_settings.env") # загружаем .env файл конфигурации
 
 # Максимальное количество одновременно обрабатываемых картинок для извлечения текста
 MAX_CONCURRENT_TEXT_RECOGNITION = int(os.getenv("MAX_CONCURRENT_TEXT_RECOGNITION"))

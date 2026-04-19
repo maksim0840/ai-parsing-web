@@ -1,0 +1,29 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: parser/Dockerfile
+    image: parser:dev
+    container_name: parser
+
+    # рекомендации для Playwright в Docker
+    init: true
+    ipc: host
+    shm_size: "1gb"
+    
+    # переменные окружения
+    env_file:
+      - parser/parser_settings.env
+      - common/s3_settings.env
+    
+    networks:
+      - rabbitmq-net
+      - garage-net
+      
+networks:
+  rabbitmq-net:
+    external: true
+    name: rabbitmq-net
+  garage-net:
+    external: true
+    name: garage-net

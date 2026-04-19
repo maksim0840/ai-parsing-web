@@ -9,10 +9,10 @@ import hashlib
 import time
 import shutil
 from common.src.s3_storage_connection import S3Storage
-from dotenv import load_dotenv
 import os
 
-load_dotenv("parser/parser_settings.env") # загружаем .env файл конфигурации
+# from dotenv import load_dotenv
+# load_dotenv("parser/parser_settings.env") # загружаем .env файл конфигурации
 
 # Максимальное количество одновременно обрабатываемых страниц (~ создаваемых контекстов)
 MAX_PLAYWRIGHT_CONTEXTS_CONCURRENCY = int(os.getenv("MAX_PLAYWRIGHT_CONTEXTS_CONCURRENCY"))
@@ -72,7 +72,6 @@ class HTMLParser:
         # Запускаем браузер playwright
         self.playwright = await async_playwright().start()
         launch_kwargs = {
-            "channel": "chrome",
             "headless": True,
             "args": ["--disable-blink-features=AutomationControlled"],
         }

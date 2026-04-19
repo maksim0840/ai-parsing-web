@@ -1,0 +1,5 @@
+paddlepaddle==3.3.0
+paddleocr==3.4.0
+cairosvg==2.7.1
+faststream[rabbit]==0.6.7
+aiobotocore==3.4.0

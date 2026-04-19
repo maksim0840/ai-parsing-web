@@ -9,10 +9,10 @@ grpc:
     users_info:
       address: static://localhost:9091
       negotiationType: plaintext
-    parsing_orchestrator_entry:
+    parsing_orchestrator_start:
       address: static://localhost:9092
       negotiationType: plaintext
 
   server:
-    port: 9093 # parsing_orchestrator_result
+    port: 9093 # parsing_orchestrator_finish
 

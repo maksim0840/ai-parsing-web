@@ -1,8 +1,6 @@
 package io.github.maksim0840.parsingtaskorchestrator.util;
 
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlParserRequestDTO;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingRequestDTO;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRecognitionRequestDTO;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.*;
 import io.github.maksim0840.parsingtaskorchestrator.domain.Task;
 import io.github.maksim0840.parsingtaskorchestrator.dto.TaskDTO;
 
@@ -27,6 +25,18 @@ public class TaskMapper {
                 .textRecognitionRequest(JsonMapper.mapToObject(
                         task.getJsonTextRecognitionRequest(),
                         TextRecognitionRequestDTO.class)
+                )
+                .htmlParserResponse(JsonMapper.mapToObject(
+                        task.getJsonHtmlParserResponse(),
+                        HtmlParserResponseDTO.class)
+                )
+                .htmlPreprocessingResponse(JsonMapper.mapToObject(
+                        task.getJsonHtmlPreprocessingResponse(),
+                        HtmlPreprocessingResponseDTO.class)
+                )
+                .textRecognitionResponse(JsonMapper.mapToObject(
+                        task.getJsonTextRecognitionResponse(),
+                        TextRecognitionResponseDTO.class)
                 )
                 .createdAt(task.getCreatedAt())
                 .build();

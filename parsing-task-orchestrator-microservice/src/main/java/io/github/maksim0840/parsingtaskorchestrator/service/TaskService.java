@@ -1,9 +1,7 @@
 package io.github.maksim0840.parsingtaskorchestrator.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlParserRequestDTO;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingRequestDTO;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRecognitionRequestDTO;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.*;
 import io.github.maksim0840.parsingtaskorchestrator.domain.Task;
 import io.github.maksim0840.parsingtaskorchestrator.dto.TaskDTO;
 import io.github.maksim0840.parsingtaskorchestrator.exception.TaskNotFoundException;
@@ -49,6 +47,33 @@ public class TaskService {
         Task task = taskRepository.findById(taskId).orElseThrow(
                 () -> new TaskNotFoundException("task not found")
         );
+        return TaskMapper.domainToDto(task);
+    }
+
+    public TaskDTO setHtmlParserResponse(String taskId, HtmlParserResponseDTO htmlParserResponse) {
+        Task task = taskRepository.findById(taskId).orElseThrow(
+                () -> new TaskNotFoundException("task not found")
+        );
+        task.setJsonHtmlParserResponse(JsonMapper.objectToMap(htmlParserResponse));
+        taskRepository.save(task);
+        return TaskMapper.domainToDto(task);
+    }
+
+    public TaskDTO setHtmlPreprocessingResponse(String taskId, HtmlPreprocessingResponseDTO htmlPreprocessingResponse) {
+        Task task = taskRepository.findById(taskId).orElseThrow(
+                () -> new TaskNotFoundException("task not found")
+        );
+        task.setJsonHtmlPreprocessingResponse(JsonMapper.objectToMap(htmlPreprocessingResponse));
+        taskRepository.save(task);
+        return TaskMapper.domainToDto(task);
+    }
+
+    public TaskDTO setTextRecognitionResponse(String taskId, TextRecognitionResponseDTO textRecognitionResponse) {
+        Task task = taskRepository.findById(taskId).orElseThrow(
+                () -> new TaskNotFoundException("task not found")
+        );
+        task.setJsonTextRecognitionResponse(JsonMapper.objectToMap(textRecognitionResponse));
+        taskRepository.save(task);
         return TaskMapper.domainToDto(task);
     }
 }

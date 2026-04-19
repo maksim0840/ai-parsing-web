@@ -2,10 +2,10 @@ from bs4 import BeautifulSoup
 from html import unescape
 import asyncio
 from common.src.s3_storage_connection import S3Storage
-from dotenv import load_dotenv
 import os
 
-load_dotenv("parser/parser_settings.env") # загружаем .env файл конфигурации
+# from dotenv import load_dotenv
+# load_dotenv("parser/parser_settings.env") # загружаем .env файл конфигурации
 
 # Максимальное количество одновременно обрабатываемых html файлов
 MAX_CONCURRENT_PREPROCESSING = int(os.getenv("MAX_CONCURRENT_PREPROCESSING"))

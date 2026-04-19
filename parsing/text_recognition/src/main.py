@@ -2,10 +2,10 @@ from faststream.rabbit import RabbitBroker
 from faststream import FastStream
 import asyncio
 from text_recognition.src.text_recognition import TextRecognition
-from dotenv import load_dotenv
 import os
 
-load_dotenv("text_recognition/recognition_settings.env") # загружаем .env файл конфигурации
+# from dotenv import load_dotenv
+# load_dotenv("text_recognition/recognition_settings.env") # загружаем .env файл конфигурации
 
 QUEUE_TEXT_RECOGNITION_REQUEST = os.getenv("QUEUE_TEXT_RECOGNITION_REQUEST")
 QUEUE_TEXT_RECOGNITION_RESPONSE = os.getenv("QUEUE_TEXT_RECOGNITION_RESPONSE")
@@ -39,7 +39,6 @@ async def habdle_text_recognition(msg: dict):
     if (not image_paths): 
         await send_text_recognition_response({"task_id": task_id, "success": False, "message": "Not specified parameter 'image_paths' for text recognition"})
         return
-    
     try:
         r = await text_recognition_model.run_ocr(image_paths=image_paths)
         await send_text_recognition_response({"task_id": task_id, "success": True, "message": "OK", "text_by_image": r["text_by_image"]})

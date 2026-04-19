@@ -1,18 +1,22 @@
-'''
-pip install --no-cache-dir paddlepaddle==3.2.2!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-https://paddle-whl.bj.bcebos.com/stable/cpu/paddlepaddle/paddlepaddle-3.2.2-cp313-cp313-win_amd64.whl
+FROM python:3.12.3-slim
+WORKDIR /app
 
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-# Скачать архивы
-wget -O ./models/PP-OCRv5_mobile_det_infer.tar \
-  "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv5_mobile_det_infer.tar"
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    libgl1 \
+    libglib2.0-0 \
+    libcairo2 \
+    libffi-dev \
+    python3-dev \
+ && rm -rf /var/lib/apt/lists/*
+ 
+COPY text_recognition/requirements.txt /app/text_recognition/requirements.txt
+RUN pip install --no-cache-dir -r /app/text_recognition/requirements.txt
 
-wget -O ./models/PP-OCRv5_mobile_rec_infer.tar \
-  "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0//PP-OCRv5_mobile_rec_infer.tar"
+COPY text_recognition ./text_recognition
+COPY common ./common
 
-# Распаковать
-tar -xf ./models/PP-OCRv5_mobile_det_infer.tar -C ./models/ppocrv5_mobile_det
-tar -xf ./models/PP-OCRv5_mobile_rec_infer.tar -C ./models/ppocrv5_mobile_rec
-'''
-
-pip install "faststream[rabbit]"
+CMD ["python3", "-m", "text_recognition.src.main"]

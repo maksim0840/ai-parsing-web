@@ -1,8 +1,8 @@
 package io.github.maksim0840.apigateway.grpc;
 
 import io.github.maksim0840.apigateway.dto.ParsingParamDTO;
+import io.github.maksim0840.apigateway.mapper.GrpcExceptionMapper;
 import io.github.maksim0840.apigateway.mapper.ProtoDTOParsingParamMapper;
-import io.github.maksim0840.extraction_result.v1.GetListExtractionResultRequest;
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 import io.github.maksim0840.parsing_param.v1.*;
 import io.grpc.StatusRuntimeException;

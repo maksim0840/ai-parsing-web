@@ -1,8 +1,6 @@
 package io.github.maksim0840.parsingtaskorchestrator.dto;
 
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlParserRequestDTO;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingRequestDTO;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRecognitionRequestDTO;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.*;
 import lombok.Builder;
 import org.springframework.data.mongodb.core.index.Indexed;
 
@@ -18,6 +16,9 @@ public record TaskDTO(
         HtmlPreprocessingRequestDTO htmlPreprocessingRequest,
         boolean textRecognitionRequired,
         TextRecognitionRequestDTO textRecognitionRequest,
+        HtmlParserResponseDTO htmlParserResponse,
+        HtmlPreprocessingResponseDTO htmlPreprocessingResponse,
+        TextRecognitionResponseDTO textRecognitionResponse,
         Instant createdAt
 ){
 }

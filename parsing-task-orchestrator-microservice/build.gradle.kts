@@ -32,8 +32,9 @@ dependencies {
     // MongoDB
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
 
-    // gRPC server
+    // gRPC server + client
     implementation("net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE")
+    implementation("net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE")
     implementation(project(":internal-api")) // общие зависимости для proto контрактов
 
     // RabbitMQ
@@ -41,11 +42,13 @@ dependencies {
 
     // Tests
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    implementation("org.springframework.boot:spring-boot-starter-amqp")
     testImplementation(enforcedPlatform("org.testcontainers:testcontainers-bom:2.0.3"))
     testImplementation("org.testcontainers:testcontainers")
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
-    testImplementation("org.testcontainers:testcontainers-postgresql")
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.testcontainers:testcontainers-rabbitmq:2.0.4")
+    testImplementation("org.testcontainers:testcontainers-mongodb")
     testImplementation("net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE")
     testImplementation("net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE")
 }

@@ -1,8 +1,9 @@
 package io.github.maksim0840.parsingtaskorchestrator.domain;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlParserResponseDTO;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingResponseDTO;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRecognitionResponseDTO;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -14,6 +15,8 @@ import java.util.Map;
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Task {
     @Id
     private String id;
@@ -26,6 +29,10 @@ public class Task {
 
     private boolean textRecognitionRequired;
     private Map<String, Object> jsonTextRecognitionRequest;
+
+    private Map<String, Object> jsonHtmlParserResponse;
+    private Map<String, Object> jsonHtmlPreprocessingResponse;
+    private Map<String, Object> jsonTextRecognitionResponse;
 
     // Запись удалиться через 30 минут (time to live)
     @Indexed(expireAfter = "30m")
@@ -46,6 +53,9 @@ public class Task {
         this.jsonHtmlPreprocessingRequest = jsonHtmlPreprocessingRequest;
         this.textRecognitionRequired = textRecognitionRequired;
         this.jsonTextRecognitionRequest = jsonTextRecognitionRequest;
+        this.jsonHtmlParserResponse = Map.of();
+        this.jsonHtmlPreprocessingResponse = Map.of();
+        this.jsonTextRecognitionResponse = Map.of();
         this.createdAt = Instant.now();
     }
 }

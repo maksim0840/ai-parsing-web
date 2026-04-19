@@ -1,0 +1,24 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: text_recognition/Dockerfile
+    image: recognition:dev
+    container_name: recognition
+
+    # переменные окружения
+    env_file:
+      - text_recognition/recognition_settings.env
+      - common/s3_settings.env
+    
+    networks:
+      - rabbitmq-net
+      - garage-net
+  
+networks:
+  rabbitmq-net:
+    external: true
+    name: rabbitmq-net
+  garage-net:
+    external: true
+    name: garage-net

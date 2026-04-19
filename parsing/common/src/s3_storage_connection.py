@@ -1,10 +1,10 @@
 from contextlib import asynccontextmanager
 from aiobotocore.session import get_session
 import asyncio
-from dotenv import load_dotenv
 import os
 
-load_dotenv("common/s3_settings.env")
+# from dotenv import load_dotenv
+# load_dotenv("common/s3_settings.env")
 
 S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY")
 S3_SECRET_KEY = os.getenv("S3_SECRET_KEY")
@@ -83,17 +83,4 @@ class S3Storage:
             await client.delete_object(Bucket=self.bucket_name, Key=s3_object_key)
 
 
-# async def main():
-#     s3_client = S3Storage(
-#         access_key="GKb1b6b3a6cae1445a5a17a087",
-#         secret_key="549eff9a670f17cd878edb8f5ffa170f0f1935f96dcc2c501928730f47850f2c",
-#         endpoint_url="http://localhost:3900",
-#         withTimeToLive=False
-#     )
-#     print(await s3_client.file_exists("cat.jpeg"))
-#     print(await s3_client.download_file_bytes("cat.jpeg"))
-#     # await s3_client.upload_file("cat.jpeg")
-
-# if __name__ == "__main__":
-#     asyncio.run(main())
 

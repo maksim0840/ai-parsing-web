@@ -48,7 +48,7 @@ message TextRecognitionRequestProto {
 
 // ===== Запросы (api-gateway) -> (parsing-task-orchestrator) =====
 
-message OrchestratorEntryRequest {
+message OrchestratorStartRequest {
     string task_id = 1;
     optional HtmlParserRequestProto html_parser_request = 2;
     optional HtmlPreprocessingRequestProto html_preprocessing_request = 3;
@@ -58,14 +58,13 @@ message OrchestratorEntryRequest {
 
 // ===== Ответы (parsing-task-orchestrator) -> (api-gateway) =====
 
-message OrchestratorEntryResponse {
+message OrchestratorStartResponse {
     string task_id = 1;
-    bool success = 2;
 }
 
 
 // ===== Сервис (gRPC api) =====
 
-service OrchestratorEntryService {
-  rpc StartParsing(OrchestratorEntryRequest) returns (OrchestratorEntryResponse);
+service OrchestratorStartService {
+  rpc StartParsing(OrchestratorStartRequest) returns (OrchestratorStartResponse);
 }

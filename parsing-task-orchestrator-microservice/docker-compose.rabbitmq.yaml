@@ -16,6 +16,14 @@ services:
 
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-
+    
+    networks:
+      - rabbitmq-net
+      
 volumes:
   rabbitmq_data:
+  
+networks:
+  rabbitmq-net:
+    external: true
+    name: rabbitmq-net
