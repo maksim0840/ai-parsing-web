@@ -25,6 +25,9 @@ dependencies {
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
 
+    // LLM
+    implementation("com.openai:openai-java:4.32.0")
+
     // Json Mapping
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2")
