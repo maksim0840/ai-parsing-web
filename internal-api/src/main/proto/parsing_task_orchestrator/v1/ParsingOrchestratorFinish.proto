@@ -28,6 +28,11 @@ message TextRecognitionResponseProto {
   map<string, string> text_by_image = 4;
 }
 
+message LLMResponseProto {
+  string task_id = 1;
+  string llm_output = 2;
+}
+
 
 // ===== Запросы (parsing-task-orchestrator) -> (api-gateway) =====
 
@@ -36,6 +41,7 @@ message OrchestratorFinishRequest {
     optional HtmlParserResponseProto html_parser_response = 2;
     optional HtmlPreprocessingResponseProto html_preprocessing_response = 3;
     optional TextRecognitionResponseProto text_recognition_response = 4;
+    optional LLMResponseProto llm_response = 5;
 }
 
 

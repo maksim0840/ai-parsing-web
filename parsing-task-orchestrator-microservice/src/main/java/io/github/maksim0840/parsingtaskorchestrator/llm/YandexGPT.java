@@ -6,10 +6,10 @@ import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
 
 public class YandexGPT implements LLM {
-    private static final String API_KEY = System.getenv("YANDEX_GPT_API_KEY");
-    private static final String BASE_URL = System.getenv("YANDEX_GPT_BASE_URL");
-    private static final String FOLDER_ID = System.getenv("YANDEX_GPT_FOLDER_ID");
-    private static final String MODEL_NAME = System.getenv("YANDEX_GPT_MODEL_NAME");
+    private static final String API_KEY = System.getenv("YANDEXGPT_API_KEY");
+    private static final String BASE_URL = System.getenv("YANDEXGPT_BASE_URL");
+    private static final String FOLDER_ID = System.getenv("YANDEXGPT_FOLDER_ID");
+    private static final String MODEL_NAME = System.getenv("YANDEXGPT_MODEL_API_NAME");
 
     private static final Double DEFAULT_TEMPERATURE = Double.valueOf(System.getenv("DEFAULT_TEMPERATURE"));
     private static final Integer DEFAULT_MAX_OUTPUT_TOKENS = Integer.valueOf(System.getenv("DEFAULT_MAX_OUTPUT_TOKENS"));

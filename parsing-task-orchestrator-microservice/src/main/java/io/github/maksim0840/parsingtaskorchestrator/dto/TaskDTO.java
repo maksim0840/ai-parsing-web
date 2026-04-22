@@ -16,9 +16,12 @@ public record TaskDTO(
         HtmlPreprocessingRequestDTO htmlPreprocessingRequest,
         boolean textRecognitionRequired,
         TextRecognitionRequestDTO textRecognitionRequest,
+        boolean llmRequired,
+        LLMRequestDTO llmRequest,
         HtmlParserResponseDTO htmlParserResponse,
         HtmlPreprocessingResponseDTO htmlPreprocessingResponse,
         TextRecognitionResponseDTO textRecognitionResponse,
+        LLMResponseDTO llmResponse,
         Instant createdAt
 ){
 }

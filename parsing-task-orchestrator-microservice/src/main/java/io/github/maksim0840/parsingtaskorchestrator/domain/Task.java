@@ -30,9 +30,13 @@ public class Task {
     private boolean textRecognitionRequired;
     private Map<String, Object> jsonTextRecognitionRequest;
 
+    private boolean llmRequired;
+    private Map<String, Object> jsonLLMRequest;
+
     private Map<String, Object> jsonHtmlParserResponse;
     private Map<String, Object> jsonHtmlPreprocessingResponse;
     private Map<String, Object> jsonTextRecognitionResponse;
+    private Map<String, Object> jsonLLMResponse;
 
     // Запись удалиться через 30 минут (time to live)
     @Indexed(expireAfter = "30m")
@@ -45,7 +49,10 @@ public class Task {
                 boolean htmlPreprocessingRequired,
                 Map<String, Object> jsonHtmlPreprocessingRequest,
                 boolean textRecognitionRequired,
-                Map<String, Object> jsonTextRecognitionRequest) {
+                Map<String, Object> jsonTextRecognitionRequest,
+                boolean llmRequired,
+                Map<String, Object> jsonLLMRequest) {
+
         this.id = id;
         this.htmlParserRequired = htmlParserRequired;
         this.jsonHtmlParserRequest = jsonHtmlParserRequest;
@@ -53,9 +60,12 @@ public class Task {
         this.jsonHtmlPreprocessingRequest = jsonHtmlPreprocessingRequest;
         this.textRecognitionRequired = textRecognitionRequired;
         this.jsonTextRecognitionRequest = jsonTextRecognitionRequest;
+        this.llmRequired = llmRequired;
+        this.jsonLLMRequest = jsonLLMRequest;
         this.jsonHtmlParserResponse = Map.of();
         this.jsonHtmlPreprocessingResponse = Map.of();
         this.jsonTextRecognitionResponse = Map.of();
+        this.jsonLLMResponse = Map.of();
         this.createdAt = Instant.now();
     }
 }

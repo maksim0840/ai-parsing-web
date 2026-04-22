@@ -11,21 +11,24 @@ import org.springframework.stereotype.Service;
 public class OrchestratorService {
 
     private final TaskService taskService;
+    private final LLMService llmService;
     private final RabbitMQSender rabbitMQSender;
     private final OrchestratorFinishGrpcClient finishGrpcClient;
 
-    public OrchestratorService(TaskService taskService, RabbitMQSender rabbitMQSender, OrchestratorFinishGrpcClient finishGrpcClient) {
+    public OrchestratorService(TaskService taskService, LLMService llmService, RabbitMQSender rabbitMQSender, OrchestratorFinishGrpcClient finishGrpcClient) {
         this.taskService = taskService;
+        this.llmService = llmService;
         this.rabbitMQSender = rabbitMQSender;
         this.finishGrpcClient = finishGrpcClient;
     }
 
     public void startRequestsPipeline(String taskId,
-                                   HtmlParserRequestDTO htmlParserRequest,
-                                   HtmlPreprocessingRequestDTO htmlPreprocessingRequest,
-                                   TextRecognitionRequestDTO textRecognitionRequest) throws JsonProcessingException {
+                                      HtmlParserRequestDTO htmlParserRequest,
+                                      HtmlPreprocessingRequestDTO htmlPreprocessingRequest,
+                                      TextRecognitionRequestDTO textRecognitionRequest,
+                                      LLMRequestDTO llmRequestDTO) throws JsonProcessingException {
 
-        TaskDTO task = taskService.addTask(taskId, htmlParserRequest, htmlPreprocessingRequest, textRecognitionRequest);
+        TaskDTO task = taskService.addTask(taskId, htmlParserRequest, htmlPreprocessingRequest, textRecognitionRequest, llmRequestDTO);
 
         if (task.htmlParserRequired()) {
             rabbitMQSender.sendToHtmlParserQueue(task.htmlParserRequest());
@@ -33,6 +36,8 @@ public class OrchestratorService {
             rabbitMQSender.sendToHtmlPreprocessingQueue(task.htmlPreprocessingRequest());
         } else if (task.textRecognitionRequired()) {
             rabbitMQSender.sendToTextRecognitionQueue(task.textRecognitionRequest());
+        } else if (task.llmRequired()) {
+            syncCallAndDistributeRequestsLLM(llmRequestDTO);
         } else {
             endRequestsPipeline(taskId);
         }
@@ -45,6 +50,8 @@ public class OrchestratorService {
             rabbitMQSender.sendToHtmlPreprocessingQueue(task.htmlPreprocessingRequest());
         } else if (task.textRecognitionRequired()) {
             rabbitMQSender.sendToTextRecognitionQueue(task.textRecognitionRequest());
+        } else if (task.llmRequired()) {
+            syncCallAndDistributeRequestsLLM(task.llmRequest());
         } else {
             endRequestsPipeline(response.taskId());
         }
@@ -55,6 +62,8 @@ public class OrchestratorService {
 
         if (task.textRecognitionRequired()) {
             rabbitMQSender.sendToTextRecognitionQueue(task.textRecognitionRequest());
+        } else if (task.llmRequired()) {
+            syncCallAndDistributeRequestsLLM(task.llmRequest());
         } else {
             endRequestsPipeline(response.taskId());
         }
@@ -63,11 +72,23 @@ public class OrchestratorService {
     public void distributeRequestsAfterTextRecognition(TextRecognitionResponseDTO response) {
         TaskDTO task = taskService.setTextRecognitionResponse(response.taskId(), response);
 
+        if (task.llmRequired()) {
+            syncCallAndDistributeRequestsLLM(task.llmRequest());
+        } else {
+            endRequestsPipeline(response.taskId());
+        }
+    }
+
+    public void syncCallAndDistributeRequestsLLM(LLMRequestDTO request) {
+        String output = llmService.sendRequestToModel(request.modelName(), request.systemMessage(), request.userMessage(), request.temperature(), request.maxOutputTokens());
+        LLMResponseDTO response = new LLMResponseDTO(request.taskId(), output);
+        taskService.setLLMResponse(response.taskId(), response);
+
         endRequestsPipeline(response.taskId());
     }
 
     public void endRequestsPipeline(String taskId) {
         TaskDTO taskDTO = taskService.getTask(taskId);
-        finishGrpcClient.finishParsing(taskId, taskDTO.htmlParserResponse(), taskDTO.htmlPreprocessingResponse(), taskDTO.textRecognitionResponse());
+        finishGrpcClient.finishParsing(taskId, taskDTO.htmlParserResponse(), taskDTO.htmlPreprocessingResponse(), taskDTO.textRecognitionResponse(), taskDTO.llmResponse());
     }
 }

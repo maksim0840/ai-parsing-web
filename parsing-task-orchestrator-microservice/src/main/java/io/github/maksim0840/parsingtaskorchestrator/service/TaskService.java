@@ -23,13 +23,15 @@ public class TaskService {
     }
 
     public TaskDTO addTask(String taskId,
-                        HtmlParserRequestDTO htmlParserRequest,
-                        HtmlPreprocessingRequestDTO htmlPreprocessingRequest,
-                        TextRecognitionRequestDTO textRecognitionRequest) {
+                           HtmlParserRequestDTO htmlParserRequest,
+                           HtmlPreprocessingRequestDTO htmlPreprocessingRequest,
+                           TextRecognitionRequestDTO textRecognitionRequest,
+                           LLMRequestDTO llmRequest) {
 
         boolean htmlParserRequired = (htmlParserRequest != null);
         boolean htmlPreprocessingRequired = (htmlPreprocessingRequest != null);
         boolean textRecognitionRequired = (textRecognitionRequest != null);
+        boolean llmRequired = (llmRequest != null);
 
         Task task = new Task(
                 taskId,
@@ -38,7 +40,9 @@ public class TaskService {
                 htmlPreprocessingRequired,
                 htmlPreprocessingRequired ? JsonMapper.objectToMap(htmlPreprocessingRequest) : Map.of(),
                 textRecognitionRequired,
-                textRecognitionRequired ? JsonMapper.objectToMap(textRecognitionRequest) : Map.of()
+                textRecognitionRequired ? JsonMapper.objectToMap(textRecognitionRequest) : Map.of(),
+                llmRequired,
+                llmRequired ? JsonMapper.objectToMap(llmRequest) : Map.of()
         );
         return TaskMapper.domainToDto(taskRepository.save(task));
     }
@@ -73,6 +77,15 @@ public class TaskService {
                 () -> new TaskNotFoundException("task not found")
         );
         task.setJsonTextRecognitionResponse(JsonMapper.objectToMap(textRecognitionResponse));
+        taskRepository.save(task);
+        return TaskMapper.domainToDto(task);
+    }
+
+    public TaskDTO setLLMResponse(String taskId, LLMResponseDTO llmResponse) {
+        Task task = taskRepository.findById(taskId).orElseThrow(
+                () -> new TaskNotFoundException("task not found")
+        );
+        task.setJsonLLMResponse(JsonMapper.objectToMap(llmResponse));
         taskRepository.save(task);
         return TaskMapper.domainToDto(task);
     }

@@ -5,6 +5,8 @@ services:
       context: ..   # главная директория ai-parsing-web
       dockerfile: parsing-task-orchestrator-microservice/Dockerfile
     image: orchestrator:dev
+    env_file:
+      - llm.env
     networks:
       - rabbitmq-net
       - mongodb-orchestrator-net

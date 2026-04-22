@@ -27,6 +27,7 @@ dependencies {
 
     // LLM
     implementation("com.openai:openai-java:4.32.0")
+    implementation("chat.giga:gigachat-java:0.1.14")
 
     // Json Mapping
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")

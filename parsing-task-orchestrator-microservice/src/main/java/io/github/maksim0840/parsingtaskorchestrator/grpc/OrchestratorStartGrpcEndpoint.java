@@ -3,9 +3,11 @@ package io.github.maksim0840.parsingtaskorchestrator.grpc;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlParserRequestDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingRequestDTO;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.LLMRequestDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRecognitionRequestDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlParserRequestMapper;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlPreprocessingRequestMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.LLMRequestMapper;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.TextRecognitionRequestMapper;
 import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorStartRequest;
 import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorStartResponse;
@@ -38,6 +40,10 @@ public class OrchestratorStartGrpcEndpoint extends OrchestratorStartServiceGrpc.
                 request.hasTextRecognitionRequest()
                         ? TextRecognitionRequestMapper.protoToDto(request.getTextRecognitionRequest())
                         : null;
+        LLMRequestDTO llmRequestDTO =
+                request.hasLlmRequest()
+                        ? LLMRequestMapper.protoToDto(request.getLlmRequest())
+                        : null;
 
         OrchestratorStartResponse response = OrchestratorStartResponse.newBuilder()
                 .setTaskId(taskId).build();
@@ -45,7 +51,7 @@ public class OrchestratorStartGrpcEndpoint extends OrchestratorStartServiceGrpc.
         responseObserver.onCompleted();
 
         try {
-            orchestratorService.startRequestsPipeline(taskId, htmlParserRequest, htmlPreprocessingRequest, textRecognitionRequest);
+            orchestratorService.startRequestsPipeline(taskId, htmlParserRequest, htmlPreprocessingRequest, textRecognitionRequest, llmRequestDTO);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

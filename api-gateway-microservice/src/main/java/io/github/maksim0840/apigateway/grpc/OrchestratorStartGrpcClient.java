@@ -2,9 +2,11 @@ package io.github.maksim0840.apigateway.grpc;
 
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlParserRequestDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingRequestDTO;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.LLMRequestDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRecognitionRequestDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlParserRequestMapper;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlPreprocessingRequestMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.LLMRequestMapper;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.TextRecognitionRequestMapper;
 import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorStartRequest;
 import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorStartResponse;
@@ -22,17 +24,18 @@ public class OrchestratorStartGrpcClient {
             String taskId,
             HtmlParserRequestDTO htmlParserRequestDTO,
             HtmlPreprocessingRequestDTO htmlPreprocessingRequestDTO,
-            TextRecognitionRequestDTO textRecognitionRequestDTO) {
+            TextRecognitionRequestDTO textRecognitionRequestDTO,
+            LLMRequestDTO llmRequestDTO) {
 
         OrchestratorStartRequest request = OrchestratorStartRequest.newBuilder()
                 .setTaskId(taskId)
                 .setHtmlParserRequest(HtmlParserRequestMapper.dtoToProto(htmlParserRequestDTO))
                 .setHtmlPreprocessingRequest(HtmlPreprocessingRequestMapper.dtoToProto(htmlPreprocessingRequestDTO))
                 .setTextRecognitionRequest(TextRecognitionRequestMapper.dtoToProto(textRecognitionRequestDTO))
+                .setLlmRequest(LLMRequestMapper.dtoToProto(llmRequestDTO))
                 .build();
 
         OrchestratorStartResponse response = blockingStub.startParsing(request);
         return taskId;
-
     }
 }

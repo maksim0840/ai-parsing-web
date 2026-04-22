@@ -45,6 +45,15 @@ message TextRecognitionRequestProto {
   repeated string image_paths = 2;
 }
 
+message LLMRequestProto {
+    string task_id = 1;
+    string model_name = 2;
+    string system_message = 3;
+    string user_message = 4;
+    optional double temperature = 5;
+    optional int32 max_output_tokens = 6;
+}
+
 
 // ===== Запросы (api-gateway) -> (parsing-task-orchestrator) =====
 
@@ -53,6 +62,7 @@ message OrchestratorStartRequest {
     optional HtmlParserRequestProto html_parser_request = 2;
     optional HtmlPreprocessingRequestProto html_preprocessing_request = 3;
     optional TextRecognitionRequestProto text_recognition_request = 4;
+    optional LLMRequestProto llm_request = 5;
 }
 
 

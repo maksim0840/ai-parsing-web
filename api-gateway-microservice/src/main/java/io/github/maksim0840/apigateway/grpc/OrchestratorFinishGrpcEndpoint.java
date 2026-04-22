@@ -2,9 +2,11 @@ package io.github.maksim0840.apigateway.grpc;
 
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlParserResponseDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingResponseDTO;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.LLMResponseDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRecognitionResponseDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlParserResponseMapper;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlPreprocessingResponseMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.LLMResponseMapper;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.TextRecognitionResponseMapper;
 import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorFinishRequest;
 import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorFinishResponse;
@@ -30,6 +32,10 @@ public class OrchestratorFinishGrpcEndpoint extends OrchestratorFinishServiceGrp
         TextRecognitionResponseDTO textRecognitionResponseDTO =
                 request.hasTextRecognitionResponse()
                         ? TextRecognitionResponseMapper.protoToDto(request.getTextRecognitionResponse())
+                        : null;
+        LLMResponseDTO llmResponseDTO =
+                request.hasLlmResponse()
+                        ? LLMResponseMapper.protoToDto(request.getLlmResponse())
                         : null;
 
         OrchestratorFinishResponse response = OrchestratorFinishResponse.newBuilder()

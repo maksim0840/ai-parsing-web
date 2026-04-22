@@ -2,9 +2,11 @@ package io.github.maksim0840.parsingtaskorchestrator.grpc;
 
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlParserResponseDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingResponseDTO;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.LLMResponseDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRecognitionResponseDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlParserResponseMapper;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlPreprocessingResponseMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.LLMResponseMapper;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.TextRecognitionResponseMapper;
 import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorFinishRequest;
 import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorFinishResponse;
@@ -22,13 +24,15 @@ public class OrchestratorFinishGrpcClient {
             String taskId,
             HtmlParserResponseDTO htmlParserResponseDTO,
             HtmlPreprocessingResponseDTO htmlPreprocessingResponseDTO,
-            TextRecognitionResponseDTO textRecognitionResponseDTO) {
+            TextRecognitionResponseDTO textRecognitionResponseDTO,
+            LLMResponseDTO llmResponseDTO) {
 
         OrchestratorFinishRequest request = OrchestratorFinishRequest.newBuilder()
                 .setTaskId(taskId)
                 .setHtmlParserResponse(HtmlParserResponseMapper.dtoToProto(htmlParserResponseDTO))
                 .setHtmlPreprocessingResponse(HtmlPreprocessingResponseMapper.dtoToProto(htmlPreprocessingResponseDTO))
                 .setTextRecognitionResponse(TextRecognitionResponseMapper.dtoToProto(textRecognitionResponseDTO))
+                .setLlmResponse(LLMResponseMapper.dtoToProto(llmResponseDTO))
                 .build();
 
         OrchestratorFinishResponse response = blockingStub.finishParsing(request);
