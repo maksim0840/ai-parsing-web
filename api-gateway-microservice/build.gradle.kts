@@ -29,9 +29,6 @@ dependencies {
     // Spring
     implementation("org.springframework.boot:spring-boot-starter-web")
 
-    // Thymeleaf
-    implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
-
     // gRPC server + client
     implementation("net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE")
     implementation("net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE")
