@@ -12,23 +12,26 @@ cd garage
 docker compose -f docker-compose.garage.yaml -p garage up
 
 # orchestrator + mongodb_orchestrator + rabbitmq
-сd ../parsing-task-orchestrator-microservice
+cd parsing-task-orchestrator-microservice
 docker compose -f docker-compose.orchestrator.yaml -p orchestrator up
 
-cd ../parsing
+cd parsing
 docker compose -f docker-compose.parser.yaml -p parser up
 docker compose -f docker-compose.recognition.yaml -p recognition up
 
 # results + mongodb-results
-cd ../extraction-results-microservice
+cd extraction-results-microservice
 docker compose -f docker-compose.results.yaml -p results up
 
 # users + postgresql_users
-cd ../users-info-microservice
+cd users-info-microservice
 docker compose -f docker-compose.users.yaml -p users up
 
-cd ../api-gateway-microservice
+cd api-gateway-microservice
 docker compose -f docker-compose.api.yaml -p api up
+
+cd frontend
+npm run dev
 ```
 
 

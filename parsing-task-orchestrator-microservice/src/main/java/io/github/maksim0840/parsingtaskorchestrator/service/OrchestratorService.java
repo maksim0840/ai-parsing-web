@@ -27,7 +27,7 @@ public class OrchestratorService {
                                       HtmlPreprocessingRequestDTO htmlPreprocessingRequest,
                                       TextRecognitionRequestDTO textRecognitionRequest,
                                       LLMRequestDTO llmRequestDTO) throws JsonProcessingException {
-
+        System.out.println("startRequestsPipeline");
         TaskDTO task = taskService.addTask(taskId, htmlParserRequest, htmlPreprocessingRequest, textRecognitionRequest, llmRequestDTO);
 
         if (task.htmlParserRequired()) {
@@ -44,6 +44,7 @@ public class OrchestratorService {
     }
 
     public void distributeRequestsAfterHtmlParser(HtmlParserResponseDTO response) throws JsonProcessingException {
+        System.out.println("distributeRequestsAfterHtmlParser");
         TaskDTO task = taskService.setHtmlParserResponse(response.taskId(), response);
 
         if (task.htmlPreprocessingRequired()) {
@@ -58,6 +59,7 @@ public class OrchestratorService {
     }
 
     public void distributeRequestsAfterHtmlPreprocessing(HtmlPreprocessingResponseDTO response) throws JsonProcessingException {
+        System.out.println("distributeRequestsAfterHtmlPreprocessing");
         TaskDTO task = taskService.setHtmlPreprocessingResponse(response.taskId(), response);
 
         if (task.textRecognitionRequired()) {
@@ -70,6 +72,7 @@ public class OrchestratorService {
     }
 
     public void distributeRequestsAfterTextRecognition(TextRecognitionResponseDTO response) {
+        System.out.println("distributeRequestsAfterTextRecognition");
         TaskDTO task = taskService.setTextRecognitionResponse(response.taskId(), response);
 
         if (task.llmRequired()) {
@@ -80,6 +83,7 @@ public class OrchestratorService {
     }
 
     public void syncCallAndDistributeRequestsLLM(LLMRequestDTO request) {
+        System.out.println("syncCallAndDistributeRequestsLLM");
         String output = llmService.sendRequestToModel(request.modelName(), request.systemMessage(), request.userMessage(), request.temperature(), request.maxOutputTokens());
         LLMResponseDTO response = new LLMResponseDTO(request.taskId(), output);
         taskService.setLLMResponse(response.taskId(), response);
@@ -88,6 +92,7 @@ public class OrchestratorService {
     }
 
     public void endRequestsPipeline(String taskId) {
+        System.out.println("endRequestsPipeline");
         TaskDTO taskDTO = taskService.getTask(taskId);
         finishGrpcClient.finishParsing(taskId, taskDTO.htmlParserResponse(), taskDTO.htmlPreprocessingResponse(), taskDTO.textRecognitionResponse(), taskDTO.llmResponse());
     }

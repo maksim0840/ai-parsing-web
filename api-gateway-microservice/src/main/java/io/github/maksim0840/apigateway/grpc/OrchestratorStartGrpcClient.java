@@ -27,15 +27,27 @@ public class OrchestratorStartGrpcClient {
             TextRecognitionRequestDTO textRecognitionRequestDTO,
             LLMRequestDTO llmRequestDTO) {
 
-        OrchestratorStartRequest request = OrchestratorStartRequest.newBuilder()
-                .setTaskId(taskId)
-                .setHtmlParserRequest(HtmlParserRequestMapper.dtoToProto(htmlParserRequestDTO))
-                .setHtmlPreprocessingRequest(HtmlPreprocessingRequestMapper.dtoToProto(htmlPreprocessingRequestDTO))
-                .setTextRecognitionRequest(TextRecognitionRequestMapper.dtoToProto(textRecognitionRequestDTO))
-                .setLlmRequest(LLMRequestMapper.dtoToProto(llmRequestDTO))
-                .build();
+        OrchestratorStartRequest.Builder requestBuilder = OrchestratorStartRequest.newBuilder();
+        requestBuilder.setTaskId(taskId);
+        if (htmlParserRequestDTO != null) {
+            requestBuilder.setHtmlParserRequest(HtmlParserRequestMapper.dtoToProto(htmlParserRequestDTO));
+        }
+        if (htmlPreprocessingRequestDTO != null) {
+            requestBuilder.setHtmlPreprocessingRequest(HtmlPreprocessingRequestMapper.dtoToProto(htmlPreprocessingRequestDTO));
+        }
+        if (textRecognitionRequestDTO != null) {
+            requestBuilder.setTextRecognitionRequest(TextRecognitionRequestMapper.dtoToProto(textRecognitionRequestDTO));
+        }
+        if (llmRequestDTO != null) {
+            requestBuilder.setLlmRequest(LLMRequestMapper.dtoToProto(llmRequestDTO));
+        }
 
-        OrchestratorStartResponse response = blockingStub.startParsing(request);
+        System.out.println("startParsing");
+        System.out.println(htmlParserRequestDTO);
+        System.out.println(htmlPreprocessingRequestDTO);
+        System.out.println(textRecognitionRequestDTO);
+        System.out.println(llmRequestDTO);
+        OrchestratorStartResponse response = blockingStub.startParsing(requestBuilder.build());
         return taskId;
     }
 }
