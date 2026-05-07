@@ -26,9 +26,15 @@ public class OrchestratorStartService {
         String imagesOutDir = taskId + "/imgs";
         List<String> htmlPaths = List.of();
         List<String> imagePaths = List.of();
-        HtmlParserRequestDTO htmlParserRequestDTO = ApiRequestsDTOMapper.parsingApiToDto(pipeline.parsing(), taskId, htmlOutDir, imagesOutDir);
-        HtmlPreprocessingRequestDTO htmlPreprocessingRequestDTO = ApiRequestsDTOMapper.preprocessingApiToDto(pipeline.preprocessing(), taskId, htmlPaths);
-        TextRecognitionRequestDTO textRecognitionRequestDTO = new TextRecognitionRequestDTO(taskId, imagePaths);
+        HtmlParserRequestDTO htmlParserRequestDTO = isParsingNecessaryForPipeline(pipeline)
+                ? ApiRequestsDTOMapper.parsingApiToDto(pipeline.parsing(), taskId, htmlOutDir, imagesOutDir)
+                : null;
+        HtmlPreprocessingRequestDTO htmlPreprocessingRequestDTO = isPreprocessingNecessaryForPipeline(pipeline)
+                ? ApiRequestsDTOMapper.preprocessingApiToDto(pipeline.preprocessing(), taskId, htmlPaths)
+                : null;
+        TextRecognitionRequestDTO textRecognitionRequestDTO = isRecognitionNecessaryForPipeline(pipeline)
+                ? new TextRecognitionRequestDTO(taskId, imagePaths)
+                : null;
         LLMRequestDTO llmRequestDTO = ApiRequestsDTOMapper.llmApiToDto(pipeline.llm(), taskId);
         grpcClient.startParsing(
                 taskId,
@@ -87,5 +93,35 @@ public class OrchestratorStartService {
                 null,
                 llmRequestDTO
         );
+    }
+
+    private boolean isParsingNecessaryForPipeline(PipelineApiRequest pipelineRequest) {
+        ParsingApiRequest parsingRequest = pipelineRequest.parsing();
+        return parsingRequest.url() != null;
+    }
+
+    private boolean isPreprocessingNecessaryForPipeline(PipelineApiRequest pipelineRequest) {
+        PreprocessingApiRequest preprocessingRequest = pipelineRequest.preprocessing();
+        return preprocessingRequest.noscript()
+                || preprocessingRequest.link()
+                || preprocessingRequest.style()
+                || preprocessingRequest.meta()
+                || preprocessingRequest.script()
+                || preprocessingRequest.canvas()
+                || preprocessingRequest.svg()
+                || preprocessingRequest.area()
+                || preprocessingRequest.img()
+                || preprocessingRequest.video()
+                || preprocessingRequest.audio()
+                || preprocessingRequest.iframe()
+                || preprocessingRequest.portal()
+                || preprocessingRequest.embed()
+                || preprocessingRequest.object()
+                || preprocessingRequest.source();
+    }
+
+    private boolean isRecognitionNecessaryForPipeline(PipelineApiRequest pipelineRequest) {
+        ParsingApiRequest parsingRequest = pipelineRequest.parsing();
+        return parsingRequest.downloadImages();
     }
 }

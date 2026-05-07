@@ -96,4 +96,4 @@ class TextRecognition:
                 text = await asyncio.to_thread(TextRecognition.predict_ocr, self, path, bytes)
                 text_by_image[path] = text
 
-            return {"text_by_image": text_by_image}
+            return {"textByImage": text_by_image}

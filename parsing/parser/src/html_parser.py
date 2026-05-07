@@ -197,7 +197,7 @@ class HTMLParser:
                 future_task_results = await asyncio.gather(*img_task_futures, return_exceptions=True)
                 image_paths = [x for x in future_task_results if isinstance(x, str)]
                 await context.close()
-            return {"html_path": html_path, "image_paths": image_paths}
+            return {"htmlPath": html_path, "imagePaths": image_paths}
 
 
     # Получаем сетевой ответ веб-страницы и скачиваем его, если это изображение

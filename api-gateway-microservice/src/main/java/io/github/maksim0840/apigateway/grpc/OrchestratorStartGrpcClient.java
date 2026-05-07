@@ -27,6 +27,7 @@ public class OrchestratorStartGrpcClient {
             TextRecognitionRequestDTO textRecognitionRequestDTO,
             LLMRequestDTO llmRequestDTO) {
 
+        System.out.println("startParsing");
         OrchestratorStartRequest.Builder requestBuilder = OrchestratorStartRequest.newBuilder();
         requestBuilder.setTaskId(taskId);
         if (htmlParserRequestDTO != null) {
@@ -42,11 +43,6 @@ public class OrchestratorStartGrpcClient {
             requestBuilder.setLlmRequest(LLMRequestMapper.dtoToProto(llmRequestDTO));
         }
 
-        System.out.println("startParsing");
-        System.out.println(htmlParserRequestDTO);
-        System.out.println(htmlPreprocessingRequestDTO);
-        System.out.println(textRecognitionRequestDTO);
-        System.out.println(llmRequestDTO);
         OrchestratorStartResponse response = blockingStub.startParsing(requestBuilder.build());
         return taskId;
     }

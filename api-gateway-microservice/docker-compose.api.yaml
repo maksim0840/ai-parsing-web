@@ -9,8 +9,20 @@ services:
       - "8080:8080"
     networks:
       - garage-net
+      - grpc-orchestrator-api-net
+      - grpc-results-api-net
+      - grpc-users-api-net
       
 networks:
   garage-net:
     external: true
     name: garage-net
+  grpc-orchestrator-api-net:
+    external: true
+    name: grpc-orchestrator-api-net
+  grpc-results-api-net:
+    external: true
+    name: grpc-results-api-net
+  grpc-users-api-net:
+    external: true
+    name: grpc-users-api-net

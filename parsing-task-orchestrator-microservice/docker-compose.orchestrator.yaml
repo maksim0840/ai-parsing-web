@@ -10,6 +10,7 @@ services:
     networks:
       - rabbitmq-net
       - mongodb-orchestrator-net
+      - grpc-orchestrator-api-net
     depends_on:
       - mongodb_orchestrator
       - rabbitmq
@@ -52,3 +53,6 @@ networks:
   rabbitmq-net:
     external: true
     name: rabbitmq-net
+  grpc-orchestrator-api-net:
+    external: true
+    name: grpc-orchestrator-api-net

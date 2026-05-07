@@ -3,6 +3,8 @@ package io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlParserRequestDTO;
 import io.github.maksim0840.parsing_task_orchestrator.v1.HtmlParserRequestProto;
 
+import java.util.Map;
+
 public class HtmlParserRequestMapper {
 
     public static HtmlParserRequestProto dtoToProto(HtmlParserRequestDTO dto) {
@@ -12,9 +14,9 @@ public class HtmlParserRequestMapper {
         protoBuilder.setHtmlOutDir(dto.htmlOutDir());
         protoBuilder.setImagesOutDir(dto.imagesOutDir());
         if (dto.downloadImages() != null) protoBuilder.setDownloadImages(dto.downloadImages());
-        protoBuilder.putAllHeaders(dto.headers());
-        protoBuilder.putAllCookies(dto.cookies());
-        protoBuilder.putAllProxy(dto.proxy());
+        protoBuilder.putAllHeaders(dto.headers() != null ? dto.headers() : Map.of());
+        protoBuilder.putAllCookies(dto.cookies() != null ? dto.cookies() : Map.of());
+        protoBuilder.putAllProxy(dto.proxy() != null ? dto.proxy() : Map.of());
         if (dto.pageComplexity() != null) protoBuilder.setPageComplexity(dto.pageComplexity());
         if (dto.additionalPageLoadTimeoutS() != null) protoBuilder.setAdditionalPageLoadTimeoutS(dto.additionalPageLoadTimeoutS());
         return protoBuilder.build();

@@ -1,12 +1,13 @@
-#spring:
-#  application:
-#    name: extraction-results-microservice
 
 spring:
+  application:
+    name: users-info-microservice
+
   datasource:
     url: jdbc:postgresql://postgresql_users:5432/users_info
     username: postgres
     password: postgres
+
   jpa:
     hibernate:
       ddl-auto: update # автосоздание/обновление схемы

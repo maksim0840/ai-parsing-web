@@ -27,4 +27,27 @@ public record HtmlPreprocessingRequestDTO(
         Boolean objectProcessing,
         Boolean sourceProcessing
 ) {
+    // Использовать значения этого же объекта, но с измененным полем htmlPaths
+    public HtmlPreprocessingRequestDTO withHtmlPaths(List<String> newHtmlPaths) {
+        return new HtmlPreprocessingRequestDTO(
+                this.taskId,
+                newHtmlPaths,
+                this.noscriptProcessing,
+                this.linkProcessing,
+                this.styleProcessing,
+                this.metaProcessing,
+                this.scriptProcessing,
+                this.canvasProcessing,
+                this.svgProcessing,
+                this.areaProcessing,
+                this.imgProcessing,
+                this.videoProcessing,
+                this.audioProcessing,
+                this.iframeProcessing,
+                this.portalProcessing,
+                this.embedProcessing,
+                this.objectProcessing,
+                this.sourceProcessing
+        );
+    }
 }

@@ -7,6 +7,8 @@ import io.github.maksim0840.parsingtaskorchestrator.grpc.OrchestratorFinishGrpcC
 import io.github.maksim0840.parsingtaskorchestrator.rabbitmq.RabbitMQSender;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class OrchestratorService {
 
@@ -48,9 +50,17 @@ public class OrchestratorService {
         TaskDTO task = taskService.setHtmlParserResponse(response.taskId(), response);
 
         if (task.htmlPreprocessingRequired()) {
-            rabbitMQSender.sendToHtmlPreprocessingQueue(task.htmlPreprocessingRequest());
+            // Добавляем в запрос HtmlPreprocessing новый htmlPath, полученный из ответа HtmlParser
+            HtmlPreprocessingRequestDTO newRequest = task.htmlPreprocessingRequest();
+            List<String> newHtmlPaths = newRequest.htmlPaths();
+            newHtmlPaths.add(response.htmlPath());
+            rabbitMQSender.sendToHtmlPreprocessingQueue(newRequest.withHtmlPaths(newHtmlPaths));
         } else if (task.textRecognitionRequired()) {
-            rabbitMQSender.sendToTextRecognitionQueue(task.textRecognitionRequest());
+            // Добавляем в запрос TextRecognition новые imagePaths, полученные из ответа HtmlParser
+            TextRecognitionRequestDTO newRequest = task.textRecognitionRequest();
+            List<String> newImagePaths = newRequest.imagePaths();
+            newImagePaths.addAll(response.imagePaths());
+            rabbitMQSender.sendToTextRecognitionQueue(newRequest.withImagePaths(newImagePaths));
         } else if (task.llmRequired()) {
             syncCallAndDistributeRequestsLLM(task.llmRequest());
         } else {

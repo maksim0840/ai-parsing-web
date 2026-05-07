@@ -14,4 +14,15 @@ public record LLMRequestDTO(
         Double temperature,
         Integer maxOutputTokens
 ) {
+    // Использовать значения этого же объекта, но с измененным полем userMessage
+    public LLMRequestDTO withUserMessage(String newUserMessage) {
+        return new LLMRequestDTO(
+                this.taskId,
+                this.modelName,
+                this.systemMessage,
+                newUserMessage,
+                this.temperature,
+                this.maxOutputTokens
+        );
+    }
 }

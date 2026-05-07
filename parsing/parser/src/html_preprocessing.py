@@ -334,4 +334,4 @@ class HTMLPreprocessing:
                 # await asyncio.to_thread(HTMLPreprocessing.write_html_bytes, html_path, processed_html_bytes)
                 await self.write_html_bytes_to_s3(path, processed_html_bytes)
 
-            return {"html_paths": html_paths}
+            return {"htmlPaths": html_paths}

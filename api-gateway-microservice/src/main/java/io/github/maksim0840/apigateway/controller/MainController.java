@@ -18,7 +18,7 @@ public class MainController {
 
     @PostMapping("/pipeline")
     public void pipeline(@RequestBody PipelineApiRequest request) {
-        System.out.println(request);
+        System.out.println("pipeline rest");
         String userId = "test";
         orchestratorStartService.sendPipelineRequest(userId, request);
     }

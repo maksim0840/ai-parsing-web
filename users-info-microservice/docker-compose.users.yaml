@@ -7,6 +7,7 @@ services:
     image: users:dev
     networks:
       - postgresql-users-net
+      - grpc-users-api-net
     depends_on:
       - postgresql_users
       
@@ -31,3 +32,6 @@ volumes:
   
 networks:
   postgresql-users-net:
+  grpc-users-api-net:
+    external: true
+    name: grpc-users-api-net

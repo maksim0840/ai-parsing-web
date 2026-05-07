@@ -1,23 +1,25 @@
 spring:
   application:
     name: parsing-orchestrator
+
   rabbitmq:
     host: rabbitmq
     port: 5672
     username: admin
     password: admin123
     virtual-host: /
+
+  data:
+    mongodb:
+      uri: mongodb://mongodb_orchestrator:27017/tasks
+
 server:
   port: 8080
-
-data:
-  mongodb:
-    uri: mongodb://mongodb_orchestrator:27017/tasks
 
 grpc:
   client:
     parsing_orchestrator_finish:
-      address: static://localhost:9093
+      address: static://api:9093
       negotiationType: plaintext
 
   server:

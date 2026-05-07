@@ -7,6 +7,7 @@ services:
     image: results:dev
     networks:
       - mongodb-results-net
+      - grpc-results-api-net
     depends_on:
       - mongodb_results
       
@@ -29,3 +30,6 @@ volumes:
   
 networks:
   mongodb-results-net:
+  grpc-results-api-net:
+    external: true
+    name: grpc-results-api-net

@@ -35,52 +35,43 @@ html_preprocessing = HTMLPreprocessing()
 
 
 @broker.subscriber(QUEUE_HTML_PARSING_REQUEST)
-async def habdle_html_parsing(msg: dict):
-    task_id = msg.get("task_id")
+async def handle_html_parsing(msg: str):
+    msg = json.loads(msg)
+
+    task_id = msg.get("taskId")
     url = msg.get("url")
-    html_out_dir = msg.get("html_out_dir")
-    images_out_dir = msg.get("images_out_dir")
-    download_images = msg.get("download_images", False)
-    headers = msg.get("headers", "{}")
-    cookies = msg.get("cookies", "{}")
-    proxy = msg.get("proxy", "{}")
-    page_complexity = msg.get("page_complexity", "DEFAULT")
-    additional_page_load_timeout_s = msg.get("additional_page_load_timeout_s", 0)
+    html_out_dir = msg.get("htmlOutDir")
+    images_out_dir = msg.get("imagesOutDir")
+    download_images = msg.get("downloadImages", False)
+    headers = msg.get("headers", {})
+    cookies = msg.get("cookies", {})
+    proxy = msg.get("proxy", {})
+    page_complexity = msg.get("pageComplexity", "DEFAULT")
+    additional_page_load_timeout_s = msg.get("additionalPageLoadTimeoutS", 0)
     
     if (not task_id):
-        await send_html_parsing_response({"task_id": task_id, "success": False, "message": "Not specified parameter 'task_id' for parsing"})
+        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Not specified parameter 'task_id' for parsing"})
+        print({"taskId": task_id, "success": False, "message": "Not specified parameter 'task_id' for parsing"})
         return
     if (not url): 
-        await send_html_parsing_response({"task_id": task_id, "success": False, "message": "Not specified parameter 'url' for parsing"})
+        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Not specified parameter 'url' for parsing"})
+        print({"taskId": task_id, "success": False, "message": "Not specified parameter 'url' for parsing"})
         return
     if (not html_out_dir): 
-        await send_html_parsing_response({"task_id": task_id, "success": False, "message": "Not specified parameter 'html_out_dir' for parsing"})
+        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Not specified parameter 'html_out_dir' for parsing"})
+        print({"taskId": task_id, "success": False, "message": "Not specified parameter 'html_out_dir' for parsing"})
         return
     if (not images_out_dir): 
-        await send_html_parsing_response({"task_id": task_id, "success": False, "message": "Not specified parameter 'images_out_dir' for parsing"})
-        return
-
-    try:
-        headers_dict = json.loads(headers)
-    except Exception as e:
-        await send_html_parsing_response({"task_id": task_id, "success": False, "message": "Unable to convert headers to JSON format"})
-        return
-    try:
-        cookies_dict = json.loads(cookies)
-    except:
-        await send_html_parsing_response({"task_id": task_id, "success": False, "message": "Unable to convert cookies to JSON format"})
-        return
-    try:
-        proxy_dict = json.loads(proxy)
-    except:
-        await send_html_parsing_response({"task_id": task_id, "success": False, "message": "Unable to convert proxy to JSON format"})
+        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Not specified parameter 'images_out_dir' for parsing"})
+        print({"taskId": task_id, "success": False, "message": "Not specified parameter 'images_out_dir' for parsing"})
         return
     
     if (page_complexity == "LIGHT"): page_complexity_enum = PageComplexity.LIGHT.value
     elif (page_complexity == "DEFAULT"): page_complexity_enum = PageComplexity.DEFAULT.value
     elif (page_complexity == "DIFFICULT"): page_complexity_enum = PageComplexity.DIFFICULT.value
     else:
-        await send_html_parsing_response({"task_id": task_id, "success": False, "message": "Unknown page complexity type"})
+        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Unknown page complexity type"})
+        print({"taskId": task_id, "success": False, "message": "Unknown page complexity type"})
         return
     
     try:
@@ -89,44 +80,50 @@ async def habdle_html_parsing(msg: dict):
             html_out_dir=html_out_dir,
             images_out_dir=images_out_dir,
             download_images=download_images,
-            headers=headers_dict,
-            cookies=cookies_dict,
-            proxy=proxy_dict,
+            headers=headers,
+            cookies=cookies,
+            proxy=proxy,
             settings=page_complexity_enum,
             additional_page_load_timeout_s=additional_page_load_timeout_s
         )
-        await send_html_parsing_response({"task_id": task_id, "success": True, "message": "OK", "html_path": r["html_path"], "image_paths": r["image_paths"]})
+        await send_html_parsing_response({"taskId": task_id, "success": True, "message": "OK", "htmlPath": r["htmlPath"], "imagePaths": r["imagePaths"]})
+        print({"taskId": task_id, "success": True, "message": "OK", "htmlPath": r["htmlPath"], "imagePaths": r["imagePaths"]})
     except Exception as e:
-        await send_html_parsing_response({"task_id": task_id, "success": False, "message": str(e)})
+        await send_html_parsing_response({"taskId": task_id, "success": False, "message": str(e)})
+        print({"taskId": task_id, "success": False, "message": str(e)})
 
 
 
 @broker.subscriber(QUEUE_HTML_PREPROCESSING_REQUEST)
-async def habdle_html_preprocessing(msg: dict):
-    task_id = msg.get("task_id")
-    html_paths = msg.get("html_paths")
-    noscript_processing = msg.get("noscript_processing", False)
-    link_processing = msg.get("link_processing", False)
-    style_processing = msg.get("style_processing", False)
-    meta_processing = msg.get("meta_processing", False)
-    script_processing = msg.get("script_processing", False)
-    canvas_processing = msg.get("canvas_processing", False)
-    svg_processing = msg.get("svg_processing", False)
-    area_processing = msg.get("area_processing", False)
-    img_processing = msg.get("img_processing", False)
-    video_processing = msg.get("video_processing", False)
-    audio_processing = msg.get("audio_processing", False)
-    iframe_processing= msg.get("iframe_processing", False)
-    portal_processing = msg.get("portal_processing", False)
-    embed_processing = msg.get("embed_processing", False)
-    object_processing = msg.get("object_processing", False)
-    source_processing = msg.get("source_processing", False)
+async def handle_html_preprocessing(msg: str):
+    msg = json.loads(msg)
+
+    task_id = msg.get("taskId")
+    html_paths = msg.get("htmlPaths")
+    noscript_processing = msg.get("noscriptProcessing", False)
+    link_processing = msg.get("linkProcessing", False)
+    style_processing = msg.get("styleProcessing", False)
+    meta_processing = msg.get("metaProcessing", False)
+    script_processing = msg.get("scriptProcessing", False)
+    canvas_processing = msg.get("canvasProcessing", False)
+    svg_processing = msg.get("svgProcessing", False)
+    area_processing = msg.get("areaProcessing", False)
+    img_processing = msg.get("imgProcessing", False)
+    video_processing = msg.get("videoProcessing", False)
+    audio_processing = msg.get("audioProcessing", False)
+    iframe_processing= msg.get("iframeProcessing", False)
+    portal_processing = msg.get("portalProcessing", False)
+    embed_processing = msg.get("embedProcessing", False)
+    object_processing = msg.get("objectProcessing", False)
+    source_processing = msg.get("sourceProcessing", False)
 
     if (not task_id): 
-        await send_html_preprocessing_response({"task_id": task_id, "success": False, "message": "Not specified parameter 'task_id' for preprocessing"})
+        await send_html_preprocessing_response({"taskId": task_id, "success": False, "message": "Not specified parameter 'task_id' for preprocessing"})
+        print({"taskId": task_id, "success": False, "message": "Not specified parameter 'task_id' for preprocessing"})
         return
     if (not html_paths): 
-        await send_html_preprocessing_response({"task_id": task_id, "success": False, "message": "Not specified parameter 'html_paths' for preprocessing"})
+        await send_html_preprocessing_response({"taskId": task_id, "success": False, "message": "Not specified parameter 'html_paths' for preprocessing"})
+        print({"taskId": task_id, "success": False, "message": "Not specified parameter 'html_paths' for preprocessing"})
         return
 
     try:
@@ -149,9 +146,11 @@ async def habdle_html_preprocessing(msg: dict):
             object_processing=object_processing,
             source_processing=source_processing
         )
-        await send_html_preprocessing_response({"task_id": task_id, "success": True, "message": "OK", "html_paths": r["html_paths"]})
+        await send_html_preprocessing_response({"taskId": task_id, "success": True, "message": "OK", "htmlPaths": r["htmlPaths"]})
+        print({"taskId": task_id, "success": True, "message": "OK", "htmlPaths": r["htmlPaths"]})
     except Exception as e:
-        await send_html_preprocessing_response({"task_id": task_id, "success": False, "message": str(e)})
+        await send_html_preprocessing_response({"taskId": task_id, "success": False, "message": str(e)})
+        print({"taskId": task_id, "success": False, "message": str(e)})
 
 
 

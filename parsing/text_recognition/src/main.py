@@ -3,6 +3,7 @@ from faststream import FastStream
 import asyncio
 from text_recognition.src.text_recognition import TextRecognition
 import os
+import json
 
 # from dotenv import load_dotenv
 # load_dotenv("text_recognition/recognition_settings.env") # загружаем .env файл конфигурации
@@ -29,21 +30,27 @@ text_recognition_model = TextRecognition()
 
 
 @broker.subscriber(QUEUE_TEXT_RECOGNITION_REQUEST)
-async def habdle_text_recognition(msg: dict):
-    task_id = msg.get("task_id")
-    image_paths = msg.get("image_paths")
+async def handle_text_recognition(msg: str):
+    msg = json.loads(msg)
+
+    task_id = msg.get("taskId")
+    image_paths = msg.get("imagePaths")
     
     if (not task_id): 
-        await send_text_recognition_response({"task_id": task_id, "success": False, "message": "Not specified parameter 'task_id' for text recognition"})
+        await send_text_recognition_response({"taskId": task_id, "success": False, "message": "Not specified parameter 'task_id' for text recognition"})
+        print({"taskId": task_id, "success": False, "message": "Not specified parameter 'task_id' for text recognition"})
         return
     if (not image_paths): 
-        await send_text_recognition_response({"task_id": task_id, "success": False, "message": "Not specified parameter 'image_paths' for text recognition"})
+        await send_text_recognition_response({"taskId": task_id, "success": False, "message": "Not specified parameter 'image_paths' for text recognition"})
+        print({"taskId": task_id, "success": False, "message": "Not specified parameter 'image_paths' for text recognition"})
         return
     try:
         r = await text_recognition_model.run_ocr(image_paths=image_paths)
-        await send_text_recognition_response({"task_id": task_id, "success": True, "message": "OK", "text_by_image": r["text_by_image"]})
+        await send_text_recognition_response({"taskId": task_id, "success": True, "message": "OK", "textByImage": r["textByImage"]})
+        print({"taskId": task_id, "success": True, "message": "OK", "textByImage": r["textByImage"]})
     except Exception as e:
-        await send_text_recognition_response({"task_id": task_id, "success": False, "message": str(e)})
+        await send_text_recognition_response({"taskId": task_id, "success": False, "message": str(e)})
+        print({"taskId": task_id, "success": False, "message": str(e)})
 
 async def send_text_recognition_response(response):
     await broker.publish(response, queue=QUEUE_TEXT_RECOGNITION_RESPONSE)
