@@ -4,6 +4,9 @@
 ```
 docker network create garage-net
 docker network create rabbitmq-net
+docker network create grpc-orchestrator-api-net
+docker network create grpc-results-api-net
+docker network create grpc-users-api-net
 ```
 
 запускаем сервисы
