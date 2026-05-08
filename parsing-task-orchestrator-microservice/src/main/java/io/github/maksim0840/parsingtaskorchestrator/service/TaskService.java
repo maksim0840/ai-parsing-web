@@ -54,6 +54,42 @@ public class TaskService {
         return TaskMapper.domainToDto(task);
     }
 
+    public TaskDTO setHtmlParserRequest(String taskId, HtmlParserRequestDTO htmlParserRequest) {
+        Task task = taskRepository.findById(taskId).orElseThrow(
+                () -> new TaskNotFoundException("task not found")
+        );
+        task.setJsonHtmlParserRequest(JsonMapper.objectToMap(htmlParserRequest));
+        taskRepository.save(task);
+        return TaskMapper.domainToDto(task);
+    }
+
+    public TaskDTO setHtmlPreprocessingRequest(String taskId, HtmlPreprocessingRequestDTO htmlPreprocessingRequest) {
+        Task task = taskRepository.findById(taskId).orElseThrow(
+                () -> new TaskNotFoundException("task not found")
+        );
+        task.setJsonHtmlPreprocessingRequest(JsonMapper.objectToMap(htmlPreprocessingRequest));
+        taskRepository.save(task);
+        return TaskMapper.domainToDto(task);
+    }
+
+    public TaskDTO setTextRecognitionRequest(String taskId, TextRecognitionRequestDTO textRecognitionRequest) {
+        Task task = taskRepository.findById(taskId).orElseThrow(
+                () -> new TaskNotFoundException("task not found")
+        );
+        task.setJsonTextRecognitionRequest(JsonMapper.objectToMap(textRecognitionRequest));
+        taskRepository.save(task);
+        return TaskMapper.domainToDto(task);
+    }
+
+    public TaskDTO setLLMRequest(String taskId, LLMRequestDTO llmRequest) {
+        Task task = taskRepository.findById(taskId).orElseThrow(
+                () -> new TaskNotFoundException("task not found")
+        );
+        task.setJsonLLMRequest(JsonMapper.objectToMap(llmRequest));
+        taskRepository.save(task);
+        return TaskMapper.domainToDto(task);
+    }
+
     public TaskDTO setHtmlParserResponse(String taskId, HtmlParserResponseDTO htmlParserResponse) {
         Task task = taskRepository.findById(taskId).orElseThrow(
                 () -> new TaskNotFoundException("task not found")

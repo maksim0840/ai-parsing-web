@@ -10,6 +10,7 @@ import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRec
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class OrchestratorStartService {
@@ -26,6 +27,7 @@ public class OrchestratorStartService {
         String imagesOutDir = taskId + "/imgs";
         List<String> htmlPaths = List.of();
         List<String> imagePaths = List.of();
+        Map<String, String> textByImage = Map.of();
         HtmlParserRequestDTO htmlParserRequestDTO = isParsingNecessaryForPipeline(pipeline)
                 ? ApiRequestsDTOMapper.parsingApiToDto(pipeline.parsing(), taskId, htmlOutDir, imagesOutDir)
                 : null;
@@ -35,7 +37,7 @@ public class OrchestratorStartService {
         TextRecognitionRequestDTO textRecognitionRequestDTO = isRecognitionNecessaryForPipeline(pipeline)
                 ? new TextRecognitionRequestDTO(taskId, imagePaths)
                 : null;
-        LLMRequestDTO llmRequestDTO = ApiRequestsDTOMapper.llmApiToDto(pipeline.llm(), taskId);
+        LLMRequestDTO llmRequestDTO = ApiRequestsDTOMapper.llmApiToDto(pipeline.llm(), taskId, htmlPaths, textByImage);
         grpcClient.startParsing(
                 taskId,
                 htmlParserRequestDTO,
@@ -83,9 +85,9 @@ public class OrchestratorStartService {
         );
     }
 
-    public void sendLLMRequest(String userId, LLMApiRequest llmRequest) {
+    public void sendLLMRequest(String userId, List<String> imagePaths, Map<String, String> textByImage, LLMApiRequest llmRequest) {
         String taskId = userId;
-        LLMRequestDTO llmRequestDTO = ApiRequestsDTOMapper.llmApiToDto(llmRequest, taskId);
+        LLMRequestDTO llmRequestDTO = ApiRequestsDTOMapper.llmApiToDto(llmRequest, taskId, imagePaths, textByImage);
         grpcClient.startParsing(
                 taskId,
                 null,

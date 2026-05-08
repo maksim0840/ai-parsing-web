@@ -17,3 +17,4 @@ COPY --from=build /app/users-info-microservice/build/libs/*.jar app.jar
 
 # Запуск
 ENTRYPOINT ["java", "-jar", "app.jar"]
+

@@ -5,6 +5,7 @@ import io.github.maksim0840.apigateway.service.OrchestratorStartService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -19,6 +20,7 @@ public class MainController {
     @PostMapping("/pipeline")
     public void pipeline(@RequestBody PipelineApiRequest request) {
         System.out.println("pipeline rest");
+        System.out.println("pipeline rest random=" + new java.util.Random().nextInt());
         String userId = "test";
         orchestratorStartService.sendPipelineRequest(userId, request);
     }
@@ -50,6 +52,8 @@ public class MainController {
     public void llm(@RequestBody LLMApiRequest request) {
         System.out.println(request);
         String userId = "test";
-        orchestratorStartService.sendLLMRequest(userId, request);
+        List<String> imagePaths = List.of();
+        Map<String, String> textByImage = Map.of();
+        orchestratorStartService.sendLLMRequest(userId, imagePaths, textByImage, request);
     }
 }

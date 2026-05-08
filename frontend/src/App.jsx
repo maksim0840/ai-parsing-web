@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Upload,
@@ -473,6 +473,8 @@ export default function ConferenceParserPage() {
   const [error, setError] = useState("");
   const [lastPayload, setLastPayload] = useState(null);
 
+  const submittingRef = useRef(false);
+
   useEffect(() => {
     loadGarageImages();
     loadGarageHtmlFiles();
@@ -691,6 +693,11 @@ export default function ConferenceParserPage() {
   }
 
   async function handleStartParsing() {
+    if (submittingRef.current) {
+      return;
+    }
+
+    submittingRef.current = true;
     setIsSubmitting(true);
     setError("");
 
@@ -745,6 +752,7 @@ export default function ConferenceParserPage() {
     } catch (e) {
       setError(e.message || "Ошибка при запуске pipeline.");
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   }

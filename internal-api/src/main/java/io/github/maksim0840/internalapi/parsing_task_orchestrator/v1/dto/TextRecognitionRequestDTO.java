@@ -18,4 +18,18 @@ public record TextRecognitionRequestDTO(
                 newImagePaths
         );
     }
+
+    // Добавить несколько элементов в imagePaths
+    public TextRecognitionRequestDTO addAllToImagePaths(List<String> extraImagePaths) {
+        List<String> newImagePaths = this.imagePaths;
+        newImagePaths.addAll(extraImagePaths);
+        return withImagePaths(newImagePaths);
+    }
+
+    // Добавить один элемент в imagePaths
+    public TextRecognitionRequestDTO addToImagePaths(String extraImagePaths) {
+        List<String> newImagePaths = this.imagePaths;
+        newImagePaths.add(extraImagePaths);
+        return withImagePaths(newImagePaths);
+    }
 }

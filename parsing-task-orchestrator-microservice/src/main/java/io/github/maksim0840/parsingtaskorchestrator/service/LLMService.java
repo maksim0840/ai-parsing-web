@@ -6,6 +6,7 @@ import io.github.maksim0840.parsingtaskorchestrator.llm.LLM;
 import io.github.maksim0840.parsingtaskorchestrator.llm.YandexGPT;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -22,9 +23,24 @@ public class LLMService {
         );
     }
 
-    public String sendRequestToModel(String model, String systemMessage, String userMessage, Double temperature, Integer maxOutputTokens) {
+    public String sendRequestToModel(String model, String systemMessage, String userMessage, Double temperature, Integer maxOutputTokens, List<String> htmlPaths, Map<String, String> textByImage) {
+        StringBuilder newUserMessage = new StringBuilder(userMessage);
+        // Добавляем в контекст текст с html-документов
+        for (int i = 0; i < htmlPaths.size(); ++i) {
+            String htmlFileContent = "!!!ТЕКСТ ДОКУМЕНТА!!!";
+            newUserMessage.append(String.format("\n\n=== HTML-страница №%d ===\n\n%s", i + 1, htmlFileContent));
+        }
+        // Добавляем в контекст текст с изображений
+        int curImgNum = 0;
+        for (Map.Entry<String, String> entry : textByImage.entrySet()) {
+            if (!entry.getValue().isBlank()) {
+                newUserMessage.append(String.format("\n\n=== Текст с картинки №%d ===\n\n%s", curImgNum + 1, entry.getValue()));
+                ++curImgNum;
+            }
+        }
+
         if (availableModels.containsKey(model)) {
-            return availableModels.get(model).sendRequest(systemMessage, userMessage, temperature, maxOutputTokens);
+            return availableModels.get(model).sendRequest(systemMessage, newUserMessage.toString(), temperature, maxOutputTokens);
         }
         throw new RuntimeException("Unknown model");
     }

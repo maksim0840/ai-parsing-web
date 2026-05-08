@@ -10,6 +10,7 @@ import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.LLMRequ
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRecognitionRequestDTO;
 
 import java.util.List;
+import java.util.Map;
 
 public class ApiRequestsDTOMapper {
 
@@ -58,7 +59,7 @@ public class ApiRequestsDTOMapper {
                 .build();
     }
 
-    public static LLMRequestDTO llmApiToDto(LLMApiRequest apiRequest, String taskId) {
+    public static LLMRequestDTO llmApiToDto(LLMApiRequest apiRequest, String taskId, List<String> htmlPaths, Map<String, String> textByImage) {
         return LLMRequestDTO.builder()
                 .taskId(taskId)
                 .modelName(apiRequest.modelName())
@@ -66,6 +67,8 @@ public class ApiRequestsDTOMapper {
                 .userMessage(apiRequest.userMessage())
                 .temperature(apiRequest.temperature())
                 .maxOutputTokens(apiRequest.maxOutputTokens())
+                .htmlPaths(htmlPaths)
+                .textByImage(textByImage)
                 .build();
     }
 }

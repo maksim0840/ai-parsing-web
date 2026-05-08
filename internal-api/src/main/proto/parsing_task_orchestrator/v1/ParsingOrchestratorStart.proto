@@ -52,6 +52,8 @@ message LLMRequestProto {
     string user_message = 4;
     optional double temperature = 5;
     optional int32 max_output_tokens = 6;
+    repeated string html_paths = 7;
+    map<string, string> text_by_image = 8;
 }
 
 

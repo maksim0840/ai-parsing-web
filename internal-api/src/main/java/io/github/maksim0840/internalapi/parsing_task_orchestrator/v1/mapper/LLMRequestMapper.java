@@ -14,6 +14,8 @@ public class LLMRequestMapper {
         protoBuilder.setUserMessage(dto.userMessage());
         if (dto.temperature() != null) protoBuilder.setTemperature(dto.temperature());
         if (dto.maxOutputTokens() != null) protoBuilder.setMaxOutputTokens(dto.maxOutputTokens());
+        protoBuilder.addAllHtmlPaths(dto.htmlPaths());
+        protoBuilder.putAllTextByImage(dto.textByImage());
         return protoBuilder.build();
     }
 
@@ -25,6 +27,8 @@ public class LLMRequestMapper {
                 .userMessage(proto.getUserMessage())
                 .temperature(proto.hasTemperature() ? proto.getTemperature() : null)
                 .maxOutputTokens(proto.hasMaxOutputTokens() ? proto.getMaxOutputTokens() : null)
+                .htmlPaths(proto.getHtmlPathsList())
+                .textByImage(proto.getTextByImageMap())
                 .build();
     }
 }

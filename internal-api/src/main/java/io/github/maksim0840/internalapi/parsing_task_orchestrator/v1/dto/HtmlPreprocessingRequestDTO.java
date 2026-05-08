@@ -50,4 +50,18 @@ public record HtmlPreprocessingRequestDTO(
                 this.sourceProcessing
         );
     }
+
+    // Добавить несколько элементов в htmlPaths
+    public HtmlPreprocessingRequestDTO addAllToHtmlPaths(List<String> extraHtmlPaths) {
+        List<String> newHtmlPaths = this.htmlPaths;
+        newHtmlPaths.addAll(extraHtmlPaths);
+        return withHtmlPaths(newHtmlPaths);
+    }
+
+    // Добавить один элемент в htmlPaths
+    public HtmlPreprocessingRequestDTO addToHtmlPaths(String extraHtmlPath) {
+        List<String> newHtmlPaths = this.htmlPaths;
+        newHtmlPaths.add(extraHtmlPath);
+        return withHtmlPaths(newHtmlPaths);
+    }
 }
