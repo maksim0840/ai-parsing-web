@@ -7,10 +7,12 @@ services:
     image: orchestrator:dev
     env_file:
       - llm.env
+      - config.env
     networks:
       - rabbitmq-net
       - mongodb-orchestrator-net
       - grpc-orchestrator-api-net
+      - garage-net
     depends_on:
       - mongodb_orchestrator
       - rabbitmq
@@ -56,3 +58,6 @@ networks:
   grpc-orchestrator-api-net:
     external: true
     name: grpc-orchestrator-api-net
+  garage-net:
+    external: true
+    name: garage-net

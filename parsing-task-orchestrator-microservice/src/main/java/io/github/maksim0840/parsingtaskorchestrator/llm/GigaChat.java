@@ -7,25 +7,22 @@ import chat.giga.model.Scope;
 import chat.giga.model.completion.ChatMessage;
 import chat.giga.model.completion.ChatMessageRole;
 import chat.giga.model.completion.CompletionRequest;
+import io.github.maksim0840.parsingtaskorchestrator.config.properties.LLMProperties;
 
 import java.util.List;
 
 public class GigaChat implements LLM {
-    private static final String AUTH_KEY = System.getenv("GIGACHAT_AUTH_KEY");
-    private static final String MODEL_API_NAME = System.getenv("GIGACHAT_MODEL_API_NAME");
-
-    private static final Double DEFAULT_TEMPERATURE = Double.valueOf(System.getenv("DEFAULT_TEMPERATURE"));
-    private static final Integer DEFAULT_MAX_OUTPUT_TOKENS = Integer.valueOf(System.getenv("DEFAULT_MAX_OUTPUT_TOKENS"));
-
+    private final LLMProperties llmProperties;
     private final GigaChatClient client;
 
-    public GigaChat() {
+    public GigaChat(LLMProperties llmProperties) {
+        this.llmProperties = llmProperties;
         this.client = GigaChatClient.builder()
                 .verifySslCerts(false)
                 .authClient(
                         AuthClient.builder().withOAuth(AuthClientBuilder.OAuthBuilder.builder()
                                 .scope(Scope.GIGACHAT_API_PERS) // версия API для физических лиц
-                                .authKey(AUTH_KEY)
+                                .authKey(llmProperties.gigachatAuthKey())
                                 .build())
                         .build())
                 .build();
@@ -45,10 +42,10 @@ public class GigaChat implements LLM {
         );
 
         CompletionRequest request = CompletionRequest.builder()
-                .model(MODEL_API_NAME)
+                .model(llmProperties.gigachatModelApiName())
                 .messages(messages)
-                .temperature(temperature == null ? DEFAULT_TEMPERATURE.floatValue() : temperature.floatValue())
-                .maxTokens(maxOutputTokens == null ? DEFAULT_MAX_OUTPUT_TOKENS : maxOutputTokens)
+                .temperature(temperature == null ? llmProperties.defaultTemperature().floatValue() : temperature.floatValue())
+                .maxTokens(maxOutputTokens == null ? llmProperties.defaultMaxOutputTokens() : maxOutputTokens)
                 .build();
 
         return client.completions(request)

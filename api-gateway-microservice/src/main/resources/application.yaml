@@ -4,13 +4,13 @@ server:
 grpc:
   client:
     extraction_results:
-      address: static://results:9090
+      address: dns:///results:9090
       negotiationType: plaintext
     users_info:
-      address: static://users:9091
+      address: dns:///users:9091
       negotiationType: plaintext
     parsing_orchestrator_start:
-      address: static://orchestrator:9092
+      address: dns:///orchestrator:9092
       negotiationType: plaintext
 
   server:

@@ -9,10 +9,10 @@ public class HtmlParserRequestMapper {
 
     public static HtmlParserRequestProto dtoToProto(HtmlParserRequestDTO dto) {
         HtmlParserRequestProto.Builder protoBuilder = HtmlParserRequestProto.newBuilder();
-        protoBuilder.setTaskId(dto.taskId());
-        protoBuilder.setUrl(dto.url());
-        protoBuilder.setHtmlOutDir(dto.htmlOutDir());
-        protoBuilder.setImagesOutDir(dto.imagesOutDir());
+        protoBuilder.setTaskId(dto.taskId() != null ? dto.taskId() : "");
+        protoBuilder.setUrl(dto.url() != null ? dto.url() : "");
+        protoBuilder.setHtmlOutDir(dto.htmlOutDir() != null ? dto.htmlOutDir() : "");
+        protoBuilder.setImagesOutDir(dto.imagesOutDir() != null ? dto.imagesOutDir() : "");
         if (dto.downloadImages() != null) protoBuilder.setDownloadImages(dto.downloadImages());
         protoBuilder.putAllHeaders(dto.headers() != null ? dto.headers() : Map.of());
         protoBuilder.putAllCookies(dto.cookies() != null ? dto.cookies() : Map.of());

@@ -9,10 +9,10 @@ public class TextRecognitionResponseMapper {
 
     public static TextRecognitionResponseProto dtoToProto(TextRecognitionResponseDTO dto) {
         return TextRecognitionResponseProto.newBuilder()
-                .setTaskId(dto.taskId())
+                .setTaskId(dto.taskId() != null ? dto.taskId() : "")
                 .setSuccess(dto.success())
-                .setMessage(dto.message())
-                .putAllTextByImage(dto.textByImage())
+                .setMessage(dto.message() != null ? dto.message() : "")
+                .putAllTextByImage(dto.textByImage() != null ? dto.textByImage() : Map.of())
                 .build();
     }
 

@@ -31,7 +31,8 @@ public class OrchestratorService {
                                       LLMRequestDTO llmRequestDTO) throws JsonProcessingException {
         System.out.println("startRequestsPipeline");
         TaskDTO task = taskService.addTask(taskId, htmlParserRequest, htmlPreprocessingRequest, textRecognitionRequest, llmRequestDTO);
-
+        System.out.println("start task:");
+        System.out.println(task);
         if (task.htmlParserRequired()) {
             rabbitMQSender.sendToHtmlParserQueue(task.htmlParserRequest());
         } else if (task.htmlPreprocessingRequired()) {
@@ -49,27 +50,34 @@ public class OrchestratorService {
         System.out.println("distributeRequestsAfterHtmlParser");
         // Добавляем ответ от сервиса HtmlParser
         TaskDTO task = taskService.setHtmlParserResponse(response.taskId(), response);
-
+        // Добавляем в запрос HtmlPreprocessing новый htmlPath, полученный из ответа HtmlParser
         if (task.htmlPreprocessingRequired()) {
-            // Добавляем в запрос HtmlPreprocessing новый htmlPath, полученный из ответа HtmlParser
             task = taskService.setHtmlPreprocessingRequest(
                     response.taskId(),
                     task.htmlPreprocessingRequest().addToHtmlPaths(response.htmlPath())
             );
-            rabbitMQSender.sendToHtmlPreprocessingQueue(task.htmlPreprocessingRequest());
-        } else if (task.textRecognitionRequired()) {
-            // Добавляем в запрос TextRecognition новые imagePaths, полученные из ответа HtmlParser
+        }
+        // Добавляем в запрос TextRecognition новые imagePaths, полученные из ответа HtmlParser
+        if (task.textRecognitionRequired()) {
             task = taskService.setTextRecognitionRequest(
                     response.taskId(),
                     task.textRecognitionRequest().addAllToImagePaths(response.imagePaths())
             );
-            rabbitMQSender.sendToTextRecognitionQueue(task.textRecognitionRequest());
-        } else if (task.llmRequired()) {
-            // Добавляем в запрос LLM новый htmlPath, полученные из ответа HtmlParser
+        }
+        // Добавляем в запрос LLM новый htmlPath, полученные из ответа HtmlParser
+        if (task.llmRequired()) {
             task = taskService.setLLMRequest(
                     response.taskId(),
                     task.llmRequest().addToHtmlPaths(response.htmlPath())
             );
+        }
+
+        // Распределяем следующий запрос
+        if (task.htmlPreprocessingRequired()) {
+            rabbitMQSender.sendToHtmlPreprocessingQueue(task.htmlPreprocessingRequest());
+        } else if (task.textRecognitionRequired()) {
+            rabbitMQSender.sendToTextRecognitionQueue(task.textRecognitionRequest());
+        } else if (task.llmRequired()) {
             syncCallAndDistributeRequestsLLM(task.llmRequest());
         } else {
             endRequestsPipeline(response.taskId());
@@ -78,8 +86,10 @@ public class OrchestratorService {
 
     public void distributeRequestsAfterHtmlPreprocessing(HtmlPreprocessingResponseDTO response) throws JsonProcessingException {
         System.out.println("distributeRequestsAfterHtmlPreprocessing");
+        // Добавляем ответ от сервиса HtmlParser
         TaskDTO task = taskService.setHtmlPreprocessingResponse(response.taskId(), response);
 
+        // Распределяем следующий запрос
         if (task.textRecognitionRequired()) {
             rabbitMQSender.sendToTextRecognitionQueue(task.textRecognitionRequest());
         } else if (task.llmRequired()) {
@@ -91,14 +101,18 @@ public class OrchestratorService {
 
     public void distributeRequestsAfterTextRecognition(TextRecognitionResponseDTO response) {
         System.out.println("distributeRequestsAfterTextRecognition");
+        // Добавляем ответ от сервиса HtmlParser
         TaskDTO task = taskService.setTextRecognitionResponse(response.taskId(), response);
-
+        // Добавляем в запрос LLM новые textByImage, полученные из ответа TextRecognition
         if (task.llmRequired()) {
-            // Добавляем в запрос LLM новые textByImage, полученные из ответа TextRecognition
             task = taskService.setLLMRequest(
                     response.taskId(),
                     task.llmRequest().putAllToTextByImage(response.textByImage())
             );
+        }
+
+        // Распределяем следующий запрос
+        if (task.llmRequired()) {
             syncCallAndDistributeRequestsLLM(task.llmRequest());
         } else {
             endRequestsPipeline(response.taskId());

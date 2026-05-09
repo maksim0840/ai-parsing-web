@@ -3,12 +3,14 @@ package io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingRequestDTO;
 import io.github.maksim0840.parsing_task_orchestrator.v1.HtmlPreprocessingRequestProto;
 
+import java.util.List;
+
 public class HtmlPreprocessingRequestMapper {
 
     public static HtmlPreprocessingRequestProto dtoToProto(HtmlPreprocessingRequestDTO dto) {
         HtmlPreprocessingRequestProto.Builder protoBuilder = HtmlPreprocessingRequestProto.newBuilder();
-        protoBuilder.setTaskId(dto.taskId());
-        protoBuilder.addAllHtmlPaths(dto.htmlPaths());
+        protoBuilder.setTaskId(dto.taskId() != null ? dto.taskId() : "");
+        protoBuilder.addAllHtmlPaths(dto.htmlPaths() != null ? dto.htmlPaths() : List.of());
         if (dto.noscriptProcessing() != null) protoBuilder.setNoscriptProcessing(dto.noscriptProcessing());
         if (dto.linkProcessing() != null) protoBuilder.setLinkProcessing(dto.linkProcessing());
         if (dto.styleProcessing() != null) protoBuilder.setStyleProcessing(dto.styleProcessing());

@@ -27,15 +27,14 @@ public class OrchestratorFinishGrpcClient {
             TextRecognitionResponseDTO textRecognitionResponseDTO,
             LLMResponseDTO llmResponseDTO) {
 
-        OrchestratorFinishRequest request = OrchestratorFinishRequest.newBuilder()
-                .setTaskId(taskId)
-                .setHtmlParserResponse(HtmlParserResponseMapper.dtoToProto(htmlParserResponseDTO))
-                .setHtmlPreprocessingResponse(HtmlPreprocessingResponseMapper.dtoToProto(htmlPreprocessingResponseDTO))
-                .setTextRecognitionResponse(TextRecognitionResponseMapper.dtoToProto(textRecognitionResponseDTO))
-                .setLlmResponse(LLMResponseMapper.dtoToProto(llmResponseDTO))
-                .build();
+        OrchestratorFinishRequest.Builder request = OrchestratorFinishRequest.newBuilder();
+        request.setTaskId(taskId);
+        if (htmlParserResponseDTO != null) request.setHtmlParserResponse(HtmlParserResponseMapper.dtoToProto(htmlParserResponseDTO));
+        if (htmlPreprocessingResponseDTO != null) request.setHtmlPreprocessingResponse(HtmlPreprocessingResponseMapper.dtoToProto(htmlPreprocessingResponseDTO));
+        if (textRecognitionResponseDTO != null) request.setTextRecognitionResponse(TextRecognitionResponseMapper.dtoToProto(textRecognitionResponseDTO));
+        if (llmResponseDTO != null) request.setLlmResponse(LLMResponseMapper.dtoToProto(llmResponseDTO));
 
-        OrchestratorFinishResponse response = blockingStub.finishParsing(request);
+        OrchestratorFinishResponse response = blockingStub.finishParsing(request.build());
         return response.getTaskId();
     }
 }

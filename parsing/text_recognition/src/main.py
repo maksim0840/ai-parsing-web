@@ -31,18 +31,19 @@ text_recognition_model = TextRecognition()
 
 @broker.subscriber(QUEUE_TEXT_RECOGNITION_REQUEST)
 async def handle_text_recognition(msg: str):
+    print("request:", msg)
     msg = json.loads(msg)
 
     task_id = msg.get("taskId")
     image_paths = msg.get("imagePaths")
     
-    if (not task_id): 
-        await send_text_recognition_response({"taskId": task_id, "success": False, "message": "Not specified parameter 'task_id' for text recognition"})
-        print({"taskId": task_id, "success": False, "message": "Not specified parameter 'task_id' for text recognition"})
+    if (task_id is None): 
+        await send_text_recognition_response({"taskId": task_id, "success": False, "message": "Not specified parameter task_id for text recognition"})
+        print({"taskId": task_id, "success": False, "message": "Not specified parameter task_id for text recognition"})
         return
-    if (not image_paths): 
-        await send_text_recognition_response({"taskId": task_id, "success": False, "message": "Not specified parameter 'image_paths' for text recognition"})
-        print({"taskId": task_id, "success": False, "message": "Not specified parameter 'image_paths' for text recognition"})
+    if (image_paths is None): 
+        await send_text_recognition_response({"taskId": task_id, "success": False, "message": "Not specified parameter image_paths for text recognition"})
+        print({"taskId": task_id, "success": False, "message": "Not specified parameter image_paths for text recognition"})
         return
     try:
         r = await text_recognition_model.run_ocr(image_paths=image_paths)

@@ -3,14 +3,16 @@ package io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingResponseDTO;
 import io.github.maksim0840.parsing_task_orchestrator.v1.HtmlPreprocessingResponseProto;
 
+import java.util.List;
+
 public class HtmlPreprocessingResponseMapper {
 
     public static HtmlPreprocessingResponseProto dtoToProto(HtmlPreprocessingResponseDTO dto) {
         return HtmlPreprocessingResponseProto.newBuilder()
-                .setTaskId(dto.taskId())
+                .setTaskId(dto.taskId() != null ? dto.taskId() : "")
                 .setSuccess(dto.success())
-                .setMessage(dto.message())
-                .addAllHtmlPaths(dto.htmlPaths())
+                .setMessage(dto.message() != null ? dto.message() : "")
+                .addAllHtmlPaths(dto.htmlPaths() != null ? dto.htmlPaths() : List.of())
                 .build();
     }
 

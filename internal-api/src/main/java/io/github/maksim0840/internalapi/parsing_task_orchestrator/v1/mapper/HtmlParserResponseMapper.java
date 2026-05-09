@@ -9,11 +9,11 @@ public class HtmlParserResponseMapper {
 
     public static HtmlParserResponseProto dtoToProto(HtmlParserResponseDTO dto) {
         return HtmlParserResponseProto.newBuilder()
-                .setTaskId(dto.taskId())
+                .setTaskId(dto.taskId() != null ? dto.taskId() : "")
                 .setSuccess(dto.success())
-                .setMessage(dto.message())
-                .setHtmlPath(dto.htmlPath())
-                .addAllImagePaths(dto.imagePaths())
+                .setMessage(dto.message() != null ? dto.message() : "")
+                .setHtmlPath(dto.htmlPath() != null ? dto.htmlPath() : "")
+                .addAllImagePaths(dto.imagePaths() != null ? dto.imagePaths() : List.of())
                 .build();
     }
 

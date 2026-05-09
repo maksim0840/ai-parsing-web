@@ -1,5 +1,8 @@
 package io.github.maksim0840.apigateway.grpc;
 
+import io.github.maksim0840.apigateway.dto.OrchestratorFinishDTO;
+import io.github.maksim0840.apigateway.mapper.ProtoDTOOrchestratorFinishMapper;
+import io.github.maksim0840.apigateway.storage.TaskStorage;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlParserResponseDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingResponseDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.LLMResponseDTO;
@@ -18,28 +21,25 @@ import org.springframework.stereotype.Service;
 @GrpcService
 public class OrchestratorFinishGrpcEndpoint extends OrchestratorFinishServiceGrpc.OrchestratorFinishServiceImplBase {
 
+    private final TaskStorage taskStorage;
+
+    public OrchestratorFinishGrpcEndpoint(TaskStorage taskStorage) {
+        this.taskStorage = taskStorage;
+    }
+
     @Override
     public void finishParsing(OrchestratorFinishRequest request, StreamObserver<OrchestratorFinishResponse> responseObserver) {
-        String taskId = request.getTaskId();
-        HtmlParserResponseDTO htmlParserResponse =
-                request.hasHtmlParserResponse()
-                    ? HtmlParserResponseMapper.protoToDto(request.getHtmlParserResponse())
-                    : null;
-        HtmlPreprocessingResponseDTO htmlPreprocessingResponse =
-                request.hasHtmlPreprocessingResponse()
-                        ? HtmlPreprocessingResponseMapper.protoToDto(request.getHtmlPreprocessingResponse())
-                        : null;
-        TextRecognitionResponseDTO textRecognitionResponseDTO =
-                request.hasTextRecognitionResponse()
-                        ? TextRecognitionResponseMapper.protoToDto(request.getTextRecognitionResponse())
-                        : null;
-        LLMResponseDTO llmResponseDTO =
-                request.hasLlmResponse()
-                        ? LLMResponseMapper.protoToDto(request.getLlmResponse())
-                        : null;
+        System.out.println("OrchestratorFinishRequest:");
+        System.out.println(request);
+        System.out.println("Ответ нейросети:");
+        String a = request.getLlmResponse().getLlmOutput();
+        System.out.println(a);
+
+        OrchestratorFinishDTO orchestratorFinishDTO = ProtoDTOOrchestratorFinishMapper.protoToDto(request);
+        taskStorage.addResult(orchestratorFinishDTO.taskId(), orchestratorFinishDTO);
 
         OrchestratorFinishResponse response = OrchestratorFinishResponse.newBuilder()
-                .setTaskId(taskId).build();
+                .setTaskId(orchestratorFinishDTO.taskId()).build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }

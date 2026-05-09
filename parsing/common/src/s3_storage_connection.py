@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from aiobotocore.session import get_session
+from botocore.config import Config
 import asyncio
 import os
 
@@ -9,8 +10,10 @@ import os
 S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY")
 S3_SECRET_KEY = os.getenv("S3_SECRET_KEY")
 S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL")
-S3_TIME_TO_LIVE_FLAG = True if os.getenv("S3_TIME_TO_LIVE_FLAG") == "True" else False
+S3_ADDRESSING_STYLE = os.getenv("S3_ADDRESSING_STYLE")
+S3_REGION_NAME = os.getenv("S3_REGION_NAME")
 
+S3_TIME_TO_LIVE_FLAG = True if os.getenv("S3_TIME_TO_LIVE_FLAG") == "True" else False
 DEFAULT_BUCKET_NAME = os.getenv("DEFAULT_BUCKET_NAME")
 TTL_7D_BUCKET_NAME = os.getenv("TTL_7D_BUCKET_NAME")
 
@@ -21,13 +24,16 @@ class S3Storage:
             access_key : str = S3_ACCESS_KEY,
             secret_key : str = S3_SECRET_KEY,
             endpoint_url : str = S3_ENDPOINT_URL,
+            addressing_style : str = S3_ADDRESSING_STYLE,
+            region_name : str = S3_REGION_NAME,
             withTimeToLive : bool = S3_TIME_TO_LIVE_FLAG
     ):
         self.config = {
             "aws_access_key_id": access_key,
             "aws_secret_access_key": secret_key,
             "endpoint_url": endpoint_url,
-            "region_name": "garage"
+            "region_name": region_name,
+            "config": Config(s3={"addressing_style": addressing_style})
         }
         self.session = get_session()
         self.bucket_name = TTL_7D_BUCKET_NAME if withTimeToLive else DEFAULT_BUCKET_NAME

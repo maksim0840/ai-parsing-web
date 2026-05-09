@@ -17,7 +17,7 @@ import java.util.List;
 @Service
 public class UserGrpcClient {
 
-    @GrpcClient("usersInfo")
+    @GrpcClient("users_info")
     private UserServiceGrpc.UserServiceBlockingStub blockingStub;
 
     public UserDTO create(String name, String password, UserRole role) {

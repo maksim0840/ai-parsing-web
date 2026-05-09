@@ -11,8 +11,8 @@ public class LLMResponseMapper {
 
     public static LLMResponseProto dtoToProto(LLMResponseDTO dto) {
         return LLMResponseProto.newBuilder()
-                .setTaskId(dto.taskId())
-                .setLlmOutput(dto.llmOutput())
+                .setTaskId(dto.taskId() != null ? dto.taskId() : "")
+                .setLlmOutput(dto.llmOutput() != null ? dto.llmOutput() : "")
                 .build();
     }
 

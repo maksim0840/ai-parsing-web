@@ -36,6 +36,7 @@ html_preprocessing = HTMLPreprocessing()
 
 @broker.subscriber(QUEUE_HTML_PARSING_REQUEST)
 async def handle_html_parsing(msg: str):
+    print("request:", msg)
     msg = json.loads(msg)
 
     task_id = msg.get("taskId")
@@ -49,21 +50,21 @@ async def handle_html_parsing(msg: str):
     page_complexity = msg.get("pageComplexity", "DEFAULT")
     additional_page_load_timeout_s = msg.get("additionalPageLoadTimeoutS", 0)
     
-    if (not task_id):
-        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Not specified parameter 'task_id' for parsing"})
-        print({"taskId": task_id, "success": False, "message": "Not specified parameter 'task_id' for parsing"})
+    if (task_id is None):
+        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Not specified parameter task_id for parsing"})
+        print({"taskId": task_id, "success": False, "message": "Not specified parameter task_id for parsing"})
         return
-    if (not url): 
-        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Not specified parameter 'url' for parsing"})
-        print({"taskId": task_id, "success": False, "message": "Not specified parameter 'url' for parsing"})
+    if (url is None): 
+        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Not specified parameter url for parsing"})
+        print({"taskId": task_id, "success": False, "message": "Not specified parameter url for parsing"})
         return
-    if (not html_out_dir): 
-        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Not specified parameter 'html_out_dir' for parsing"})
-        print({"taskId": task_id, "success": False, "message": "Not specified parameter 'html_out_dir' for parsing"})
+    if (html_out_dir is None): 
+        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Not specified parameter html_out_dir for parsing"})
+        print({"taskId": task_id, "success": False, "message": "Not specified parameter html_out_dir for parsing"})
         return
-    if (not images_out_dir): 
-        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Not specified parameter 'images_out_dir' for parsing"})
-        print({"taskId": task_id, "success": False, "message": "Not specified parameter 'images_out_dir' for parsing"})
+    if (images_out_dir is None): 
+        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Not specified parameter images_out_dir for parsing"})
+        print({"taskId": task_id, "success": False, "message": "Not specified parameter images_out_dir for parsing"})
         return
     
     if (page_complexity == "LIGHT"): page_complexity_enum = PageComplexity.LIGHT.value
@@ -96,6 +97,7 @@ async def handle_html_parsing(msg: str):
 
 @broker.subscriber(QUEUE_HTML_PREPROCESSING_REQUEST)
 async def handle_html_preprocessing(msg: str):
+    print("request:", msg)
     msg = json.loads(msg)
 
     task_id = msg.get("taskId")
@@ -117,13 +119,13 @@ async def handle_html_preprocessing(msg: str):
     object_processing = msg.get("objectProcessing", False)
     source_processing = msg.get("sourceProcessing", False)
 
-    if (not task_id): 
-        await send_html_preprocessing_response({"taskId": task_id, "success": False, "message": "Not specified parameter 'task_id' for preprocessing"})
-        print({"taskId": task_id, "success": False, "message": "Not specified parameter 'task_id' for preprocessing"})
+    if (task_id is None): 
+        await send_html_preprocessing_response({"taskId": task_id, "success": False, "message": "Not specified parameter task_id for preprocessing"})
+        print({"taskId": task_id, "success": False, "message": "Not specified parameter task_id for preprocessing"})
         return
-    if (not html_paths): 
-        await send_html_preprocessing_response({"taskId": task_id, "success": False, "message": "Not specified parameter 'html_paths' for preprocessing"})
-        print({"taskId": task_id, "success": False, "message": "Not specified parameter 'html_paths' for preprocessing"})
+    if (html_paths is None): 
+        await send_html_preprocessing_response({"taskId": task_id, "success": False, "message": "Not specified parameter html_paths for preprocessing"})
+        print({"taskId": task_id, "success": False, "message": "Not specified parameter html_paths for preprocessing"})
         return
 
     try:

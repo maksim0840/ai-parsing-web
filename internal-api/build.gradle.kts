@@ -44,6 +44,13 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2")
 
+    // s3
+    implementation(platform("software.amazon.awssdk:bom:2.44.4"))
+    implementation("software.amazon.awssdk:s3")
+    implementation("software.amazon.awssdk:auth")
+    implementation("software.amazon.awssdk:regions")
+    implementation("software.amazon.awssdk:url-connection-client")
+
     // Экспортируем зависимости наружу
     api(platform("io.grpc:grpc-bom:1.78.0"))
     api("io.grpc:grpc-stub")

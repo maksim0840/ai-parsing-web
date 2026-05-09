@@ -5,17 +5,20 @@ import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.LLMRequ
 import io.github.maksim0840.parsing_task_orchestrator.v1.HtmlParserRequestProto;
 import io.github.maksim0840.parsing_task_orchestrator.v1.LLMRequestProto;
 
+import java.util.List;
+import java.util.Map;
+
 public class LLMRequestMapper {
     public static LLMRequestProto dtoToProto(LLMRequestDTO dto) {
         LLMRequestProto.Builder protoBuilder = LLMRequestProto.newBuilder();
-        protoBuilder.setTaskId(dto.taskId());
-        protoBuilder.setModelName(dto.modelName());
-        protoBuilder.setSystemMessage(dto.systemMessage());
-        protoBuilder.setUserMessage(dto.userMessage());
+        protoBuilder.setTaskId(dto.taskId() != null ? dto.taskId() : "");
+        protoBuilder.setModelName(dto.modelName() != null ? dto.modelName() : "");
+        protoBuilder.setSystemMessage(dto.systemMessage() != null ? dto.systemMessage() : "");
+        protoBuilder.setUserMessage(dto.userMessage() != null ? dto.userMessage() : "");
         if (dto.temperature() != null) protoBuilder.setTemperature(dto.temperature());
         if (dto.maxOutputTokens() != null) protoBuilder.setMaxOutputTokens(dto.maxOutputTokens());
-        protoBuilder.addAllHtmlPaths(dto.htmlPaths());
-        protoBuilder.putAllTextByImage(dto.textByImage());
+        protoBuilder.addAllHtmlPaths(dto.htmlPaths() != null ? dto.htmlPaths() : List.of());
+        protoBuilder.putAllTextByImage(dto.textByImage() != null ? dto.textByImage() : Map.of());
         return protoBuilder.build();
     }
 

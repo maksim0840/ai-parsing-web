@@ -4,33 +4,28 @@ import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
+import io.github.maksim0840.parsingtaskorchestrator.config.properties.LLMProperties;
 
 public class YandexGPT implements LLM {
-    private static final String API_KEY = System.getenv("YANDEXGPT_API_KEY");
-    private static final String BASE_URL = System.getenv("YANDEXGPT_BASE_URL");
-    private static final String FOLDER_ID = System.getenv("YANDEXGPT_FOLDER_ID");
-    private static final String MODEL_NAME = System.getenv("YANDEXGPT_MODEL_API_NAME");
-
-    private static final Double DEFAULT_TEMPERATURE = Double.valueOf(System.getenv("DEFAULT_TEMPERATURE"));
-    private static final Integer DEFAULT_MAX_OUTPUT_TOKENS = Integer.valueOf(System.getenv("DEFAULT_MAX_OUTPUT_TOKENS"));
-
+    private final LLMProperties llmProperties;
     private final OpenAIClient client;
 
-    public YandexGPT() {
+    public YandexGPT(LLMProperties llmProperties) {
+        this.llmProperties = llmProperties;
         this.client = OpenAIOkHttpClient.builder()
-                .apiKey(API_KEY)
-                .baseUrl(BASE_URL)
+                .apiKey(llmProperties.yandexgptApiKey())
+                .baseUrl(llmProperties.yandexgptBaseUrl())
                 .build();
     }
 
     @Override
     public String sendRequest(String systemMessage, String userMessage, Double temperature, Integer maxOutputTokens) {
         ResponseCreateParams params = ResponseCreateParams.builder()
-                .model("gpt://" + FOLDER_ID + "/" + MODEL_NAME)
+                .model("gpt://" + llmProperties.yandexgptFolderId() + "/" + llmProperties.yandexgptModelApiName())
                 .instructions(systemMessage)
                 .input(userMessage)
-                .temperature(temperature == null ? DEFAULT_TEMPERATURE : temperature)
-                .maxOutputTokens(maxOutputTokens == null ? DEFAULT_MAX_OUTPUT_TOKENS : maxOutputTokens)
+                .temperature(temperature == null ? llmProperties.defaultTemperature() : temperature)
+                .maxOutputTokens(maxOutputTokens == null ? llmProperties.defaultMaxOutputTokens() : maxOutputTokens)
                 .build();
 
         Response response = client.responses().create(params);

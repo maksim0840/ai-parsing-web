@@ -19,7 +19,7 @@ server:
 grpc:
   client:
     parsing_orchestrator_finish:
-      address: static://api:9093
+      address: dns:///api:9093
       negotiationType: plaintext
 
   server:
@@ -37,3 +37,25 @@ rabbitmq:
   text_recognition_queue:
     request_name: text_recognition_queue_request
     response_name: text_recognition_queue_response
+
+llm:
+  yandexgpt_model_api_name: ${YANDEXGPT_MODEL_API_NAME}
+  yandexgpt_model_view_name: ${YANDEXGPT_MODEL_VIEW_NAME}
+  yandexgpt_api_key: ${YANDEXGPT_API_KEY}
+  yandexgpt_folder_id: ${YANDEXGPT_FOLDER_ID}
+  yandexgpt_base_url: ${YANDEXGPT_BASE_URL:https://ai.api.cloud.yandex.net/v1}
+
+  gigachat_model_api_name: ${GIGACHAT_MODEL_API_NAME}
+  gigachat_model_view_name: ${GIGACHAT_MODEL_VIEW_NAME}
+  gigachat_auth_key: ${GIGACHAT_AUTH_KEY}
+
+  default_temperature: ${DEFAULT_TEMPERATURE:0.3}
+  default_max_output_tokens: ${DEFAULT_MAX_OUTPUT_TOKENS:7000}
+
+s3:
+  access_key: ${S3_ACCESS_KEY)
+  secret_key: ${S3_SECRET_KEY}
+  endpoint_url: ${S3_ENDPOINT_URL:http://garage:3900}
+  path_style_access: ${S3_PATH_STYLE_ACCESS:true}
+  region_name: ${S3_REGION_NAME:garage}
+  bucket_name: ${S3_TTL_7D_BUCKET_NAME}

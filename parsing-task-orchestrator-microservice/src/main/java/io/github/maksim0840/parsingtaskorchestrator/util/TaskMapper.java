@@ -26,6 +26,11 @@ public class TaskMapper {
                         task.getJsonTextRecognitionRequest(),
                         TextRecognitionRequestDTO.class)
                 )
+                .llmRequired(task.isLlmRequired())
+                .llmRequest(JsonMapper.mapToObject(
+                        task.getJsonLLMRequest(),
+                        LLMRequestDTO.class)
+                )
                 .htmlParserResponse(JsonMapper.mapToObject(
                         task.getJsonHtmlParserResponse(),
                         HtmlParserResponseDTO.class)
@@ -37,6 +42,10 @@ public class TaskMapper {
                 .textRecognitionResponse(JsonMapper.mapToObject(
                         task.getJsonTextRecognitionResponse(),
                         TextRecognitionResponseDTO.class)
+                )
+                .llmResponse(JsonMapper.mapToObject(
+                        task.getJsonLLMResponse(),
+                        LLMResponseDTO.class)
                 )
                 .createdAt(task.getCreatedAt())
                 .build();

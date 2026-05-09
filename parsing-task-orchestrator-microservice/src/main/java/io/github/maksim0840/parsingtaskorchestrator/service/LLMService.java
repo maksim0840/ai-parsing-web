@@ -1,33 +1,39 @@
 package io.github.maksim0840.parsingtaskorchestrator.service;
 
 import com.openai.errors.NotFoundException;
+import io.github.maksim0840.internalapi.common.v1.s3.S3StorageService;
+import io.github.maksim0840.parsingtaskorchestrator.config.S3Config;
+import io.github.maksim0840.parsingtaskorchestrator.config.properties.LLMProperties;
+import io.github.maksim0840.parsingtaskorchestrator.config.properties.S3Properties;
 import io.github.maksim0840.parsingtaskorchestrator.llm.GigaChat;
 import io.github.maksim0840.parsingtaskorchestrator.llm.LLM;
 import io.github.maksim0840.parsingtaskorchestrator.llm.YandexGPT;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 @Service
 public class LLMService {
-    private static final String YANDEXGPT_MODEL_VIEW_NAME = System.getenv("YANDEXGPT_MODEL_VIEW_NAME");
-    private static final String GIGACHAT_MODEL_VIEW_NAME = System.getenv("GIGACHAT_MODEL_VIEW_NAME");
-
     private final Map<String, LLM> availableModels;
+    private final S3StorageService s3StorageService;
 
-    public LLMService() {
+    public LLMService(LLMProperties llmProperties, S3Config s3Config, S3Properties s3Properties) {
         this.availableModels = Map.of(
-                YANDEXGPT_MODEL_VIEW_NAME, new YandexGPT(),
-                GIGACHAT_MODEL_VIEW_NAME, new GigaChat()
+                llmProperties.yandexgptModelViewName(), new YandexGPT(llmProperties),
+                llmProperties.gigachatModelViewName(), new GigaChat(llmProperties)
         );
+        this.s3StorageService = new S3StorageService(s3Config.s3Client(s3Properties), s3Properties.bucketName());
     }
 
     public String sendRequestToModel(String model, String systemMessage, String userMessage, Double temperature, Integer maxOutputTokens, List<String> htmlPaths, Map<String, String> textByImage) {
         StringBuilder newUserMessage = new StringBuilder(userMessage);
-        // Добавляем в контекст текст с html-документов
+        // Добавляем в контекст содержаение html-документов
         for (int i = 0; i < htmlPaths.size(); ++i) {
-            String htmlFileContent = "!!!ТЕКСТ ДОКУМЕНТА!!!";
+            String htmlFileContent = new String(s3StorageService.downloadFileBytes(htmlPaths.get(i)), StandardCharsets.UTF_8);
             newUserMessage.append(String.format("\n\n=== HTML-страница №%d ===\n\n%s", i + 1, htmlFileContent));
         }
         // Добавляем в контекст текст с изображений
