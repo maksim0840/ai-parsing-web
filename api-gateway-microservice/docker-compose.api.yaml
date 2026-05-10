@@ -5,6 +5,8 @@ services:
       context: ..   # главная директория ai-parsing-web
       dockerfile: api-gateway-microservice/Dockerfile
     image: api:dev
+    env_file:
+      - config.env
     ports:
       - "8080:8080"
     networks:

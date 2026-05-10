@@ -2,6 +2,7 @@ package io.github.maksim0840.parsingtaskorchestrator.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.*;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.enums.TaskStatus;
 import io.github.maksim0840.parsingtaskorchestrator.dto.TaskDTO;
 import io.github.maksim0840.parsingtaskorchestrator.grpc.OrchestratorFinishGrpcClient;
 import io.github.maksim0840.parsingtaskorchestrator.rabbitmq.RabbitMQSender;
@@ -34,20 +35,26 @@ public class OrchestratorService {
         System.out.println("start task:");
         System.out.println(task);
         if (task.htmlParserRequired()) {
-            rabbitMQSender.sendToHtmlParserQueue(task.htmlParserRequest());
+            startHtmlParsing(task.htmlParserRequest());
         } else if (task.htmlPreprocessingRequired()) {
-            rabbitMQSender.sendToHtmlPreprocessingQueue(task.htmlPreprocessingRequest());
+            startHtmlPreprocessing(task.htmlPreprocessingRequest());
         } else if (task.textRecognitionRequired()) {
-            rabbitMQSender.sendToTextRecognitionQueue(task.textRecognitionRequest());
+            startTextRecognition(task.textRecognitionRequest());
         } else if (task.llmRequired()) {
-            syncCallAndDistributeRequestsLLM(llmRequestDTO);
+            startLlmProcessing(task.llmRequest());
         } else {
-            endRequestsPipeline(taskId);
+            endPipelineSuccess(taskId);
         }
     }
 
+
     public void distributeRequestsAfterHtmlParser(HtmlParserResponseDTO response) throws JsonProcessingException {
         System.out.println("distributeRequestsAfterHtmlParser");
+        if (!response.success()) {
+            endPipelineFail(response.taskId(), response.message());
+            return;
+        }
+
         // Добавляем ответ от сервиса HtmlParser
         TaskDTO task = taskService.setHtmlParserResponse(response.taskId(), response);
         // Добавляем в запрос HtmlPreprocessing новый htmlPath, полученный из ответа HtmlParser
@@ -74,18 +81,23 @@ public class OrchestratorService {
 
         // Распределяем следующий запрос
         if (task.htmlPreprocessingRequired()) {
-            rabbitMQSender.sendToHtmlPreprocessingQueue(task.htmlPreprocessingRequest());
+            startHtmlPreprocessing(task.htmlPreprocessingRequest());
         } else if (task.textRecognitionRequired()) {
-            rabbitMQSender.sendToTextRecognitionQueue(task.textRecognitionRequest());
+            startTextRecognition(task.textRecognitionRequest());
         } else if (task.llmRequired()) {
-            syncCallAndDistributeRequestsLLM(task.llmRequest());
+            startLlmProcessing(task.llmRequest());
         } else {
-            endRequestsPipeline(response.taskId());
+            endPipelineSuccess(response.taskId());
         }
     }
 
     public void distributeRequestsAfterHtmlPreprocessing(HtmlPreprocessingResponseDTO response) throws JsonProcessingException {
         System.out.println("distributeRequestsAfterHtmlPreprocessing");
+        if (!response.success()) {
+            endPipelineFail(response.taskId(), response.message());
+            return;
+        }
+
         // Добавляем ответ от сервиса HtmlParser
         TaskDTO task = taskService.setHtmlPreprocessingResponse(response.taskId(), response);
 
@@ -93,14 +105,19 @@ public class OrchestratorService {
         if (task.textRecognitionRequired()) {
             rabbitMQSender.sendToTextRecognitionQueue(task.textRecognitionRequest());
         } else if (task.llmRequired()) {
-            syncCallAndDistributeRequestsLLM(task.llmRequest());
+            startLlmProcessing(task.llmRequest());
         } else {
-            endRequestsPipeline(response.taskId());
+            endPipelineSuccess(response.taskId());
         }
     }
 
     public void distributeRequestsAfterTextRecognition(TextRecognitionResponseDTO response) {
         System.out.println("distributeRequestsAfterTextRecognition");
+        if (!response.success()) {
+            endPipelineFail(response.taskId(), response.message());
+            return;
+        }
+
         // Добавляем ответ от сервиса HtmlParser
         TaskDTO task = taskService.setTextRecognitionResponse(response.taskId(), response);
         // Добавляем в запрос LLM новые textByImage, полученные из ответа TextRecognition
@@ -113,24 +130,70 @@ public class OrchestratorService {
 
         // Распределяем следующий запрос
         if (task.llmRequired()) {
-            syncCallAndDistributeRequestsLLM(task.llmRequest());
+            startLlmProcessing(task.llmRequest());
         } else {
-            endRequestsPipeline(response.taskId());
+            endPipelineSuccess(response.taskId());
         }
     }
 
-    public void syncCallAndDistributeRequestsLLM(LLMRequestDTO request) {
-        System.out.println("syncCallAndDistributeRequestsLLM");
-        String output = llmService.sendRequestToModel(request.modelName(), request.systemMessage(), request.userMessage(), request.temperature(), request.maxOutputTokens(), request.htmlPaths(), request.textByImage());
-        LLMResponseDTO response = new LLMResponseDTO(request.taskId(), output);
-        taskService.setLLMResponse(response.taskId(), response);
+    public void distributeRequestsAfterLLM(LLMResponseDTO response) {
+        System.out.println("distributeRequestsAfterLLM");
+        if (!response.success()) {
+            endPipelineFail(response.taskId(), response.message());
+            return;
+        }
 
-        endRequestsPipeline(response.taskId());
+        // Добавляем ответ от сервиса LLM
+        TaskDTO task = taskService.setLLMResponse(response.taskId(), response);
+
+        endPipelineSuccess(response.taskId());
     }
 
-    public void endRequestsPipeline(String taskId) {
-        System.out.println("endRequestsPipeline");
-        TaskDTO taskDTO = taskService.getTask(taskId);
+
+    private void endPipelineSuccess(String taskId) {
+        System.out.println("endPipelineSuccess");
+        TaskDTO taskDTO = taskService.setStatusAndMessage(taskId, TaskStatus.DONE, "");
         finishGrpcClient.finishParsing(taskId, taskDTO.htmlParserResponse(), taskDTO.htmlPreprocessingResponse(), taskDTO.textRecognitionResponse(), taskDTO.llmResponse());
+    }
+
+    private void endPipelineFail(String taskId, String message) {
+        System.out.println("endRequestsPipelineFail");
+        TaskDTO taskDTO = taskService.setStatusAndMessage(taskId, TaskStatus.FAILED, message);
+        finishGrpcClient.finishParsing(taskId, taskDTO.htmlParserResponse(), taskDTO.htmlPreprocessingResponse(), taskDTO.textRecognitionResponse(), taskDTO.llmResponse());
+    }
+
+    private void startHtmlParsing(HtmlParserRequestDTO request) throws JsonProcessingException {
+        taskService.setStatusAndMessage(request.taskId(), TaskStatus.HTML_PARSING, "");
+        rabbitMQSender.sendToHtmlParserQueue(request);
+    }
+
+    private void startHtmlPreprocessing(HtmlPreprocessingRequestDTO request) throws JsonProcessingException {
+        taskService.setStatusAndMessage(request.taskId(), TaskStatus.HTML_PREPROCESSING, "");
+        rabbitMQSender.sendToHtmlPreprocessingQueue(request);
+    }
+
+    private void startTextRecognition(TextRecognitionRequestDTO request) throws JsonProcessingException {
+        taskService.setStatusAndMessage(request.taskId(), TaskStatus.TEXT_RECOGNITION, "");
+        rabbitMQSender.sendToTextRecognitionQueue(request);
+    }
+
+    private void startLlmProcessing(LLMRequestDTO request) {
+        taskService.setStatusAndMessage(request.taskId(), TaskStatus.LLM_PROCESSING, "");
+        LLMResponseDTO response = llmService.processLlmRequest(request);
+        distributeRequestsAfterLLM(response);
+    }
+
+
+    public TaskStatus getStatus(String taskId) {
+        if (!taskService.isTaskExists(taskId)) {
+            return TaskStatus.NOT_REGISTERED;
+        }
+        TaskDTO taskDTO = taskService.getTask(taskId);
+        return taskDTO.status();
+    }
+
+    public String getMessage(String taskId) {
+        TaskDTO taskDTO = taskService.getTask(taskId);
+        return taskDTO.message();
     }
 }

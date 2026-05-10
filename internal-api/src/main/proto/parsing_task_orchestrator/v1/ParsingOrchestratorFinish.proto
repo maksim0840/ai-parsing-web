@@ -30,7 +30,9 @@ message TextRecognitionResponseProto {
 
 message LLMResponseProto {
   string task_id = 1;
-  string llm_output = 2;
+  bool success = 2;
+  string message = 3;
+  string llm_output = 4;
 }
 
 

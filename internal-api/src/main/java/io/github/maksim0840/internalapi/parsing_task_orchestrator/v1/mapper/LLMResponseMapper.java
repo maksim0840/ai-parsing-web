@@ -12,6 +12,8 @@ public class LLMResponseMapper {
     public static LLMResponseProto dtoToProto(LLMResponseDTO dto) {
         return LLMResponseProto.newBuilder()
                 .setTaskId(dto.taskId() != null ? dto.taskId() : "")
+                .setSuccess(dto.success())
+                .setMessage(dto.message() != null ? dto.message() : "")
                 .setLlmOutput(dto.llmOutput() != null ? dto.llmOutput() : "")
                 .build();
     }
@@ -19,6 +21,8 @@ public class LLMResponseMapper {
     public static LLMResponseDTO protoToDto(LLMResponseProto proto) {
         return LLMResponseDTO.builder()
                 .taskId(proto.getTaskId())
+                .success(proto.getSuccess())
+                .message(proto.getMessage())
                 .llmOutput(proto.getLlmOutput())
                 .build();
     }

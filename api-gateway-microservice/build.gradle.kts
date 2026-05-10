@@ -29,6 +29,13 @@ dependencies {
     // Spring
     implementation("org.springframework.boot:spring-boot-starter-web")
 
+    // s3
+    implementation(platform("software.amazon.awssdk:bom:2.44.4"))
+    implementation("software.amazon.awssdk:s3")
+    implementation("software.amazon.awssdk:auth")
+    implementation("software.amazon.awssdk:regions")
+    implementation("software.amazon.awssdk:url-connection-client")
+
     // gRPC server + client
     implementation("net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE")
     implementation("net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE")

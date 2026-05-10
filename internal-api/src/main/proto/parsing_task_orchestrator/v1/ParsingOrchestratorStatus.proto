@@ -1,0 +1,42 @@
+syntax = "proto3";
+package parsing_task_orchestrator.v1;  // namespace для .proto файла
+
+option java_package = "io.github.maksim0840.parsing_task_orchestrator.v1";  // package для генерации .java классов из .proto файла
+option java_multiple_files = true;  // для удобной генерации и обращения (каждый message/service генерируется в отдельный .java файл)
+
+// ===== Модель =====
+
+enum TaskStatusProto {
+    TASK_STATUS_UNSPECIFIED = 0;
+    NOT_REGISTERED = 1;
+    CREATED = 2;
+    HTML_PARSING = 3;
+    HTML_PREPROCESSING = 4;
+    TEXT_RECOGNITION = 5;
+    LLM_PROCESSING = 6;
+    DONE = 7;
+    FAILED = 8;
+}
+
+
+// ===== Запросы (api-gateway) -> (parsing-task-orchestrator) =====
+
+message OrchestratorStatusRequest {
+    string task_id = 1;
+}
+
+
+// ===== Ответы (parsing-task-orchestrator) -> (api-gateway) =====
+
+message OrchestratorStatusResponse {
+    string task_id = 1;
+    TaskStatusProto status = 2;
+    string message = 3;
+}
+
+
+// ===== Сервис (gRPC api) =====
+
+service OrchestratorStatusService {
+  rpc GetStatus(OrchestratorStatusRequest) returns (OrchestratorStatusResponse);
+}

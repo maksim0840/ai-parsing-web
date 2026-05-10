@@ -23,8 +23,12 @@ public class GigaChat implements LLM {
                         AuthClient.builder().withOAuth(AuthClientBuilder.OAuthBuilder.builder()
                                 .scope(Scope.GIGACHAT_API_PERS) // версия API для физических лиц
                                 .authKey(llmProperties.gigachatAuthKey())
+                                .readTimeout(llmProperties.connectionTimeoutS())
+                                .connectTimeout(llmProperties.connectionTimeoutS())
                                 .build())
                         .build())
+                .readTimeout(llmProperties.responseTimeoutS())
+                .connectTimeout(llmProperties.connectionTimeoutS())
                 .build();
     }
 

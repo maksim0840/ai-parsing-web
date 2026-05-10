@@ -48,6 +48,8 @@ public class TaskMapper {
                         LLMResponseDTO.class)
                 )
                 .createdAt(task.getCreatedAt())
+                .status(task.getStatus())
+                .message(task.getMessage())
                 .build();
     }
 }

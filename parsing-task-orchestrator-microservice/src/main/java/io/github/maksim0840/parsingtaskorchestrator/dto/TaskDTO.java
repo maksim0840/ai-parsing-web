@@ -1,6 +1,7 @@
 package io.github.maksim0840.parsingtaskorchestrator.dto;
 
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.*;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.enums.TaskStatus;
 import lombok.Builder;
 import org.springframework.data.mongodb.core.index.Indexed;
 
@@ -22,6 +23,8 @@ public record TaskDTO(
         HtmlPreprocessingResponseDTO htmlPreprocessingResponse,
         TextRecognitionResponseDTO textRecognitionResponse,
         LLMResponseDTO llmResponse,
-        Instant createdAt
+        Instant createdAt,
+        TaskStatus status,
+        String message
 ){
 }

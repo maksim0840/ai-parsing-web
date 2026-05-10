@@ -13,6 +13,8 @@ public record LLMProperties(
     String gigachatModelViewName,
     String gigachatAuthKey,
     Double defaultTemperature,
-    Integer defaultMaxOutputTokens
+    Integer defaultMaxOutputTokens,
+    Integer connectionTimeoutS,
+    Integer responseTimeoutS
 ) {
 }

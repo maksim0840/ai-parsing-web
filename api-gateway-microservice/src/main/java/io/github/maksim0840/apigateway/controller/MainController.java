@@ -1,8 +1,10 @@
 package io.github.maksim0840.apigateway.controller;
 
 import io.github.maksim0840.apigateway.dto.OrchestratorFinishDTO;
+import io.github.maksim0840.apigateway.dto.OrchestratorStatusDTO;
 import io.github.maksim0840.apigateway.dto.api.*;
 import io.github.maksim0840.apigateway.service.OrchestratorStartService;
+import io.github.maksim0840.apigateway.service.TaskService;
 import io.github.maksim0840.apigateway.storage.TaskStorage;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.enums.TaskStatus;
 import org.springframework.web.bind.annotation.*;
@@ -15,11 +17,11 @@ import java.util.Map;
 public class MainController {
 
     private final OrchestratorStartService orchestratorStartService;
-    private final TaskStorage taskStorage;
+    private final TaskService taskService;
 
-    public MainController(OrchestratorStartService orchestratorStartService, TaskStorage taskStorage) {
+    public MainController(OrchestratorStartService orchestratorStartService, TaskService taskService) {
         this.orchestratorStartService = orchestratorStartService;
-        this.taskStorage = taskStorage;
+        this.taskService = taskService;
     }
 
     @PostMapping("/pipeline")
@@ -32,13 +34,15 @@ public class MainController {
     }
 
     @GetMapping("/pipeline/{taskId}/status")
-    public TaskStatus getPipelineStatus(@PathVariable String taskId) {
-        return taskStorage.getStatus(taskId);
+    public OrchestratorStatusDTO getPipelineStatus(@PathVariable String taskId) {
+        System.out.println("getPipelineStatus: " + taskId);
+        return taskService.getStatus(taskId);
     }
 
     @GetMapping("/pipeline/{taskId}/result")
     public OrchestratorFinishDTO getPipelineResult(@PathVariable String taskId) {
-        return taskStorage.getPipelineResult(taskId);
+        System.out.println("getPipelineResult: " + taskId);
+        return taskService.getResult(taskId);
     }
 
     @PostMapping("/parsing")

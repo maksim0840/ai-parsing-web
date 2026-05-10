@@ -2,6 +2,7 @@ package io.github.maksim0840.apigateway.grpc;
 
 import io.github.maksim0840.apigateway.dto.OrchestratorFinishDTO;
 import io.github.maksim0840.apigateway.mapper.ProtoDTOOrchestratorFinishMapper;
+import io.github.maksim0840.apigateway.service.TaskService;
 import io.github.maksim0840.apigateway.storage.TaskStorage;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlParserResponseDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingResponseDTO;
@@ -21,10 +22,10 @@ import org.springframework.stereotype.Service;
 @GrpcService
 public class OrchestratorFinishGrpcEndpoint extends OrchestratorFinishServiceGrpc.OrchestratorFinishServiceImplBase {
 
-    private final TaskStorage taskStorage;
+    private final TaskService taskService;
 
-    public OrchestratorFinishGrpcEndpoint(TaskStorage taskStorage) {
-        this.taskStorage = taskStorage;
+    public OrchestratorFinishGrpcEndpoint(TaskService taskService) {
+        this.taskService = taskService;
     }
 
     @Override
@@ -36,7 +37,7 @@ public class OrchestratorFinishGrpcEndpoint extends OrchestratorFinishServiceGrp
         System.out.println(a);
 
         OrchestratorFinishDTO orchestratorFinishDTO = ProtoDTOOrchestratorFinishMapper.protoToDto(request);
-        taskStorage.addResult(orchestratorFinishDTO.taskId(), orchestratorFinishDTO);
+        taskService.addResult(orchestratorFinishDTO.taskId(), orchestratorFinishDTO);
 
         OrchestratorFinishResponse response = OrchestratorFinishResponse.newBuilder()
                 .setTaskId(orchestratorFinishDTO.taskId()).build();

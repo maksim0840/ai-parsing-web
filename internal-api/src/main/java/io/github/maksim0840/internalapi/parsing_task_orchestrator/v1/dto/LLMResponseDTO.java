@@ -8,6 +8,8 @@ import javax.annotation.Nullable;
 @Nullable
 public record LLMResponseDTO(
         String taskId,
+        boolean success,
+        String message,
         String llmOutput
 ) {
 }

@@ -2,9 +2,12 @@ package io.github.maksim0840.parsingtaskorchestrator.llm;
 
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.core.Timeout;
 import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
 import io.github.maksim0840.parsingtaskorchestrator.config.properties.LLMProperties;
+
+import java.time.Duration;
 
 public class YandexGPT implements LLM {
     private final LLMProperties llmProperties;
@@ -15,6 +18,12 @@ public class YandexGPT implements LLM {
         this.client = OpenAIOkHttpClient.builder()
                 .apiKey(llmProperties.yandexgptApiKey())
                 .baseUrl(llmProperties.yandexgptBaseUrl())
+                .timeout(Timeout.builder()
+                        .connect(Duration.ofSeconds(llmProperties.connectionTimeoutS()))
+                        .read(Duration.ofSeconds(llmProperties.responseTimeoutS()))
+                        .write(Duration.ofSeconds(llmProperties.connectionTimeoutS()))
+                        .request(Duration.ofSeconds(llmProperties.responseTimeoutS()))
+                        .build())
                 .build();
     }
 

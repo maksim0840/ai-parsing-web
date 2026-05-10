@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload,
   Download,
@@ -14,7 +14,9 @@ import {
   Brain,
   RefreshCw,
   FileCode2,
-  Shield,
+  CheckCircle2,
+  AlertCircle,
+  Clock3,
 } from "lucide-react";
 
 const CLEANUP_TAGS = [
@@ -45,11 +47,51 @@ const PROXY_FIELDS = [
   { key: "password", label: "Password" },
 ];
 
+const STATUS_META = {
+  NOT_REGISTERED: { label: "Задача ещё не зарегистрирована на сервере", progress: 0 },
+  CREATED: { label: "Задача создана", progress: 10 },
+  HTML_PARSING: { label: "Парсинг HTML", progress: 30 },
+  HTML_PREPROCESSING: { label: "Предобработка HTML", progress: 50 },
+  TEXT_RECOGNITION: { label: "Распознавание текста на изображениях", progress: 70 },
+  LLM_PROCESSING: { label: "Обработка LLM", progress: 90 },
+  DONE: { label: "Готово", progress: 100 },
+  FAILED: { label: "Ошибка", progress: 100 },
+};
+
+function debugLog(scope, ...args) {
+  const ts = new Date().toISOString();
+  console.log(`[ConferenceParser][${ts}][${scope}]`, ...args);
+}
+
 function createKeyValueRow() {
   return { id: crypto.randomUUID(), key: "", value: "" };
 }
 
-function KeyValueEditor({ title, rows, setRows, placeholderKey, placeholderValue }) {
+function clampNumber(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function normalizeTaskStatus(status) {
+  return String(status || "").trim().toUpperCase();
+}
+
+function getStatusMeta(status) {
+  if (!status) {
+    return { label: "Ожидание запуска", progress: 0 };
+  }
+  return STATUS_META[status] || { label: status, progress: 0 };
+}
+
+function KeyValueEditor({
+  title,
+  rows,
+  setRows,
+  placeholderKey,
+  placeholderValue,
+  useSection,
+  setUseSection,
+  checkboxLabel,
+}) {
   const addRow = () => {
     setRows((prev) => [...prev, createKeyValueRow()]);
   };
@@ -62,52 +104,77 @@ function KeyValueEditor({ title, rows, setRows, placeholderKey, placeholderValue
     setRows((prev) => prev.filter((row) => row.id !== id));
   };
 
+  const isEnabled = Boolean(useSection);
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-        <button
-          type="button"
-          onClick={addRow}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
-        >
-          <Plus className="h-4 w-4" />
-          Добавить
-        </button>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+          <p className="mt-1 text-xs text-slate-500">
+            Можно добавить несколько пар ключ-значение или не использовать этот блок вовсе.
+          </p>
+        </div>
+        <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={isEnabled}
+            onChange={(e) => setUseSection(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300"
+          />
+          {checkboxLabel}
+        </label>
       </div>
 
-      <div className="space-y-3">
-        {rows.length === 0 && (
-          <div className="rounded-xl border border-dashed border-slate-200 px-3 py-4 text-sm text-slate-500">
-            Параметры не указаны.
-          </div>
-        )}
-
-        {rows.map((row) => (
-          <div key={row.id} className="grid grid-cols-1 gap-3 md:grid-cols-[220px_minmax(0,1fr)_auto]">
-            <input
-              value={row.key}
-              onChange={(e) => updateRow(row.id, "key", e.target.value)}
-              placeholder={placeholderKey}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-slate-400"
-            />
-            <input
-              value={row.value}
-              onChange={(e) => updateRow(row.id, "value", e.target.value)}
-              placeholder={placeholderValue}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-slate-400"
-            />
+      {!isEnabled ? (
+        <div className="rounded-xl border border-dashed border-slate-200 px-3 py-4 text-sm text-slate-500">
+          {title} не используются.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex justify-end">
             <button
               type="button"
-              onClick={() => removeRow(row.id)}
-              className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-slate-600 transition hover:bg-slate-50"
-              aria-label={`Удалить ${title}`}
+              onClick={addRow}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
             >
-              <Trash2 className="h-4 w-4" />
+              <Plus className="h-4 w-4" />
+              Добавить
             </button>
           </div>
-        ))}
-      </div>
+
+          {rows.length === 0 && (
+            <div className="rounded-xl border border-dashed border-slate-200 px-3 py-4 text-sm text-slate-500">
+              Параметры не указаны.
+            </div>
+          )}
+
+          {rows.map((row) => (
+            <div key={row.id} className="grid grid-cols-1 gap-3 md:grid-cols-[220px_minmax(0,1fr)_auto]">
+              <input
+                value={row.key}
+                onChange={(e) => updateRow(row.id, "key", e.target.value)}
+                placeholder={placeholderKey}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-slate-400"
+              />
+              <input
+                value={row.value}
+                onChange={(e) => updateRow(row.id, "value", e.target.value)}
+                placeholder={placeholderValue}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-slate-400"
+              />
+              <button
+                type="button"
+                onClick={() => removeRow(row.id)}
+                className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-slate-600 transition hover:bg-slate-50"
+                aria-label={`Удалить ${title}`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -117,40 +184,24 @@ function ProxyEditor({ useProxy, setUseProxy, proxyConfig, setProxyConfig }) {
     setProxyConfig((prev) => ({ ...prev, [field]: value }));
   };
 
-  const resetProxy = () => {
-    setUseProxy(false);
-    setProxyConfig({ ip: "", port: "", username: "", password: "" });
-  };
-
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-slate-900">Proxy</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Можно указать только поля: ip, port, username, password. Каждое поле — не более одного раза.
+            Доступны только поля: ip, port, username, password. При снятии галочки значения сохраняются, но не отправляются.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {useProxy && (
-            <button
-              type="button"
-              onClick={resetProxy}
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
-            >
-              Очистить
-            </button>
-          )}
-          <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={useProxy}
-              onChange={(e) => setUseProxy(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300"
-            />
-            Использовать proxy
-          </label>
-        </div>
+        <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={useProxy}
+            onChange={(e) => setUseProxy(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300"
+          />
+          Использовать proxy
+        </label>
       </div>
 
       {!useProxy ? (
@@ -321,14 +372,46 @@ function StorageSection({
   );
 }
 
-function RangeField({ label, value, min, max, step, onChange, leftLabel, rightLabel }) {
+function RangeField({
+  label,
+  value,
+  min,
+  max,
+  step,
+  inputStep,
+  onChange,
+  leftLabel,
+  rightLabel,
+}) {
+  const handleInputChange = (event) => {
+    const rawValue = event.target.value;
+
+    if (rawValue === "") {
+      onChange(min);
+      return;
+    }
+
+    const nextValue = Number(rawValue);
+    if (Number.isNaN(nextValue)) {
+      return;
+    }
+
+    onChange(clampNumber(nextValue, min, max));
+  };
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <span className="text-sm font-medium text-slate-700">{label}</span>
-        <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-semibold text-slate-900">
-          {value}
-        </span>
+        <input
+          type="number"
+          min={min}
+          max={max}
+          step={inputStep ?? step}
+          value={value}
+          onChange={handleInputChange}
+          className="w-28 rounded-xl border border-slate-200 bg-white px-3 py-2 text-right text-sm font-semibold text-slate-900 outline-none transition focus:border-slate-400 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0"
+        />
       </div>
       <input
         type="range"
@@ -336,7 +419,7 @@ function RangeField({ label, value, min, max, step, onChange, leftLabel, rightLa
         max={max}
         step={step}
         value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={(e) => onChange(clampNumber(Number(e.target.value), min, max))}
         className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200"
       />
       <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
@@ -344,6 +427,82 @@ function RangeField({ label, value, min, max, step, onChange, leftLabel, rightLa
         <span>{rightLabel ?? max}</span>
       </div>
     </div>
+  );
+}
+
+function StatusOverlay({ visible, taskId, status, message }) {
+  const statusMeta = getStatusMeta(status);
+  const isFailed = status === "FAILED";
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4"
+        >
+          <motion.div
+            initial={{ scale: 0.96, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.98, opacity: 0 }}
+            className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl"
+          >
+            <div className="flex items-start gap-4">
+              <div className={`rounded-2xl p-3 ${isFailed ? "bg-red-50" : "bg-slate-100"}`}>
+                {isFailed ? (
+                  <AlertCircle className="h-6 w-6 text-red-600" />
+                ) : (
+                  <Loader2 className="h-6 w-6 animate-spin text-slate-700" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-semibold text-slate-950">Выполняется обработка</h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Сервер обрабатывает задачу. Статус обновляется автоматически каждые 5 секунд.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+                  <span className="font-medium text-slate-700">Текущий статус</span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isFailed ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"}`}>
+                    {statusMeta.label}
+                  </span>
+                </div>
+                <div className="h-3 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${isFailed ? "bg-red-500" : "bg-slate-900"}`}
+                    style={{ width: `${statusMeta.progress}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
+                <div>
+                  <div className="text-xs text-slate-500">Task ID</div>
+                  <div className="mt-1 break-all text-sm font-medium text-slate-900">{taskId || "—"}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500">Статус из сервера</div>
+                  <div className="mt-1 text-sm font-medium text-slate-900">{status || "—"}</div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="mb-1 text-xs text-slate-500">Сообщение</div>
+                <div className="whitespace-pre-wrap break-words text-sm text-slate-700">
+                  {message || "Сервер пока не прислал дополнительное сообщение."}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -427,8 +586,13 @@ function formatBytes(size) {
 export default function ConferenceParserPage() {
   const [siteUrl, setSiteUrl] = useState("");
   const [downloadImagesFromSite, setDownloadImagesFromSite] = useState(true);
+
+  const [useHeaders, setUseHeaders] = useState(false);
   const [headers, setHeaders] = useState([createKeyValueRow()]);
+
+  const [useCookies, setUseCookies] = useState(false);
   const [cookies, setCookies] = useState([createKeyValueRow()]);
+
   const [useProxy, setUseProxy] = useState(false);
   const [proxyConfig, setProxyConfig] = useState({
     ip: "",
@@ -436,17 +600,11 @@ export default function ConferenceParserPage() {
     username: "",
     password: "",
   });
+
   const [parsingComplexity, setParsingComplexity] = useState("DEFAULT");
   const [extraWaitSeconds, setExtraWaitSeconds] = useState(5);
 
-  const [cleanupTags, setCleanupTags] = useState([
-    "script",
-    "style",
-    "noscript",
-    "iframe",
-    "embed",
-    "object",
-  ]);
+  const [cleanupTags, setCleanupTags] = useState([...CLEANUP_TAGS]);
 
   const [garageImages, setGarageImages] = useState([]);
   const [garageLoading, setGarageLoading] = useState(false);
@@ -471,14 +629,171 @@ export default function ConferenceParserPage() {
   const [result, setResult] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [lastPayload, setLastPayload] = useState(null);
+
+  const [taskId, setTaskId] = useState("");
+  const [taskStatus, setTaskStatus] = useState("");
+  const [taskMessage, setTaskMessage] = useState("");
+  const [isPollingStatus, setIsPollingStatus] = useState(false);
+  const [lastSuccessfulTaskId, setLastSuccessfulTaskId] = useState("");
 
   const submittingRef = useRef(false);
+  const isMountedRef = useRef(true);
+  const pollingIntervalRef = useRef(null);
+  const resultRequestedRef = useRef(false);
+  const taskIdRef = useRef("");
 
   useEffect(() => {
+    isMountedRef.current = true;
+    debugLog("mount", "component mounted", { isMounted: isMountedRef.current });
     loadGarageImages();
     loadGarageHtmlFiles();
+
+    return () => {
+      debugLog("unmount", "component unmounted, clearing interval");
+      isMountedRef.current = false;
+      stopPolling("component cleanup");
+    };
   }, []);
+
+  useEffect(() => {
+    debugLog("state", { taskId, taskStatus, taskMessage, isPollingStatus, result, error });
+  }, [taskId, taskStatus, taskMessage, isPollingStatus, result, error]);
+
+  function stopPolling(reason = "no reason") {
+    debugLog("polling", "stopPolling called", reason, { currentTaskId: taskIdRef.current });
+
+    if (pollingIntervalRef.current) {
+      window.clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+
+    if (isMountedRef.current) {
+      setIsPollingStatus(false);
+    }
+  }
+
+  async function fetchPipelineResult(nextTaskId) {
+    if (resultRequestedRef.current) {
+      debugLog("result", "result already requested, skip", nextTaskId);
+      return;
+    }
+
+    resultRequestedRef.current = true;
+    debugLog("result", "requesting pipeline result", nextTaskId);
+
+    const response = await fetch(`/api/pipeline/${nextTaskId}/result`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+
+    debugLog("result", "result response status", response.status);
+
+    if (!response.ok) {
+      throw new Error(`Не удалось получить результат задачи: ${response.status}`);
+    }
+
+    const data = await response.json();
+    debugLog("result", "result JSON", data);
+
+    const llmOutput = data?.llmResponse?.llmOutput;
+
+    if (!isMountedRef.current) {
+      return;
+    }
+
+    setLastSuccessfulTaskId(nextTaskId);
+    setResult(llmOutput || "Сервер завершил задачу, но поле llmResponse.llmOutput оказалось пустым.");
+  }
+
+  async function requestTaskStatus(nextTaskId) {
+    debugLog("status", "sending status request", nextTaskId);
+
+    const response = await fetch(`/api/pipeline/${nextTaskId}/status`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+
+    debugLog("status", "status response HTTP", response.status);
+
+    if (!response.ok) {
+      throw new Error(`Не удалось получить статус задачи: ${response.status}`);
+    }
+
+    const data = await response.json();
+    debugLog("status", "status JSON", data);
+
+    const normalizedStatus = normalizeTaskStatus(data?.status);
+    const message = String(data?.message || "");
+    const responseTaskId = String(data?.taskId || nextTaskId).trim();
+
+    debugLog("status", "parsed status", {
+      responseTaskId,
+      rawStatus: data?.status,
+      normalizedStatus,
+      message,
+      currentRenderedStatus: taskStatus,
+    });
+
+    if (!isMountedRef.current) {
+      debugLog("status", "component unmounted, skip state apply");
+      return;
+    }
+
+    debugLog("status", "applying status to state", normalizedStatus);
+    setTaskId(responseTaskId);
+    setTaskStatus(normalizedStatus);
+    setTaskMessage(message);
+
+    if (normalizedStatus === "DONE") {
+      debugLog("status", "DONE received, stop polling and fetch result");
+      stopPolling("DONE received");
+      await fetchPipelineResult(nextTaskId);
+      return;
+    }
+
+    if (normalizedStatus === "FAILED") {
+      debugLog("status", "FAILED received, stop polling and set error");
+      stopPolling("FAILED received");
+      setError(message || "Сервер сообщил об ошибке при выполнении задачи.");
+    }
+  }
+
+  function startPolling(nextTaskId) {
+    debugLog("polling", "startPolling called", nextTaskId);
+    stopPolling("restart before starting new polling");
+    taskIdRef.current = nextTaskId;
+
+    if (isMountedRef.current) {
+      setIsPollingStatus(true);
+    }
+
+    requestTaskStatus(nextTaskId).catch((e) => {
+      debugLog("polling", "initial polling request failed", e);
+      stopPolling("initial status request failed");
+      if (isMountedRef.current) {
+        setError(e.message || "Ошибка при получении статуса задачи.");
+      }
+    });
+
+    pollingIntervalRef.current = window.setInterval(() => {
+      debugLog("polling", "interval tick", { taskId: nextTaskId });
+      requestTaskStatus(nextTaskId).catch((e) => {
+        debugLog("polling", "interval polling failed", e);
+        stopPolling("interval status request failed");
+        if (isMountedRef.current) {
+          setError(e.message || "Ошибка при получении статуса задачи.");
+        }
+      });
+    }, 5000);
+
+    debugLog("polling", "interval started", pollingIntervalRef.current);
+  }
 
   async function loadGarageImages() {
     setGarageLoading(true);
@@ -601,17 +916,13 @@ export default function ConferenceParserPage() {
 
   function toggleImageSelection(imageId) {
     setGarageImages((prev) =>
-      prev.map((image) =>
-        image.id === imageId ? { ...image, selected: !image.selected } : image
-      )
+      prev.map((image) => (image.id === imageId ? { ...image, selected: !image.selected } : image))
     );
   }
 
   function toggleHtmlSelection(fileId) {
     setGarageHtmlFiles((prev) =>
-      prev.map((file) =>
-        file.id === fileId ? { ...file, selected: !file.selected } : file
-      )
+      prev.map((file) => (file.id === fileId ? { ...file, selected: !file.selected } : file))
     );
   }
 
@@ -693,20 +1004,31 @@ export default function ConferenceParserPage() {
   }
 
   async function handleStartParsing() {
-    if (submittingRef.current) {
+    if (submittingRef.current || isPollingStatus) {
+      debugLog("pipeline", "start blocked", {
+        submitting: submittingRef.current,
+        isPollingStatus,
+      });
       return;
     }
 
     submittingRef.current = true;
     setIsSubmitting(true);
     setError("");
+    setResult("");
+    setTaskStatus("CREATED");
+    setTaskMessage("Задача отправлена на сервер и ожидает запуска.");
+    setTaskId("");
+    setLastSuccessfulTaskId("");
+    resultRequestedRef.current = false;
+    stopPolling("before starting new pipeline");
 
     const payload = {
       parsing: {
         url: siteUrl.trim(),
         downloadImages: downloadImagesFromSite,
-        headers: buildMapFromRows(headers),
-        cookies: buildMapFromRows(cookies),
+        headers: useHeaders ? buildMapFromRows(headers) : {},
+        cookies: useCookies ? buildMapFromRows(cookies) : {},
         proxy: buildProxyPayload(useProxy, proxyConfig),
         pageComplexity: parsingComplexity,
         additionalPageLoadTimeoutS: Number(extraWaitSeconds) || 0,
@@ -722,34 +1044,42 @@ export default function ConferenceParserPage() {
       },
     };
 
-    setLastPayload(payload);
+    debugLog("pipeline", "sending pipeline payload", payload);
 
     try {
       const response = await fetch("/api/pipeline", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify(payload),
       });
+
+      debugLog("pipeline", "pipeline response HTTP", response.status);
 
       if (!response.ok) {
         throw new Error(`Бекенд вернул ошибку при запуске pipeline: ${response.status}`);
       }
 
-      const responseText = await response.text();
+      const data = await response.json();
+      debugLog("pipeline", "pipeline start JSON", data);
 
-      if (responseText.trim()) {
-        try {
-          const data = JSON.parse(responseText);
-          setResult(data.result || data.answer || responseText);
-        } catch {
-          setResult(responseText);
-        }
-      } else {
-        setResult("Запрос успешно отправлен на сервер.");
+      const nextTaskId = String(data?.taskId || "").trim();
+
+      if (!nextTaskId) {
+        throw new Error("Сервер не вернул taskId для дальнейшего отслеживания.");
       }
+
+      debugLog("pipeline", "received taskId", nextTaskId);
+      taskIdRef.current = nextTaskId;
+      setTaskId(nextTaskId);
+      setTaskStatus("CREATED");
+      setTaskMessage("Задача поставлена в очередь. Статус будет обновляться автоматически каждые 5 секунд.");
+      startPolling(nextTaskId);
     } catch (e) {
+      debugLog("pipeline", "pipeline start failed", e);
+      stopPolling("pipeline start failed");
       setError(e.message || "Ошибка при запуске pipeline.");
     } finally {
       submittingRef.current = false;
@@ -758,377 +1088,405 @@ export default function ConferenceParserPage() {
   }
 
   const canStartParsing = Boolean(siteUrl.trim());
+  const statusMeta = getStatusMeta(taskStatus);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <motion.header
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className="mb-8 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:flex-row lg:items-end lg:justify-between"
-        >
-          <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium uppercase tracking-wide text-slate-600">
-              Conference Parser
-            </div>
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-              Минималистичный фронт для парсинга сайтов конференций
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-              Настройте параметры загрузки страницы, предобработку HTML, дополнительные HTML-файлы,
-              изображения для OCR и запрос к LLM. Затем запустите процесс и при необходимости
-              отредактируйте итоговый ответ.
-            </p>
-          </div>
+    <>
+      <StatusOverlay
+        visible={isPollingStatus}
+        taskId={taskId}
+        status={taskStatus}
+        message={taskMessage}
+      />
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="text-xs text-slate-500">Теги очистки</div>
-              <div className="mt-1 text-lg font-semibold">{cleanupTags.length}</div>
+      <div className="min-h-screen bg-slate-50 text-slate-900">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <motion.header
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            className="mb-8 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:flex-row lg:items-end lg:justify-between"
+          >
+            <div>
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium uppercase tracking-wide text-slate-600">
+                Conference Parser
+              </div>
+              <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+                Минималистичный фронт для парсинга сайтов конференций
+              </h1>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                Настройте параметры загрузки страницы, предобработку HTML, дополнительные HTML-файлы,
+                изображения для OCR и запрос к LLM. Затем запустите процесс и при необходимости
+                отредактируйте итоговый ответ.
+              </p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="text-xs text-slate-500">HTML в обработке</div>
-              <div className="mt-1 text-lg font-semibold">{selectedHtmlFiles.length}</div>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="text-xs text-slate-500">Изображения OCR</div>
-              <div className="mt-1 text-lg font-semibold">{selectedImages.length}</div>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="text-xs text-slate-500">Модель</div>
-              <div className="mt-1 text-sm font-semibold">{model}</div>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="text-xs text-slate-500">Режим</div>
-              <div className="mt-1 text-lg font-semibold">{parsingComplexity}</div>
-            </div>
-          </div>
-        </motion.header>
 
-        <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-          <div className="space-y-6">
-            <Section
-              icon={Globe}
-              title="Блок 1. Извлечение данных со страницы"
-              description="URL страницы, параметры парсинга, headers, cookies, proxy и HTML-файлы из S3. HTML-файлы пока хранятся отдельно и не входят в DTO pipeline на бекенде."
-            >
-              <div className="space-y-5">
-                <div className="grid gap-5 lg:grid-cols-2">
-                  <label className="block lg:col-span-2">
-                    <span className="mb-2 block text-sm font-medium text-slate-700">Ссылка на сайт</span>
-                    <input
-                      type="url"
-                      value={siteUrl}
-                      onChange={(e) => setSiteUrl(e.target.value)}
-                      placeholder="https://conference-site.org"
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400"
-                    />
-                  </label>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="text-xs text-slate-500">Теги очистки</div>
+                <div className="mt-1 text-lg font-semibold">{cleanupTags.length}</div>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="text-xs text-slate-500">HTML в обработке</div>
+                <div className="mt-1 text-lg font-semibold">{selectedHtmlFiles.length}</div>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="text-xs text-slate-500">Изображения OCR</div>
+                <div className="mt-1 text-lg font-semibold">{selectedImages.length}</div>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="text-xs text-slate-500">Модель</div>
+                <div className="mt-1 text-sm font-semibold">{model}</div>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="text-xs text-slate-500">Режим</div>
+                <div className="mt-1 text-lg font-semibold">{parsingComplexity}</div>
+              </div>
+            </div>
+          </motion.header>
 
-                  <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={downloadImagesFromSite}
-                      onChange={(e) => setDownloadImagesFromSite(e.target.checked)}
-                      className="h-4 w-4 rounded border-slate-300"
-                    />
-                    <span className="text-sm text-slate-700">Скачивать изображения с сайта</span>
-                  </label>
+          <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+            <div className="space-y-6">
+              <Section
+                icon={Globe}
+                title="Блок 1. Извлечение данных со страницы"
+                description="URL страницы, параметры парсинга, headers, cookies, proxy и HTML-файлы из S3. HTML-файлы пока хранятся отдельно и не входят в DTO pipeline на бекенде."
+              >
+                <div className="space-y-5">
+                  <div className="grid gap-5 lg:grid-cols-2">
+                    <label className="block lg:col-span-2">
+                      <span className="mb-2 block text-sm font-medium text-slate-700">Ссылка на сайт</span>
+                      <input
+                        type="url"
+                        value={siteUrl}
+                        onChange={(e) => setSiteUrl(e.target.value)}
+                        placeholder="https://conference-site.org"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400"
+                      />
+                    </label>
 
+                    <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={downloadImagesFromSite}
+                        onChange={(e) => setDownloadImagesFromSite(e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300"
+                      />
+                      <span className="text-sm text-slate-700">Скачивать изображения с сайта</span>
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-2 block text-sm font-medium text-slate-700">Сложность парсинга</span>
+                      <select
+                        value={parsingComplexity}
+                        onChange={(e) => setParsingComplexity(e.target.value)}
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400"
+                      >
+                        {PARSING_COMPLEXITY.map((level) => (
+                          <option key={level} value={level}>
+                            {level}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <div className="lg:col-span-2">
+                      <RangeField
+                        label="Дополнительное ожидание загрузки (сек.)"
+                        value={extraWaitSeconds}
+                        min={0}
+                        max={100}
+                        step={1}
+                        inputStep={1}
+                        onChange={setExtraWaitSeconds}
+                        leftLabel="0"
+                        rightLabel="100"
+                      />
+                    </div>
+                  </div>
+
+                  <KeyValueEditor
+                    title="Headers"
+                    rows={headers}
+                    setRows={setHeaders}
+                    placeholderKey="Authorization"
+                    placeholderValue="Bearer ..."
+                    useSection={useHeaders}
+                    setUseSection={setUseHeaders}
+                    checkboxLabel="Использовать headers"
+                  />
+
+                  <KeyValueEditor
+                    title="Cookies"
+                    rows={cookies}
+                    setRows={setCookies}
+                    placeholderKey="sessionid"
+                    placeholderValue="abc123"
+                    useSection={useCookies}
+                    setUseSection={setUseCookies}
+                    checkboxLabel="Использовать cookies"
+                  />
+
+                  <ProxyEditor
+                    useProxy={useProxy}
+                    setUseProxy={setUseProxy}
+                    proxyConfig={proxyConfig}
+                    setProxyConfig={setProxyConfig}
+                  />
+
+                  <StorageSection
+                    title="HTML-файлы в Garage/S3"
+                    description="Загрузите собственные HTML-файлы страниц, отмечайте нужные для обработки, скачивайте и удаляйте их."
+                    uploadLabel="Загрузить HTML-файлы"
+                    uploading={htmlUploading}
+                    loading={htmlLoading}
+                    accept=".html,text/html"
+                    onUpload={handleUploadHtmlFiles}
+                    onRefresh={loadGarageHtmlFiles}
+                    emptyText="В хранилище пока нет HTML-файлов."
+                    items={garageHtmlFiles}
+                    variant="file"
+                    selectableLabel="Использовать в обработке"
+                    onToggleSelect={toggleHtmlSelection}
+                    onDownload={handleDownloadHtmlFile}
+                    onDelete={handleDeleteHtmlFile}
+                    deletingId={htmlDeletingId}
+                  />
+                </div>
+              </Section>
+
+              <Section
+                icon={Settings}
+                title="Блок 2. Предобработка данных"
+                description="Выберите HTML-теги, которые нужно почистить или удалить перед отправкой в LLM."
+              >
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {CLEANUP_TAGS.map((tag) => {
+                    const checked = cleanupTags.includes(tag);
+                    return (
+                      <label
+                        key={tag}
+                        className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition ${
+                          checked
+                            ? "border-slate-900 bg-slate-900 text-white"
+                            : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleCleanupTag(tag)}
+                          className="hidden"
+                        />
+                        <span className="font-medium">{tag}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </Section>
+
+              <Section
+                icon={ImageIcon}
+                title="Блок 3. Извлечение текста с изображений"
+                description="Загрузка, скачивание, удаление и выбор изображений через Garage/S3. Выбор изображений пока не передаётся в pipeline, потому что RecognitionRequest на бекенде пока пустой."
+              >
+                <StorageSection
+                  title="Изображения для OCR"
+                  description="Отметьте те изображения, которые нужно отправить в OCR, либо добавьте собственные файлы."
+                  uploadLabel="Загрузить изображения"
+                  uploading={garageUploading}
+                  loading={garageLoading}
+                  accept="image/*"
+                  onUpload={handleUploadImages}
+                  onRefresh={loadGarageImages}
+                  emptyText="В хранилище пока нет изображений."
+                  items={garageImages}
+                  variant="image"
+                  selectableLabel="Использовать для OCR"
+                  onToggleSelect={toggleImageSelection}
+                  onDownload={handleDownloadImage}
+                  onDelete={handleDeleteImage}
+                  deletingId={imageDeletingId}
+                />
+              </Section>
+
+              <Section
+                icon={Brain}
+                title="Блок 4. Запрос к LLM модели"
+                description="Выбор модели, настройки генерации, системное сообщение и основной пользовательский запрос."
+              >
+                <div className="space-y-5">
                   <label className="block">
-                    <span className="mb-2 block text-sm font-medium text-slate-700">Сложность парсинга</span>
+                    <span className="mb-2 block text-sm font-medium text-slate-700">Модель</span>
                     <select
-                      value={parsingComplexity}
-                      onChange={(e) => setParsingComplexity(e.target.value)}
+                      value={model}
+                      onChange={(e) => setModel(e.target.value)}
                       className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400"
                     >
-                      {PARSING_COMPLEXITY.map((level) => (
-                        <option key={level} value={level}>
-                          {level}
+                      {MODELS.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
                         </option>
                       ))}
                     </select>
                   </label>
 
-                  <label className="block lg:col-span-2">
-                    <span className="mb-2 block text-sm font-medium text-slate-700">
-                      Дополнительное ожидание загрузки (сек.)
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      value={extraWaitSeconds}
-                      onChange={(e) => setExtraWaitSeconds(e.target.value)}
-                      placeholder="5"
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <RangeField
+                      label="Температура"
+                      value={temperature}
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      inputStep={0.1}
+                      onChange={setTemperature}
+                      leftLabel="0.0"
+                      rightLabel="2.0"
+                    />
+                    <RangeField
+                      label="Макс. выходных токенов"
+                      value={maxOutputTokens}
+                      min={128}
+                      max={8192}
+                      step={128}
+                      inputStep={1}
+                      onChange={setMaxOutputTokens}
+                      leftLabel="128"
+                      rightLabel="8192"
+                    />
+                  </div>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-medium text-slate-700">Системное сообщение</span>
+                    <textarea
+                      value={systemPrompt}
+                      onChange={(e) => setSystemPrompt(e.target.value)}
+                      rows={6}
+                      placeholder="Опишите поведение модели, формат ответа, ограничения..."
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-medium text-slate-700">Основной запрос</span>
+                    <textarea
+                      value={userPrompt}
+                      onChange={(e) => setUserPrompt(e.target.value)}
+                      rows={6}
+                      placeholder="Что именно нужно извлечь со страницы?"
                       className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400"
                     />
                   </label>
                 </div>
+              </Section>
+            </div>
 
-                <KeyValueEditor
-                  title="Headers"
-                  rows={headers}
-                  setRows={setHeaders}
-                  placeholderKey="Authorization"
-                  placeholderValue="Bearer ..."
-                />
-
-                <KeyValueEditor
-                  title="Cookies"
-                  rows={cookies}
-                  setRows={setCookies}
-                  placeholderKey="sessionid"
-                  placeholderValue="abc123"
-                />
-
-                <ProxyEditor
-                  useProxy={useProxy}
-                  setUseProxy={setUseProxy}
-                  proxyConfig={proxyConfig}
-                  setProxyConfig={setProxyConfig}
-                />
-
-                <StorageSection
-                  title="HTML-файлы в Garage/S3"
-                  description="Загрузите собственные HTML-файлы страниц, отмечайте нужные для обработки, скачивайте и удаляйте их."
-                  uploadLabel="Загрузить HTML-файлы"
-                  uploading={htmlUploading}
-                  loading={htmlLoading}
-                  accept=".html,text/html"
-                  onUpload={handleUploadHtmlFiles}
-                  onRefresh={loadGarageHtmlFiles}
-                  emptyText="В хранилище пока нет HTML-файлов."
-                  items={garageHtmlFiles}
-                  variant="file"
-                  selectableLabel="Использовать в обработке"
-                  onToggleSelect={toggleHtmlSelection}
-                  onDownload={handleDownloadHtmlFile}
-                  onDelete={handleDeleteHtmlFile}
-                  deletingId={htmlDeletingId}
-                />
-              </div>
-            </Section>
-
-            <Section
-              icon={Settings}
-              title="Блок 2. Предобработка данных"
-              description="Выберите HTML-теги, которые нужно почистить или удалить перед отправкой в LLM."
-            >
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {CLEANUP_TAGS.map((tag) => {
-                  const checked = cleanupTags.includes(tag);
-                  return (
-                    <label
-                      key={tag}
-                      className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition ${
-                        checked
-                          ? "border-slate-900 bg-slate-900 text-white"
-                          : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleCleanupTag(tag)}
-                        className="hidden"
-                      />
-                      <span className="font-medium">{tag}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </Section>
-
-            <Section
-              icon={ImageIcon}
-              title="Блок 3. Извлечение текста с изображений"
-              description="Загрузка, скачивание, удаление и выбор изображений через Garage/S3. Выбор изображений пока не передаётся в pipeline, потому что RecognitionRequest на бекенде пока пустой."
-            >
-              <StorageSection
-                title="Изображения для OCR"
-                description="Отметьте те изображения, которые нужно отправить в OCR, либо добавьте собственные файлы."
-                uploadLabel="Загрузить изображения"
-                uploading={garageUploading}
-                loading={garageLoading}
-                accept="image/*"
-                onUpload={handleUploadImages}
-                onRefresh={loadGarageImages}
-                emptyText="В хранилище пока нет изображений."
-                items={garageImages}
-                variant="image"
-                selectableLabel="Использовать для OCR"
-                onToggleSelect={toggleImageSelection}
-                onDownload={handleDownloadImage}
-                onDelete={handleDeleteImage}
-                deletingId={imageDeletingId}
-              />
-            </Section>
-
-            <Section
-              icon={Brain}
-              title="Блок 4. Запрос к LLM модели"
-              description="Выбор модели, настройки генерации, системное сообщение и основной пользовательский запрос."
-            >
-              <div className="space-y-5">
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-slate-700">Модель</span>
-                  <select
-                    value={model}
-                    onChange={(e) => setModel(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400"
+            <div className="space-y-6">
+              <Section
+                icon={Play}
+                title="Запуск процесса"
+                description="Отправка запроса на бекенд и автоматическое отслеживание статуса задачи."
+              >
+                <div className="space-y-4">
+                  <button
+                    type="button"
+                    onClick={handleStartParsing}
+                    disabled={isSubmitting || isPollingStatus || !canStartParsing}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {MODELS.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    {isSubmitting || isPollingStatus ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Выполняется обработка...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4" />
+                        Начать процесс парсинга
+                      </>
+                    )}
+                  </button>
 
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <RangeField
-                    label="Температура"
-                    value={temperature}
-                    min={0}
-                    max={2}
-                    step={0.1}
-                    onChange={setTemperature}
-                    leftLabel="0.0"
-                    rightLabel="2.0"
-                  />
-                  <RangeField
-                    label="Макс. выходных токенов"
-                    value={maxOutputTokens}
-                    min={128}
-                    max={8192}
-                    step={128}
-                    onChange={setMaxOutputTokens}
-                    leftLabel="128"
-                    rightLabel="8192"
-                  />
-                </div>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-slate-700">Системное сообщение</span>
-                  <textarea
-                    value={systemPrompt}
-                    onChange={(e) => setSystemPrompt(e.target.value)}
-                    rows={6}
-                    placeholder="Опишите поведение модели, формат ответа, ограничения..."
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-slate-700">Основной запрос</span>
-                  <textarea
-                    value={userPrompt}
-                    onChange={(e) => setUserPrompt(e.target.value)}
-                    rows={6}
-                    placeholder="Что именно нужно извлечь со страницы?"
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400"
-                  />
-                </label>
-              </div>
-            </Section>
-          </div>
-
-          <div className="space-y-6">
-            <Section
-              icon={Play}
-              title="Запуск процесса"
-              description="Финальная отправка всех параметров на бекенд."
-            >
-              <div className="space-y-4">
-                <button
-                  type="button"
-                  onClick={handleStartParsing}
-                  disabled={isSubmitting || !canStartParsing}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Выполняется парсинг...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-4 w-4" />
-                      Начать процесс парсинга
-                    </>
+                  {!canStartParsing && (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                      Укажите URL страницы. Сейчас backend DTO pipeline принимает источник через поле url.
+                    </div>
                   )}
-                </button>
 
-                {!canStartParsing && (
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                    Укажите URL страницы. Сейчас backend DTO pipeline принимает источник только через поле url.
-                  </div>
-                )}
+                  {error && (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 whitespace-pre-wrap break-words">
+                      {error}
+                    </div>
+                  )}
 
-                {error && (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {error}
-                  </div>
-                )}
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="mb-4 flex items-center gap-3">
+                      {taskStatus === "DONE" ? (
+                        <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                      ) : taskStatus === "FAILED" ? (
+                        <AlertCircle className="h-5 w-5 text-red-600" />
+                      ) : (
+                        <Clock3 className="h-5 w-5 text-slate-500" />
+                      )}
+                      <div>
+                        <div className="text-sm font-semibold text-slate-900">Статус задачи</div>
+                        <div className="text-xs text-slate-500">{statusMeta.label}</div>
+                      </div>
+                    </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="grid grid-cols-2 gap-3 text-sm text-slate-600">
-                    <div>
-                      <div className="text-xs text-slate-500">URL</div>
-                      <div className="mt-1 break-all font-medium text-slate-900">{siteUrl || "—"}</div>
+                    <div className="mb-4 h-2 overflow-hidden rounded-full bg-white">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${taskStatus === "FAILED" ? "bg-red-500" : "bg-slate-900"}`}
+                        style={{ width: `${statusMeta.progress}%` }}
+                      />
                     </div>
-                    <div>
-                      <div className="text-xs text-slate-500">Выбранная модель</div>
-                      <div className="mt-1 font-medium text-slate-900">{model}</div>
+
+                    <div className="grid grid-cols-1 gap-3 text-sm text-slate-600 sm:grid-cols-2">
+                      <div>
+                        <div className="text-xs text-slate-500">Task ID</div>
+                        <div className="mt-1 break-all font-medium text-slate-900">{taskId || lastSuccessfulTaskId || "—"}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Статус из сервера</div>
+                        <div className="mt-1 font-medium text-slate-900">{taskStatus || "—"}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Выбранная модель</div>
+                        <div className="mt-1 font-medium text-slate-900">{model}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Сложность</div>
+                        <div className="mt-1 font-medium text-slate-900">{parsingComplexity}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-xs text-slate-500">Сложность</div>
-                      <div className="mt-1 font-medium text-slate-900">{parsingComplexity}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-slate-500">Температура</div>
-                      <div className="mt-1 font-medium text-slate-900">{temperature}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-slate-500">HTML-файлы</div>
-                      <div className="mt-1 font-medium text-slate-900">{selectedHtmlFiles.length}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-slate-500">Изображения для OCR</div>
-                      <div className="mt-1 font-medium text-slate-900">{selectedImages.length}</div>
+
+                    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">
+                      <div className="text-xs text-slate-500">Сообщение от сервера</div>
+                      <div className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-700">
+                        {taskMessage || "Пока нет дополнительного сообщения."}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </Section>
+              </Section>
 
-            <Section
-              icon={FileText}
-              title="Результат"
-              description="Ответ от модели с возможностью ручного редактирования."
-            >
-              <textarea
-                value={result}
-                onChange={(e) => setResult(e.target.value)}
-                rows={24}
-                placeholder="Здесь появится ответ от нейросети..."
-                className="min-h-[420px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-slate-400"
-              />
-            </Section>
-
-            <Section
-              icon={Shield}
-              title="Payload preview"
-              description="Предпросмотр последнего JSON, который был отправлен на бекенд. Удобно для отладки."
-            >
-              <pre className="max-h-[500px] overflow-auto rounded-2xl border border-slate-200 bg-slate-950 p-4 text-xs leading-6 text-slate-100">
-                {JSON.stringify(lastPayload, null, 2) || "{}"}
-              </pre>
-            </Section>
+              <Section
+                icon={FileText}
+                title="Результат"
+                description="После статуса DONE сюда автоматически подставляется llmResponse.llmOutput. Поле можно редактировать вручную."
+              >
+                <textarea
+                  value={result}
+                  onChange={(e) => setResult(e.target.value)}
+                  rows={24}
+                  placeholder="Здесь появится ответ от нейросети..."
+                  className="min-h-[420px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-slate-400"
+                />
+              </Section>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

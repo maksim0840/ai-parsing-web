@@ -49,8 +49,10 @@ llm:
   gigachat_model_view_name: ${GIGACHAT_MODEL_VIEW_NAME}
   gigachat_auth_key: ${GIGACHAT_AUTH_KEY}
 
-  default_temperature: ${DEFAULT_TEMPERATURE:0.3}
-  default_max_output_tokens: ${DEFAULT_MAX_OUTPUT_TOKENS:7000}
+  default_temperature: ${DEFAULT_TEMPERATURE:0.2}
+  default_max_output_tokens: ${DEFAULT_MAX_OUTPUT_TOKENS:2500}
+  connection_timeout_s: ${CONNECTION_TIMEOUT_S:15}
+  response_timeout_s: ${RESPONSE_TIMEOUT_S:120}
 
 s3:
   access_key: ${S3_ACCESS_KEY)

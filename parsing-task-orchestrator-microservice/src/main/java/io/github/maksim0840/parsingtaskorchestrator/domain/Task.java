@@ -3,6 +3,7 @@ package io.github.maksim0840.parsingtaskorchestrator.domain;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlParserResponseDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingResponseDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRecognitionResponseDTO;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.enums.TaskStatus;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -42,6 +43,9 @@ public class Task {
     @Indexed(expireAfter = "30m")
     private Instant createdAt;
 
+    private TaskStatus status;
+    String message;
+
 
     public Task(String id,
                 boolean htmlParserRequired,
@@ -67,5 +71,7 @@ public class Task {
         this.jsonTextRecognitionResponse = Map.of();
         this.jsonLLMResponse = Map.of();
         this.createdAt = Instant.now();
+        this.status = TaskStatus.CREATED;
+        this.message = "";
     }
 }
