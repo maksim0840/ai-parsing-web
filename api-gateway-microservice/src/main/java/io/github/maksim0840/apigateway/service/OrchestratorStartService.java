@@ -14,32 +14,32 @@ import java.util.Map;
 
 @Service
 public class OrchestratorStartService {
-
     private final OrchestratorStartGrpcClient grpcClient;
+    private final FileService fileService;
 
-    public OrchestratorStartService(OrchestratorStartGrpcClient grpcClient) {
+    public OrchestratorStartService(OrchestratorStartGrpcClient grpcClient, FileService fileService) {
         this.grpcClient = grpcClient;
+        this.fileService = fileService;
     }
 
-    public void sendPipelineRequest(String userId, PipelineApiRequest pipeline) {
-        String taskId = userId;
-        String htmlOutDir = taskId + "/html";
-        String imagesOutDir = taskId + "/imgs";
-        List<String> htmlPaths = List.of();
-        List<String> imagePaths = List.of();
+    public void sendPipelineRequest(String sessionId, PipelineApiRequest pipeline) {
+        String htmlOutDir = fileService.getHtmlOutDir(sessionId);
+        String imagesOutDir = fileService.getImagesOutDir(sessionId);
+        List<String> htmlPaths = fileService.getObjectKeysByPrefix(htmlOutDir);
+        List<String> imagePaths = fileService.getObjectKeysByPrefix(imagesOutDir);
         Map<String, String> textByImage = Map.of();
         HtmlParserRequestDTO htmlParserRequestDTO = isParsingNecessaryForPipeline(pipeline)
-                ? ApiRequestsDTOMapper.parsingApiToDto(pipeline.parsing(), taskId, htmlOutDir, imagesOutDir)
+                ? ApiRequestsDTOMapper.parsingApiToDto(pipeline.parsing(), sessionId, htmlOutDir, imagesOutDir)
                 : null;
         HtmlPreprocessingRequestDTO htmlPreprocessingRequestDTO = isPreprocessingNecessaryForPipeline(pipeline)
-                ? ApiRequestsDTOMapper.preprocessingApiToDto(pipeline.preprocessing(), taskId, htmlPaths)
+                ? ApiRequestsDTOMapper.preprocessingApiToDto(pipeline.preprocessing(), sessionId, htmlPaths)
                 : null;
         TextRecognitionRequestDTO textRecognitionRequestDTO = isRecognitionNecessaryForPipeline(pipeline)
-                ? new TextRecognitionRequestDTO(taskId, imagePaths)
+                ? new TextRecognitionRequestDTO(sessionId, imagePaths)
                 : null;
-        LLMRequestDTO llmRequestDTO = ApiRequestsDTOMapper.llmApiToDto(pipeline.llm(), taskId, htmlPaths, textByImage);
+        LLMRequestDTO llmRequestDTO = ApiRequestsDTOMapper.llmApiToDto(pipeline.llm(), sessionId, htmlPaths, textByImage);
         grpcClient.startParsing(
-                taskId,
+                sessionId,
                 htmlParserRequestDTO,
                 htmlPreprocessingRequestDTO,
                 textRecognitionRequestDTO,
@@ -47,13 +47,12 @@ public class OrchestratorStartService {
         );
     }
 
-    public void sendParsingRequest(String userId, ParsingApiRequest parsingRequest) {
-        String taskId = userId;
-        String htmlOutDir = taskId + "/html";
-        String imagesOutDir = taskId + "/imgs";
-        HtmlParserRequestDTO htmlParserRequestDTO = ApiRequestsDTOMapper.parsingApiToDto(parsingRequest, taskId, htmlOutDir, imagesOutDir);
+    public void sendParsingRequest(String sessionId, ParsingApiRequest parsingRequest) {
+        String htmlOutDir = fileService.getHtmlOutDir(sessionId);
+        String imagesOutDir = fileService.getImagesOutDir(sessionId);
+        HtmlParserRequestDTO htmlParserRequestDTO = ApiRequestsDTOMapper.parsingApiToDto(parsingRequest, sessionId, htmlOutDir, imagesOutDir);
         grpcClient.startParsing(
-                taskId,
+                sessionId,
                 htmlParserRequestDTO,
                 null,
                 null,
@@ -61,11 +60,12 @@ public class OrchestratorStartService {
         );
     }
 
-    public void sendPreprocessingRequest(String userId, List<String> htmlPaths, PreprocessingApiRequest preprocessingRequest) {
-        String taskId = userId;
-        HtmlPreprocessingRequestDTO htmlPreprocessingRequestDTO = ApiRequestsDTOMapper.preprocessingApiToDto(preprocessingRequest, taskId, htmlPaths);
+    public void sendPreprocessingRequest(String sessionId, PreprocessingApiRequest preprocessingRequest) {
+        String htmlOutDir = fileService.getHtmlOutDir(sessionId);
+        List<String> htmlPaths = fileService.getObjectKeysByPrefix(htmlOutDir);
+        HtmlPreprocessingRequestDTO htmlPreprocessingRequestDTO = ApiRequestsDTOMapper.preprocessingApiToDto(preprocessingRequest, sessionId, htmlPaths);
         grpcClient.startParsing(
-                taskId,
+                sessionId,
                 null,
                 htmlPreprocessingRequestDTO,
                 null,
@@ -73,11 +73,12 @@ public class OrchestratorStartService {
         );
     }
 
-    public void sendRecognitionRequest(String userId, List<String> imagePaths, RecognitionApiRequest recognitionRequest) {
-        String taskId = userId;
-        TextRecognitionRequestDTO textRecognitionRequestDTO = ApiRequestsDTOMapper.recognitionApiToDto(recognitionRequest, taskId, imagePaths);
+    public void sendRecognitionRequest(String sessionId, RecognitionApiRequest recognitionRequest) {
+        String imagesOutDir = fileService.getImagesOutDir(sessionId);
+        List<String> imagePaths = fileService.getObjectKeysByPrefix(imagesOutDir);
+        TextRecognitionRequestDTO textRecognitionRequestDTO = ApiRequestsDTOMapper.recognitionApiToDto(recognitionRequest, sessionId, imagePaths);
         grpcClient.startParsing(
-                taskId,
+                sessionId,
                 null,
                 null,
                 textRecognitionRequestDTO,
@@ -85,11 +86,12 @@ public class OrchestratorStartService {
         );
     }
 
-    public void sendLLMRequest(String userId, List<String> imagePaths, Map<String, String> textByImage, LLMApiRequest llmRequest) {
-        String taskId = userId;
-        LLMRequestDTO llmRequestDTO = ApiRequestsDTOMapper.llmApiToDto(llmRequest, taskId, imagePaths, textByImage);
+    public void sendLLMRequest(String sessionId, Map<String, String> textByImage, LLMApiRequest llmRequest) {
+        String imagesOutDir = fileService.getImagesOutDir(sessionId);
+        List<String> imagePaths = fileService.getObjectKeysByPrefix(imagesOutDir);
+        LLMRequestDTO llmRequestDTO = ApiRequestsDTOMapper.llmApiToDto(llmRequest, sessionId, imagePaths, textByImage);
         grpcClient.startParsing(
-                taskId,
+                sessionId,
                 null,
                 null,
                 null,

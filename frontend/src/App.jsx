@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload,
@@ -12,7 +12,6 @@ import {
   Settings,
   FileText,
   Brain,
-  RefreshCw,
   FileCode2,
   CheckCircle2,
   AlertCircle,
@@ -232,8 +231,6 @@ function ProxyEditor({ useProxy, setUseProxy, proxyConfig, setProxyConfig }) {
 function StorageFileCard({
   item,
   variant = "file",
-  selectableLabel,
-  onToggleSelect,
   onDownload,
   onDelete,
   deleting,
@@ -258,18 +255,6 @@ function StorageFileCard({
           <p className="truncate text-sm font-semibold text-slate-900">{item.name}</p>
           <p className="mt-1 text-xs text-slate-500">{formatBytes(item.size)}</p>
         </div>
-
-        {typeof onToggleSelect === "function" && (
-          <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-            <input
-              type="checkbox"
-              checked={item.selected}
-              onChange={() => onToggleSelect(item.id)}
-              className="h-4 w-4 rounded border-slate-300"
-            />
-            <span className="text-sm text-slate-700">{selectableLabel}</span>
-          </label>
-        )}
 
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -300,16 +285,12 @@ function StorageSection({
   description,
   uploadLabel,
   uploading,
-  loading,
   accept,
   multiple = true,
   onUpload,
-  onRefresh,
   emptyText,
   items,
   variant,
-  selectableLabel,
-  onToggleSelect,
   onDownload,
   onDelete,
   deletingId,
@@ -335,21 +316,11 @@ function StorageSection({
               disabled={uploading}
             />
           </label>
-
-          <button
-            type="button"
-            onClick={onRefresh}
-            disabled={loading}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Обновить список
-          </button>
         </div>
 
         {items.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
-            {loading ? "Загрузка..." : emptyText}
+            {emptyText}
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -358,8 +329,6 @@ function StorageSection({
                 key={item.id}
                 item={item}
                 variant={variant}
-                selectableLabel={selectableLabel}
-                onToggleSelect={onToggleSelect}
                 onDownload={onDownload}
                 onDelete={onDelete}
                 deleting={deletingId === item.id}
@@ -430,7 +399,7 @@ function RangeField({
   );
 }
 
-function StatusOverlay({ visible, taskId, status, message }) {
+function StatusOverlay({ visible, taskId, status, message, sessionId }) {
   const statusMeta = getStatusMeta(status);
   const isFailed = status === "FAILED";
 
@@ -469,7 +438,11 @@ function StatusOverlay({ visible, taskId, status, message }) {
               <div>
                 <div className="mb-2 flex items-center justify-between gap-3 text-sm">
                   <span className="font-medium text-slate-700">Текущий статус</span>
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isFailed ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"}`}>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      isFailed ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"
+                    }`}
+                  >
                     {statusMeta.label}
                   </span>
                 </div>
@@ -482,6 +455,10 @@ function StatusOverlay({ visible, taskId, status, message }) {
               </div>
 
               <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
+                <div>
+                  <div className="text-xs text-slate-500">Session ID</div>
+                  <div className="mt-1 break-all text-sm font-medium text-slate-900">{sessionId || "—"}</div>
+                </div>
                 <div>
                   <div className="text-xs text-slate-500">Task ID</div>
                   <div className="mt-1 break-all text-sm font-medium text-slate-900">{taskId || "—"}</div>
@@ -571,6 +548,33 @@ function buildPreprocessingPayload(selectedTags) {
   };
 }
 
+function getFileNameFromPath(filePath, fallback = "file") {
+  const normalized = String(filePath || "").split(/[?#]/)[0];
+  const parts = normalized.split("/").filter(Boolean);
+  return parts[parts.length - 1] || fallback;
+}
+
+function buildStoredFileUrl(filePath) {
+  return `/api/files/download?filePath=${encodeURIComponent(filePath)}`;
+}
+
+function appendUniqueFiles(prevItems, nextItems) {
+  const seen = new Set(
+    prevItems.map((item) => item.filePath || item.downloadUrl || item.previewUrl || item.name)
+  );
+
+  const filtered = nextItems.filter((item) => {
+    const key = item.filePath || item.downloadUrl || item.previewUrl || item.name;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+
+  return [...prevItems, ...filtered];
+}
+
 function formatBytes(size) {
   if (!size && size !== 0) return "—";
   const units = ["B", "KB", "MB", "GB"];
@@ -607,12 +611,10 @@ export default function ConferenceParserPage() {
   const [cleanupTags, setCleanupTags] = useState([...CLEANUP_TAGS]);
 
   const [garageImages, setGarageImages] = useState([]);
-  const [garageLoading, setGarageLoading] = useState(false);
   const [garageUploading, setGarageUploading] = useState(false);
   const [imageDeletingId, setImageDeletingId] = useState(null);
 
   const [garageHtmlFiles, setGarageHtmlFiles] = useState([]);
-  const [htmlLoading, setHtmlLoading] = useState(false);
   const [htmlUploading, setHtmlUploading] = useState(false);
   const [htmlDeletingId, setHtmlDeletingId] = useState(null);
 
@@ -629,6 +631,8 @@ export default function ConferenceParserPage() {
   const [result, setResult] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [sessionId, setSessionId] = useState("");
+  const [isSessionLoading, setIsSessionLoading] = useState(false);
 
   const [taskId, setTaskId] = useState("");
   const [taskStatus, setTaskStatus] = useState("");
@@ -645,8 +649,7 @@ export default function ConferenceParserPage() {
   useEffect(() => {
     isMountedRef.current = true;
     debugLog("mount", "component mounted", { isMounted: isMountedRef.current });
-    loadGarageImages();
-    loadGarageHtmlFiles();
+    loadSessionId();
 
     return () => {
       debugLog("unmount", "component unmounted, clearing interval");
@@ -656,8 +659,62 @@ export default function ConferenceParserPage() {
   }, []);
 
   useEffect(() => {
-    debugLog("state", { taskId, taskStatus, taskMessage, isPollingStatus, result, error });
-  }, [taskId, taskStatus, taskMessage, isPollingStatus, result, error]);
+    debugLog("state", {
+      sessionId,
+      taskId,
+      taskStatus,
+      taskMessage,
+      isPollingStatus,
+      result,
+      error,
+    });
+  }, [sessionId, taskId, taskStatus, taskMessage, isPollingStatus, result, error]);
+
+  async function loadSessionId() {
+    setIsSessionLoading(true);
+    setError("");
+    debugLog("session", "requesting sessionId");
+
+    try {
+      const response = await fetch("/api/sessionId", {
+        method: "GET",
+        headers: {
+          Accept: "text/plain, application/json",
+        },
+        cache: "no-store",
+      });
+
+      debugLog("session", "sessionId response HTTP", response.status);
+
+      if (!response.ok) {
+        throw new Error(`Не удалось получить sessionId: ${response.status}`);
+      }
+
+      const rawText = await response.text();
+      const nextSessionId = String(rawText || "").trim().replace(/^"|"$/g, "");
+
+      debugLog("session", "received sessionId", nextSessionId);
+
+      if (!nextSessionId) {
+        throw new Error("Сервер вернул пустой sessionId.");
+      }
+
+      if (isMountedRef.current) {
+        setSessionId(nextSessionId);
+        setGarageImages([]);
+        setGarageHtmlFiles([]);
+      }
+    } catch (e) {
+      debugLog("session", "sessionId request failed", e);
+      if (isMountedRef.current) {
+        setError(e.message || "Ошибка при получении sessionId.");
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsSessionLoading(false);
+      }
+    }
+  }
 
   function stopPolling(reason = "no reason") {
     debugLog("polling", "stopPolling called", reason, { currentTaskId: taskIdRef.current });
@@ -699,9 +756,38 @@ export default function ConferenceParserPage() {
     debugLog("result", "result JSON", data);
 
     const llmOutput = data?.llmResponse?.llmOutput;
+    const htmlPath = data?.htmlParserResponse?.htmlPath;
+    const imagePaths = Array.isArray(data?.htmlParserResponse?.imagePaths)
+      ? data.htmlParserResponse.imagePaths
+      : [];
 
     if (!isMountedRef.current) {
       return;
+    }
+
+    if (htmlPath) {
+      const htmlItem = {
+        id: crypto.randomUUID(),
+        name: getFileNameFromPath(htmlPath, "page.html"),
+        size: undefined,
+        filePath: htmlPath,
+      };
+
+      setGarageHtmlFiles((prev) => appendUniqueFiles(prev, [htmlItem]));
+      debugLog("result", "html path added to storage section", htmlPath);
+    }
+
+    if (imagePaths.length > 0) {
+      const imageItems = imagePaths.map((imagePath) => ({
+        id: crypto.randomUUID(),
+        name: getFileNameFromPath(imagePath, "image"),
+        size: undefined,
+        filePath: imagePath,
+        previewUrl: buildStoredFileUrl(imagePath),
+      }));
+
+      setGarageImages((prev) => appendUniqueFiles(prev, imageItems));
+      debugLog("result", "image paths added to storage section", imagePaths);
     }
 
     setLastSuccessfulTaskId(nextTaskId);
@@ -795,59 +881,96 @@ export default function ConferenceParserPage() {
     debugLog("polling", "interval started", pollingIntervalRef.current);
   }
 
-  async function loadGarageImages() {
-    setGarageLoading(true);
-    setError("");
+  function getContentDispositionFileName(headerValue) {
+    if (!headerValue) return "";
 
-    try {
-      const response = await fetch("/api/images", { method: "GET" });
-      if (!response.ok) {
-        throw new Error("Не удалось получить список изображений из хранилища.");
+    const utf8Match = headerValue.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match?.[1]) {
+      try {
+        return decodeURIComponent(utf8Match[1]);
+      } catch {
+        return utf8Match[1];
       }
-
-      const data = await response.json();
-      const normalized = (data.images || []).map((image) => ({
-        id: image.id,
-        name: image.name,
-        size: image.size,
-        previewUrl: image.previewUrl || image.downloadUrl || "",
-        downloadUrl: image.downloadUrl || "",
-        selected: Boolean(image.selectedForOcr),
-      }));
-
-      setGarageImages(normalized);
-    } catch (e) {
-      setError(e.message || "Ошибка при загрузке изображений.");
-    } finally {
-      setGarageLoading(false);
     }
+
+    const asciiMatch = headerValue.match(/filename="?([^";]+)"?/i);
+    return asciiMatch?.[1] || "";
   }
 
-  async function loadGarageHtmlFiles() {
-    setHtmlLoading(true);
-    setError("");
+  async function uploadStoredFiles(files, fileType) {
+    if (!sessionId.trim()) {
+      throw new Error("Session ID ещё не получен от сервера. Дождитесь инициализации страницы.");
+    }
 
-    try {
-      const response = await fetch("/api/html-files", { method: "GET" });
+    const uploadedItems = [];
+
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append("sessionId", sessionId);
+      formData.append("fileType", fileType);
+      formData.append("file", file);
+
+      debugLog("files", "uploading file", { sessionId, fileType, name: file.name, size: file.size });
+
+      const response = await fetch("/api/files/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      debugLog("files", "upload response HTTP", response.status);
+
       if (!response.ok) {
-        throw new Error("Не удалось получить список HTML-файлов из хранилища.");
+        throw new Error(`Не удалось загрузить файл ${file.name}: ${response.status}`);
       }
 
-      const data = await response.json();
-      const normalized = (data.files || []).map((file) => ({
-        id: file.id,
+      const rawText = await response.text();
+      const filePath = String(rawText || "").trim().replace(/^"|"$/g, "");
+
+      if (!filePath) {
+        throw new Error(`Сервер вернул пустой путь для файла ${file.name}.`);
+      }
+
+      uploadedItems.push({
+        id: crypto.randomUUID(),
         name: file.name,
         size: file.size,
-        downloadUrl: file.downloadUrl || "",
-        selected: Boolean(file.selectedForParsing),
-      }));
-
-      setGarageHtmlFiles(normalized);
-    } catch (e) {
-      setError(e.message || "Ошибка при загрузке HTML-файлов.");
-    } finally {
-      setHtmlLoading(false);
+        filePath,
+        previewUrl: fileType === "IMG" ? URL.createObjectURL(file) : "",
+      });
     }
+
+    return uploadedItems;
+  }
+
+  async function downloadStoredFile(filePath, fallbackName) {
+    const response = await fetch(`/api/files/download?filePath=${encodeURIComponent(filePath)}`, {
+      method: "GET",
+      headers: {
+        Accept: "application/octet-stream",
+      },
+      cache: "no-store",
+    });
+
+    debugLog("files", "download response HTTP", response.status, { filePath });
+
+    if (!response.ok) {
+      throw new Error(`Не удалось скачать файл: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const fileName =
+      getContentDispositionFileName(response.headers.get("Content-Disposition")) ||
+      fallbackName ||
+      "file";
+
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(blobUrl);
   }
 
   async function handleUploadImages(event) {
@@ -858,19 +981,8 @@ export default function ConferenceParserPage() {
     setError("");
 
     try {
-      const formData = new FormData();
-      files.forEach((file) => formData.append("files", file));
-
-      const response = await fetch("/api/images", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Не удалось загрузить изображения в Garage/S3.");
-      }
-
-      await loadGarageImages();
+      const uploadedItems = await uploadStoredFiles(files, "IMG");
+      setGarageImages((prev) => [...prev, ...uploadedItems]);
       event.target.value = "";
     } catch (e) {
       setError(e.message || "Ошибка при загрузке изображений.");
@@ -887,19 +999,8 @@ export default function ConferenceParserPage() {
     setError("");
 
     try {
-      const formData = new FormData();
-      files.forEach((file) => formData.append("files", file));
-
-      const response = await fetch("/api/html-files", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Не удалось загрузить HTML-файлы в Garage/S3.");
-      }
-
-      await loadGarageHtmlFiles();
+      const uploadedItems = await uploadStoredFiles(files, "HTML");
+      setGarageHtmlFiles((prev) => [...prev, ...uploadedItems]);
       event.target.value = "";
     } catch (e) {
       setError(e.message || "Ошибка при загрузке HTML-файлов.");
@@ -914,48 +1015,9 @@ export default function ConferenceParserPage() {
     );
   }
 
-  function toggleImageSelection(imageId) {
-    setGarageImages((prev) =>
-      prev.map((image) => (image.id === imageId ? { ...image, selected: !image.selected } : image))
-    );
-  }
-
-  function toggleHtmlSelection(fileId) {
-    setGarageHtmlFiles((prev) =>
-      prev.map((file) => (file.id === fileId ? { ...file, selected: !file.selected } : file))
-    );
-  }
-
-  const selectedImages = useMemo(
-    () => garageImages.filter((image) => image.selected),
-    [garageImages]
-  );
-
-  const selectedHtmlFiles = useMemo(
-    () => garageHtmlFiles.filter((file) => file.selected),
-    [garageHtmlFiles]
-  );
-
-  async function downloadFile(url, fallbackUrl, filename) {
-    const response = await fetch(url || fallbackUrl);
-    if (!response.ok) {
-      throw new Error("Не удалось скачать файл.");
-    }
-
-    const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = blobUrl;
-    link.download = filename || "file";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(blobUrl);
-  }
-
   async function handleDownloadImage(image) {
     try {
-      await downloadFile(image.downloadUrl, `/api/images/${image.id}/download`, image.name || "image");
+      await downloadStoredFile(image.filePath, image.name || "image");
     } catch (e) {
       setError(e.message || "Ошибка при скачивании изображения.");
     }
@@ -963,44 +1025,24 @@ export default function ConferenceParserPage() {
 
   async function handleDownloadHtmlFile(file) {
     try {
-      await downloadFile(file.downloadUrl, `/api/html-files/${file.id}/download`, file.name || "page.html");
+      await downloadStoredFile(file.filePath, file.name || "page.html");
     } catch (e) {
       setError(e.message || "Ошибка при скачивании HTML-файла.");
     }
   }
 
-  async function handleDeleteImage(imageId) {
-    setImageDeletingId(imageId);
-    setError("");
-
-    try {
-      const response = await fetch(`/api/images/${imageId}`, { method: "DELETE" });
-      if (!response.ok) {
-        throw new Error("Не удалось удалить изображение.");
+  function handleDeleteImage(imageId) {
+    setGarageImages((prev) => {
+      const target = prev.find((image) => image.id === imageId);
+      if (target?.previewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(target.previewUrl);
       }
-      await loadGarageImages();
-    } catch (e) {
-      setError(e.message || "Ошибка при удалении изображения.");
-    } finally {
-      setImageDeletingId(null);
-    }
+      return prev.filter((image) => image.id !== imageId);
+    });
   }
 
-  async function handleDeleteHtmlFile(fileId) {
-    setHtmlDeletingId(fileId);
-    setError("");
-
-    try {
-      const response = await fetch(`/api/html-files/${fileId}`, { method: "DELETE" });
-      if (!response.ok) {
-        throw new Error("Не удалось удалить HTML-файл.");
-      }
-      await loadGarageHtmlFiles();
-    } catch (e) {
-      setError(e.message || "Ошибка при удалении HTML-файла.");
-    } finally {
-      setHtmlDeletingId(null);
-    }
+  function handleDeleteHtmlFile(fileId) {
+    setGarageHtmlFiles((prev) => prev.filter((file) => file.id !== fileId));
   }
 
   async function handleStartParsing() {
@@ -1023,6 +1065,15 @@ export default function ConferenceParserPage() {
     resultRequestedRef.current = false;
     stopPolling("before starting new pipeline");
 
+    if (!sessionId.trim()) {
+      const message = "Session ID ещё не получен от сервера. Дождитесь инициализации страницы.";
+      debugLog("pipeline", message);
+      setError(message);
+      submittingRef.current = false;
+      setIsSubmitting(false);
+      return;
+    }
+
     const payload = {
       parsing: {
         url: siteUrl.trim(),
@@ -1044,10 +1095,10 @@ export default function ConferenceParserPage() {
       },
     };
 
-    debugLog("pipeline", "sending pipeline payload", payload);
+    debugLog("pipeline", "sending pipeline payload", { sessionId, payload });
 
     try {
-      const response = await fetch("/api/pipeline", {
+      const response = await fetch(`/api/pipeline/${encodeURIComponent(sessionId)}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1075,7 +1126,9 @@ export default function ConferenceParserPage() {
       taskIdRef.current = nextTaskId;
       setTaskId(nextTaskId);
       setTaskStatus("CREATED");
-      setTaskMessage("Задача поставлена в очередь. Статус будет обновляться автоматически каждые 5 секунд.");
+      setTaskMessage(
+        "Задача поставлена в очередь. Статус будет обновляться автоматически каждые 5 секунд."
+      );
       startPolling(nextTaskId);
     } catch (e) {
       debugLog("pipeline", "pipeline start failed", e);
@@ -1087,7 +1140,8 @@ export default function ConferenceParserPage() {
     }
   }
 
-  const canStartParsing = Boolean(siteUrl.trim());
+  const canStartParsing =
+    Boolean(siteUrl.trim()) && Boolean(sessionId.trim()) && !isSessionLoading;
   const statusMeta = getStatusMeta(taskStatus);
 
   return (
@@ -1097,6 +1151,7 @@ export default function ConferenceParserPage() {
         taskId={taskId}
         status={taskStatus}
         message={taskMessage}
+        sessionId={sessionId}
       />
 
       <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -1127,12 +1182,12 @@ export default function ConferenceParserPage() {
                 <div className="mt-1 text-lg font-semibold">{cleanupTags.length}</div>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="text-xs text-slate-500">HTML в обработке</div>
-                <div className="mt-1 text-lg font-semibold">{selectedHtmlFiles.length}</div>
+                <div className="text-xs text-slate-500">HTML файлов</div>
+                <div className="mt-1 text-lg font-semibold">{garageHtmlFiles.length}</div>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="text-xs text-slate-500">Изображения OCR</div>
-                <div className="mt-1 text-lg font-semibold">{selectedImages.length}</div>
+                <div className="text-xs text-slate-500">Изображений</div>
+                <div className="mt-1 text-lg font-semibold">{garageImages.length}</div>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                 <div className="text-xs text-slate-500">Модель</div>
@@ -1150,7 +1205,7 @@ export default function ConferenceParserPage() {
               <Section
                 icon={Globe}
                 title="Блок 1. Извлечение данных со страницы"
-                description="URL страницы, параметры парсинга, headers, cookies, proxy и HTML-файлы из S3. HTML-файлы пока хранятся отдельно и не входят в DTO pipeline на бекенде."
+                description="URL страницы, параметры парсинга, headers, cookies, proxy и HTML-файлы из S3. HTML-файлы автоматически входят в общий контекст."
               >
                 <div className="space-y-5">
                   <div className="grid gap-5 lg:grid-cols-2">
@@ -1236,18 +1291,14 @@ export default function ConferenceParserPage() {
 
                   <StorageSection
                     title="HTML-файлы в Garage/S3"
-                    description="Загрузите собственные HTML-файлы страниц, отмечайте нужные для обработки, скачивайте и удаляйте их."
+                    description="Загрузите собственные HTML-файлы страниц. Все добавленные HTML-файлы автоматически учитываются в общем контексте."
                     uploadLabel="Загрузить HTML-файлы"
                     uploading={htmlUploading}
-                    loading={htmlLoading}
                     accept=".html,text/html"
                     onUpload={handleUploadHtmlFiles}
-                    onRefresh={loadGarageHtmlFiles}
                     emptyText="В хранилище пока нет HTML-файлов."
                     items={garageHtmlFiles}
                     variant="file"
-                    selectableLabel="Использовать в обработке"
-                    onToggleSelect={toggleHtmlSelection}
                     onDownload={handleDownloadHtmlFile}
                     onDelete={handleDeleteHtmlFile}
                     deletingId={htmlDeletingId}
@@ -1288,22 +1339,18 @@ export default function ConferenceParserPage() {
               <Section
                 icon={ImageIcon}
                 title="Блок 3. Извлечение текста с изображений"
-                description="Загрузка, скачивание, удаление и выбор изображений через Garage/S3. Выбор изображений пока не передаётся в pipeline, потому что RecognitionRequest на бекенде пока пустой."
+                description="Загрузка, скачивание и удаление изображений через Garage/S3. Все добавленные изображения автоматически входят в общий контекст."
               >
                 <StorageSection
                   title="Изображения для OCR"
-                  description="Отметьте те изображения, которые нужно отправить в OCR, либо добавьте собственные файлы."
+                  description="Добавьте изображения для OCR. Все изображения автоматически учитываются без дополнительного выбора."
                   uploadLabel="Загрузить изображения"
                   uploading={garageUploading}
-                  loading={garageLoading}
                   accept="image/*"
                   onUpload={handleUploadImages}
-                  onRefresh={loadGarageImages}
                   emptyText="В хранилище пока нет изображений."
                   items={garageImages}
                   variant="image"
-                  selectableLabel="Использовать для OCR"
-                  onToggleSelect={toggleImageSelection}
                   onDownload={handleDownloadImage}
                   onDelete={handleDeleteImage}
                   deletingId={imageDeletingId}
@@ -1391,13 +1438,13 @@ export default function ConferenceParserPage() {
                   <button
                     type="button"
                     onClick={handleStartParsing}
-                    disabled={isSubmitting || isPollingStatus || !canStartParsing}
+                    disabled={isSubmitting || isPollingStatus || isSessionLoading || !canStartParsing}
                     className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {isSubmitting || isPollingStatus ? (
+                    {isSubmitting || isPollingStatus || isSessionLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Выполняется обработка...
+                        {isSessionLoading ? "Получаем sessionId..." : "Выполняется обработка..."}
                       </>
                     ) : (
                       <>
@@ -1407,9 +1454,13 @@ export default function ConferenceParserPage() {
                     )}
                   </button>
 
-                  {!canStartParsing && (
+                  {(!siteUrl.trim() || !sessionId.trim() || isSessionLoading) && (
                     <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                      Укажите URL страницы. Сейчас backend DTO pipeline принимает источник через поле url.
+                      {!siteUrl.trim()
+                        ? "Укажите URL страницы."
+                        : isSessionLoading
+                          ? "Получаем sessionId от сервера..."
+                          : "Session ID ещё не получен от сервера."}
                     </div>
                   )}
 
@@ -1443,8 +1494,14 @@ export default function ConferenceParserPage() {
 
                     <div className="grid grid-cols-1 gap-3 text-sm text-slate-600 sm:grid-cols-2">
                       <div>
+                        <div className="text-xs text-slate-500">Session ID</div>
+                        <div className="mt-1 break-all font-medium text-slate-900">{sessionId || "—"}</div>
+                      </div>
+                      <div>
                         <div className="text-xs text-slate-500">Task ID</div>
-                        <div className="mt-1 break-all font-medium text-slate-900">{taskId || lastSuccessfulTaskId || "—"}</div>
+                        <div className="mt-1 break-all font-medium text-slate-900">
+                          {taskId || lastSuccessfulTaskId || "—"}
+                        </div>
                       </div>
                       <div>
                         <div className="text-xs text-slate-500">Статус из сервера</div>

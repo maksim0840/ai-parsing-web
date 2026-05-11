@@ -57,14 +57,12 @@ public class LLMService {
     }
 
     public LLMResponseDTO processLlmRequest(LLMRequestDTO request) {
-//        try {
-        String output = sendRequestToModel(request.modelName(), request.systemMessage(), request.userMessage(), request.temperature(), request.maxOutputTokens(), request.htmlPaths(), request.textByImage());
-        return new LLMResponseDTO(request.taskId(), true, "", output);
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//        } catch (Exception e) {
-//
-//            System.out.println(e.getMessage());
-//            return new LLMResponseDTO(request.taskId(), false, "llm error: " + e.getMessage(), null);
-//        }
+        try {
+            String output = sendRequestToModel(request.modelName(), request.systemMessage(), request.userMessage(), request.temperature(), request.maxOutputTokens(), request.htmlPaths(), request.textByImage());
+            return new LLMResponseDTO(request.taskId(), true, "", output);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return new LLMResponseDTO(request.taskId(), false, "llm error: " + e.getMessage(), null);
+        }
     }
 }
