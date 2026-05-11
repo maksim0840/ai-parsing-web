@@ -83,6 +83,7 @@ function getStatusMeta(status) {
 
 function KeyValueEditor({
   title,
+  description,
   rows,
   setRows,
   placeholderKey,
@@ -111,7 +112,7 @@ function KeyValueEditor({
         <div>
           <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Можно добавить несколько пар ключ-значение или не использовать этот блок вовсе.
+            {description}
           </p>
         </div>
         <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
@@ -189,7 +190,7 @@ function ProxyEditor({ useProxy, setUseProxy, proxyConfig, setProxyConfig }) {
         <div>
           <h3 className="text-sm font-semibold text-slate-900">Proxy</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Доступны только поля: ip, port, username, password. При снятии галочки значения сохраняются, но не отправляются.
+            Прокси-сервер для откправки запросов через другой IP-адрес.
           </p>
         </div>
         <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
@@ -451,21 +452,6 @@ function StatusOverlay({ visible, taskId, status, message, sessionId }) {
                     className={`h-full rounded-full transition-all duration-500 ${isFailed ? "bg-red-500" : "bg-slate-900"}`}
                     style={{ width: `${statusMeta.progress}%` }}
                   />
-                </div>
-              </div>
-
-              <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
-                <div>
-                  <div className="text-xs text-slate-500">Session ID</div>
-                  <div className="mt-1 break-all text-sm font-medium text-slate-900">{sessionId || "—"}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-slate-500">Task ID</div>
-                  <div className="mt-1 break-all text-sm font-medium text-slate-900">{taskId || "—"}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-slate-500">Статус из сервера</div>
-                  <div className="mt-1 text-sm font-medium text-slate-900">{status || "—"}</div>
                 </div>
               </div>
 
@@ -1164,15 +1150,15 @@ export default function ConferenceParserPage() {
           >
             <div>
               <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium uppercase tracking-wide text-slate-600">
-                Conference Parser
+                AI Parse
               </div>
               <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-                Минималистичный фронт для парсинга сайтов конференций
+                Автоматический сбор и структурирование данных с веб-страниц
               </h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-                Настройте параметры загрузки страницы, предобработку HTML, дополнительные HTML-файлы,
-                изображения для OCR и запрос к LLM. Затем запустите процесс и при необходимости
-                отредактируйте итоговый ответ.
+                Загрузите ссылку на сайт, укажите нужные поля и настройте запрос к нейросети. Сервис
+                проанализирует HTML-код и изображения страницы, извлечёт данные и представит
+                результат в структурированном виде.
               </p>
             </div>
 
@@ -1182,11 +1168,11 @@ export default function ConferenceParserPage() {
                 <div className="mt-1 text-lg font-semibold">{cleanupTags.length}</div>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="text-xs text-slate-500">HTML файлов</div>
+                <div className="text-xs text-slate-500">HTML файлы</div>
                 <div className="mt-1 text-lg font-semibold">{garageHtmlFiles.length}</div>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="text-xs text-slate-500">Изображений</div>
+                <div className="text-xs text-slate-500">Изображения</div>
                 <div className="mt-1 text-lg font-semibold">{garageImages.length}</div>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -1205,7 +1191,7 @@ export default function ConferenceParserPage() {
               <Section
                 icon={Globe}
                 title="Блок 1. Извлечение данных со страницы"
-                description="URL страницы, параметры парсинга, headers, cookies, proxy и HTML-файлы из S3. HTML-файлы автоматически входят в общий контекст."
+                description="Укажите URL-адрес страницы и настройте параметры парсинга для загрузки HTML-кода выбранной веб-страницы."
               >
                 <div className="space-y-5">
                   <div className="grid gap-5 lg:grid-cols-2">
@@ -1262,10 +1248,11 @@ export default function ConferenceParserPage() {
 
                   <KeyValueEditor
                     title="Headers"
+                    description="Дополнительные HTTP-заголовки браузера для имитации пользовательских запросов."
                     rows={headers}
                     setRows={setHeaders}
-                    placeholderKey="Authorization"
-                    placeholderValue="Bearer ..."
+                    placeholderKey="User-Agent"
+                    placeholderValue="Mozilla/5.0 (Windows NT 10.0; Win64; x64) ..."
                     useSection={useHeaders}
                     setUseSection={setUseHeaders}
                     checkboxLabel="Использовать headers"
@@ -1273,10 +1260,11 @@ export default function ConferenceParserPage() {
 
                   <KeyValueEditor
                     title="Cookies"
+                    description="Параметры cookies для доступа к страницам с пользовательской авторизацией и сохранёнными настройками."
                     rows={cookies}
                     setRows={setCookies}
-                    placeholderKey="sessionid"
-                    placeholderValue="abc123"
+                    placeholderKey="session-id"
+                    placeholderValue="YK7D6c4GahPcyumIDobsybMNyIvVC9zj7 ..."
                     useSection={useCookies}
                     setUseSection={setUseCookies}
                     checkboxLabel="Использовать cookies"
@@ -1290,8 +1278,8 @@ export default function ConferenceParserPage() {
                   />
 
                   <StorageSection
-                    title="HTML-файлы в Garage/S3"
-                    description="Загрузите собственные HTML-файлы страниц. Все добавленные HTML-файлы автоматически учитываются в общем контексте."
+                    title="HTML-файлы"
+                    description="Добавьте HTML-файлы страниц. Все файлы автоматически учитываются в общем контексте."
                     uploadLabel="Загрузить HTML-файлы"
                     uploading={htmlUploading}
                     accept=".html,text/html"
@@ -1309,7 +1297,7 @@ export default function ConferenceParserPage() {
               <Section
                 icon={Settings}
                 title="Блок 2. Предобработка данных"
-                description="Выберите HTML-теги, которые нужно почистить или удалить перед отправкой в LLM."
+                description="Выберите HTML-теги для очистки и упрощения. Это сократит объём анализируемого контекста."
               >
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                   {CLEANUP_TAGS.map((tag) => {
@@ -1339,11 +1327,11 @@ export default function ConferenceParserPage() {
               <Section
                 icon={ImageIcon}
                 title="Блок 3. Извлечение текста с изображений"
-                description="Загрузка, скачивание и удаление изображений через Garage/S3. Все добавленные изображения автоматически входят в общий контекст."
+                description="Добавьте изображения для OCR-анализа, чтобы извлечь с них текст и использовать его при обработке."
               >
                 <StorageSection
                   title="Изображения для OCR"
-                  description="Добавьте изображения для OCR. Все изображения автоматически учитываются без дополнительного выбора."
+                  description="Добавьте изображения для OCR. Все изображения автоматически учитываются в общем контексте."
                   uploadLabel="Загрузить изображения"
                   uploading={garageUploading}
                   accept="image/*"
@@ -1360,7 +1348,7 @@ export default function ConferenceParserPage() {
               <Section
                 icon={Brain}
                 title="Блок 4. Запрос к LLM модели"
-                description="Выбор модели, настройки генерации, системное сообщение и основной пользовательский запрос."
+                description="Выберите LLM-модель и задайте параметры обработки. В системном и пользовательском сообщении опишите задачу извлечения данных и требуемый формат ответа."
               >
                 <div className="space-y-5">
                   <label className="block">
@@ -1432,7 +1420,7 @@ export default function ConferenceParserPage() {
               <Section
                 icon={Play}
                 title="Запуск процесса"
-                description="Отправка запроса на бекенд и автоматическое отслеживание статуса задачи."
+                description="Отправка запроса на сервер для обработки контекста и формирования итогового результата."
               >
                 <div className="space-y-4">
                   <button
@@ -1492,31 +1480,6 @@ export default function ConferenceParserPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 gap-3 text-sm text-slate-600 sm:grid-cols-2">
-                      <div>
-                        <div className="text-xs text-slate-500">Session ID</div>
-                        <div className="mt-1 break-all font-medium text-slate-900">{sessionId || "—"}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-slate-500">Task ID</div>
-                        <div className="mt-1 break-all font-medium text-slate-900">
-                          {taskId || lastSuccessfulTaskId || "—"}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-slate-500">Статус из сервера</div>
-                        <div className="mt-1 font-medium text-slate-900">{taskStatus || "—"}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-slate-500">Выбранная модель</div>
-                        <div className="mt-1 font-medium text-slate-900">{model}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-slate-500">Сложность</div>
-                        <div className="mt-1 font-medium text-slate-900">{parsingComplexity}</div>
-                      </div>
-                    </div>
-
                     <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">
                       <div className="text-xs text-slate-500">Сообщение от сервера</div>
                       <div className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-700">
@@ -1530,7 +1493,7 @@ export default function ConferenceParserPage() {
               <Section
                 icon={FileText}
                 title="Результат"
-                description="После статуса DONE сюда автоматически подставляется llmResponse.llmOutput. Поле можно редактировать вручную."
+                description="Здесь появится структурированный результат обработки данных, сформированный выбранной нейросетевой моделью."
               >
                 <textarea
                   value={result}

@@ -193,6 +193,9 @@ public class OrchestratorService {
     }
 
     public String getMessage(String taskId) {
+        if (!taskService.isTaskExists(taskId)) {
+            return "";
+        }
         TaskDTO taskDTO = taskService.getTask(taskId);
         return taskDTO.message();
     }
