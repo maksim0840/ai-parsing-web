@@ -39,8 +39,8 @@ public class MainController {
     public PipelineStartResponse pipelineStart(@PathVariable String sessionId, @RequestBody PipelineApiRequest request) {
         System.out.println(request);
         System.out.println("pipeline sessionId = " + sessionId);
-        orchestratorStartService.sendPipelineRequest(sessionId, request);
-        return new PipelineStartResponse(sessionId);
+        String taskId = orchestratorStartService.sendPipelineRequest(sessionId, request);
+        return new PipelineStartResponse(taskId);
     }
 
     @GetMapping("/pipeline/{taskId}/status")

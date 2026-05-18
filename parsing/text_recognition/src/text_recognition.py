@@ -7,6 +7,7 @@ import asyncio
 from pathlib import Path
 from common.src.s3_storage_connection import S3Storage
 import os
+from common.src.dto.file_info_dto import FileInfoDTO
 
 # from dotenv import load_dotenv
 # load_dotenv("text_recognition/recognition_settings.env") # загружаем .env файл конфигурации
@@ -53,7 +54,9 @@ class TextRecognition:
     
     @staticmethod
     def image_bytes_to_numpy(img_path, img_bytes):
-        ext = Path(img_path).suffix.lower()
+        path = Path(img_path)
+        name_with_ext = path.name
+        ext = path.suffix.lower()
         if ext == ".svg":
             img_bytes = cairosvg.svg2png(bytestring=img_bytes)
 
@@ -61,7 +64,7 @@ class TextRecognition:
             with Image.open(BytesIO(img_bytes)) as img:
                 return np.array(img.convert("RGB"))
         except Exception as e:
-            raise ValueError(f"Failed to decode image bytes")
+            raise ValueError(f"Failed to decode image bytes (file: {name_with_ext})")
 
     @staticmethod
     def get_imgs_path_from_dir(imgs_dir):
@@ -82,18 +85,29 @@ class TextRecognition:
         return await self.s3_storage.download_file_bytes(s3_object_key=img_path)
     
 
-    async def run_ocr(self, image_paths):
-        text_by_image = {}
+    async def run_ocr(self, images: list[FileInfoDTO]):
         async with self.sem:
+            new_images = []
+
             # Пути до всех изображений внутри дирректории
             # image_paths = await asyncio.to_thread(TextRecognition.get_imgs_path_from_dir, images_dir)
             # image_paths = await self.get_imgs_path_from_s3(images_dir)
 
             # Для каждого изображения получаем его байты и прогоняем через модель для получения текста
-            for path in image_paths:
-                # bytes = await asyncio.to_thread(TextRecognition.get_img_bytes, path)
-                bytes = await self.get_img_bytes_s3(path)
-                text = await asyncio.to_thread(TextRecognition.predict_ocr, self, path, bytes)
-                text_by_image[path] = text
+            for img in images:
+                if (not img.isValid):
+                    new_images.append(img)
+                    continue
+                try:
+                    # Получить байты файла
+                    # bytes = await asyncio.to_thread(TextRecognition.get_img_bytes, path)
+                    bytes = await self.get_img_bytes_s3(img.filePath)
 
-            return {"textByImage": text_by_image}
+                    # Распознать текст
+                    text = await asyncio.to_thread(TextRecognition.predict_ocr, self, img.filePath, bytes)
+
+                    new_images.append(FileInfoDTO(filePath=img.filePath, fileName=img.fileName, fileType=img.fileType, sizeBytes=img.sizeBytes, description=text, isValid=True, errorMessage=""))
+                except Exception as e:
+                    new_images.append(FileInfoDTO(filePath=img.filePath, fileName=img.fileName, fileType=img.fileType, sizeBytes=img.sizeBytes, description=img.description, isValid=False, errorMessage=str(e)))
+
+            return {"images": new_images}

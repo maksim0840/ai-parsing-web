@@ -1,6 +1,3 @@
-
-from dataclasses import dataclass
-from enum import Enum
 import asyncio
 from playwright.async_api import async_playwright
 import os
@@ -10,6 +7,10 @@ import time
 import shutil
 from common.src.s3_storage_connection import S3Storage
 import os
+from parser.src.enum.page_complexity import PageComplexity
+from common.src.dto.file_info_dto import FileInfoDTO
+from common.src.enum.file_type import FileType
+from pathlib import Path
 
 # from dotenv import load_dotenv
 # load_dotenv("parser/parser_settings.env") # загружаем .env файл конфигурации
@@ -18,44 +19,6 @@ import os
 MAX_PLAYWRIGHT_CONTEXTS_CONCURRENCY = int(os.getenv("MAX_PLAYWRIGHT_CONTEXTS_CONCURRENCY"))
 # Максимальное количество одновременно сохраняемых картинок со всех страниц (защита системы от перегрузки)
 MAX_IMG_SAVE_CONCURRENCY_GLOBAL = int(os.getenv("MAX_IMG_SAVE_CONCURRENCY_GLOBAL"))
-
-
-@dataclass(kw_only=True)
-class ParseTimeSettings:
-    dom_content_loaded_timeout_ms: int  # таймаут для загрузки обязательных блокирующих скриптов
-    network_idle_timeout_ms: int        # таймаут для ождания остановки входящих сетевых запросов
-    sleep_before_scroll_s: float        # ожидание перед началом скролла страницы
-    page_scroll_timeout_s: int          # таймаут для скролла страницы
-    scrol_sleep_time_s: float           # задержка между попытками скролла страницы
-    scrol_max_stable_rounds: int        # максимальное количество попыток скролла без изменения высоты страницы перед остановкой
-
-
-# Доступные сценарии параметров для парсинга страницы в зависимости от её сложности
-class PageComplexity(Enum):
-    LIGHT = ParseTimeSettings(
-        dom_content_loaded_timeout_ms=20_000,
-        network_idle_timeout_ms=5_000,
-        sleep_before_scroll_s=0.5,
-        page_scroll_timeout_s=5,
-        scrol_sleep_time_s=0.25,
-        scrol_max_stable_rounds=5
-    )
-    DEFAULT = ParseTimeSettings(
-        dom_content_loaded_timeout_ms=30_000,
-        network_idle_timeout_ms=5_000,
-        sleep_before_scroll_s=1,
-        page_scroll_timeout_s=15,
-        scrol_sleep_time_s=0.5,
-        scrol_max_stable_rounds=10
-    )
-    DIFFICULT = ParseTimeSettings(
-        dom_content_loaded_timeout_ms=60_000,
-        network_idle_timeout_ms=10_000,
-        sleep_before_scroll_s=2,
-        page_scroll_timeout_s=40,
-        scrol_sleep_time_s=0.5,
-        scrol_max_stable_rounds=20
-    )
 
 
 class HTMLParser:
@@ -169,21 +132,28 @@ class HTMLParser:
                     page.on("response", on_response)
 
                 # Переходим по url и ожидаем подгрузки контента
+                print("page goto")
                 await page.goto(url, wait_until="domcontentloaded", timeout=settings.dom_content_loaded_timeout_ms)
+                print("page goto end")
                 await asyncio.sleep(settings.sleep_before_scroll_s)
+                print("start scroll")
                 await HTMLParser.auto_scroll(page, settings)
+                print("stop scroll")
                 try:
                     await page.wait_for_load_state("networkidle", timeout=settings.network_idle_timeout_ms)
                 except: pass
                 await asyncio.sleep(additional_page_load_timeout_s) # дополнительное пользовательское ожидание
+                print("end timeout")
 
                 # Сохраняем html код страницы
                 html = await page.content()
                 html_bytes = html.encode("utf-8")
-                html_name = HTMLParser.get_hash(url)
-                html_path = os.path.join(html_out_dir, html_name + ".html")
+                html_name = HTMLParser.get_hash(url) + ".html"
+                html_path = os.path.join(html_out_dir, html_name)
                 # await asyncio.to_thread(HTMLParser.write_file_bytes, html_path, html_bytes)
+                print("save start")
                 await self.save_file_to_s3(html_path, html_bytes)
+                print("save stop")
             except Exception as e:
                 raise e
             finally:
@@ -194,10 +164,18 @@ class HTMLParser:
                     except: pass
                 
                 # Дожидаемся завершения задач
+                print("gather start:")
                 future_task_results = await asyncio.gather(*img_task_futures, return_exceptions=True)
-                image_paths = [x for x in future_task_results if isinstance(x, str)]
+                print("gather END")
+                image_info = [x for x in future_task_results if isinstance(x, dict)]
                 await context.close()
-            return {"htmlPath": html_path, "imagePaths": image_paths}
+            return {
+                "htmlDocs": [FileInfoDTO(filePath=html_path, fileName=html_name, fileType=FileType.HTML, sizeBytes=len(html_bytes), description="", isValid=True, errorMessage="")],
+                "images": [
+                    FileInfoDTO(filePath=info["path"], fileName=info["name"], fileType=FileType.IMG, sizeBytes=info["size"], description="", isValid=True, errorMessage="")
+                    for info in image_info
+                ]
+            }
 
 
     # Получаем сетевой ответ веб-страницы и скачиваем его, если это изображение
@@ -219,13 +197,13 @@ class HTMLParser:
                 
                 # Сохраняем изображение на диск
                 url = response.url
-                body = await response.body()
+                body = await asyncio.wait_for(response.body(), timeout=10)
                 img_ext = HTMLParser.get_img_extension(content_type, url)
-                img_name = HTMLParser.get_hash(url)
-                img_path = os.path.join(img_dir, img_name + img_ext)
+                img_name = HTMLParser.get_hash(url) + img_ext
+                img_path = os.path.join(img_dir, img_name)
                 # await asyncio.to_thread(HTMLParser.write_file_bytes, img_path, body)
                 await self.save_file_to_s3(img_path, body)
-                future.set_result(img_path)
+                future.set_result({"path": img_path, "name": img_name, "size": len(body)})
             except Exception as e:
                 future.set_exception(e)
                 # print(e)

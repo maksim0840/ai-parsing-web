@@ -12,7 +12,7 @@ public class HtmlPreprocessingResponseMapper {
                 .setTaskId(dto.taskId() != null ? dto.taskId() : "")
                 .setSuccess(dto.success())
                 .setMessage(dto.message() != null ? dto.message() : "")
-                .addAllHtmlPaths(dto.htmlPaths() != null ? dto.htmlPaths() : List.of())
+                .addAllHtmlDocs(dto.htmlDocs() != null ? FileInfoMapper.dtoToProtoList(dto.htmlDocs()) : List.of())
                 .build();
     }
 
@@ -21,7 +21,7 @@ public class HtmlPreprocessingResponseMapper {
                 .taskId(proto.getTaskId())
                 .success(proto.getSuccess())
                 .message(proto.getMessage())
-                .htmlPaths(proto.getHtmlPathsList())
+                .htmlDocs(FileInfoMapper.protoToDtoList(proto.getHtmlDocsList()))
                 .build();
     }
 }

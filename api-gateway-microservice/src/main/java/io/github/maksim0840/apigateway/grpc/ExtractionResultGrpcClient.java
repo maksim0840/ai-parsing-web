@@ -71,6 +71,21 @@ public class ExtractionResultGrpcClient {
         }
     }
 
+    public long count(String userId, Instant dateFrom, Instant dateTo) {
+        CountExtractionResultRequest.Builder requestBuilder = CountExtractionResultRequest.newBuilder();
+        if (userId != null) requestBuilder.setUserId(userId);
+        if (dateFrom != null) requestBuilder.setCreatedFrom(ProtoTimeMapper.instantToTimestamp(dateFrom));
+        if (dateTo != null) requestBuilder.setCreatedTo(ProtoTimeMapper.instantToTimestamp(dateTo));
+        CountExtractionResultRequest request = requestBuilder.build();
+
+        try {
+            CountExtractionResultResponse response = blockingStub.count(request);
+            return response.getNumberOfRecords();
+        } catch (StatusRuntimeException e) {
+            throw GrpcExceptionMapper.map(e);
+        }
+    }
+
     public void delete(String id) {
         DeleteExtractionResultRequest request = DeleteExtractionResultRequest.newBuilder()
                 .setId(id)

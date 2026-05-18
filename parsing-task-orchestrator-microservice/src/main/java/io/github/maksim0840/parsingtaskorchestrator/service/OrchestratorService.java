@@ -3,6 +3,7 @@ package io.github.maksim0840.parsingtaskorchestrator.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.*;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.enums.TaskStatus;
+import io.github.maksim0840.parsingtaskorchestrator.dto.StatusDTO;
 import io.github.maksim0840.parsingtaskorchestrator.dto.TaskDTO;
 import io.github.maksim0840.parsingtaskorchestrator.grpc.OrchestratorFinishGrpcClient;
 import io.github.maksim0840.parsingtaskorchestrator.rabbitmq.RabbitMQSender;
@@ -25,15 +26,11 @@ public class OrchestratorService {
         this.finishGrpcClient = finishGrpcClient;
     }
 
-    public void startRequestsPipeline(String taskId,
-                                      HtmlParserRequestDTO htmlParserRequest,
-                                      HtmlPreprocessingRequestDTO htmlPreprocessingRequest,
-                                      TextRecognitionRequestDTO textRecognitionRequest,
-                                      LLMRequestDTO llmRequestDTO) throws JsonProcessingException {
+    public void startRequestsPipeline(TaskDTO task) throws JsonProcessingException {
         System.out.println("startRequestsPipeline");
-        TaskDTO task = taskService.addTask(taskId, htmlParserRequest, htmlPreprocessingRequest, textRecognitionRequest, llmRequestDTO);
         System.out.println("start task:");
         System.out.println(task);
+
         if (task.htmlParserRequired()) {
             startHtmlParsing(task.htmlParserRequest());
         } else if (task.htmlPreprocessingRequired()) {
@@ -43,7 +40,7 @@ public class OrchestratorService {
         } else if (task.llmRequired()) {
             startLlmProcessing(task.llmRequest());
         } else {
-            endPipelineSuccess(taskId);
+            endPipelineSuccess(task.id());
         }
     }
 
@@ -57,25 +54,25 @@ public class OrchestratorService {
 
         // Добавляем ответ от сервиса HtmlParser
         TaskDTO task = taskService.setHtmlParserResponse(response.taskId(), response);
-        // Добавляем в запрос HtmlPreprocessing новый htmlPath, полученный из ответа HtmlParser
+        // Добавляем в запрос HtmlPreprocessing новые htmlPaths, полученный из ответа HtmlParser
         if (task.htmlPreprocessingRequired()) {
             task = taskService.setHtmlPreprocessingRequest(
                     response.taskId(),
-                    task.htmlPreprocessingRequest().addToHtmlPaths(response.htmlPath())
+                    task.htmlPreprocessingRequest().addAllToHtmlDocs(response.htmlDocs())
             );
         }
         // Добавляем в запрос TextRecognition новые imagePaths, полученные из ответа HtmlParser
         if (task.textRecognitionRequired()) {
             task = taskService.setTextRecognitionRequest(
                     response.taskId(),
-                    task.textRecognitionRequest().addAllToImagePaths(response.imagePaths())
+                    task.textRecognitionRequest().addAllToImages(response.images())
             );
         }
         // Добавляем в запрос LLM новый htmlPath, полученные из ответа HtmlParser
         if (task.llmRequired()) {
             task = taskService.setLLMRequest(
                     response.taskId(),
-                    task.llmRequest().addToHtmlPaths(response.htmlPath())
+                    task.llmRequest().addAllToHtmlDocs(response.htmlDocs())
             );
         }
 
@@ -124,7 +121,7 @@ public class OrchestratorService {
         if (task.llmRequired()) {
             task = taskService.setLLMRequest(
                     response.taskId(),
-                    task.llmRequest().putAllToTextByImage(response.textByImage())
+                    task.llmRequest().addAllToImages(response.images())
             );
         }
 
@@ -184,19 +181,11 @@ public class OrchestratorService {
     }
 
 
-    public TaskStatus getStatus(String taskId) {
+    public StatusDTO getStatusInfo(String taskId) {
         if (!taskService.isTaskExists(taskId)) {
-            return TaskStatus.NOT_REGISTERED;
+            return new StatusDTO(TaskStatus.NOT_REGISTERED, null);
         }
         TaskDTO taskDTO = taskService.getTask(taskId);
-        return taskDTO.status();
-    }
-
-    public String getMessage(String taskId) {
-        if (!taskService.isTaskExists(taskId)) {
-            return "";
-        }
-        TaskDTO taskDTO = taskService.getTask(taskId);
-        return taskDTO.message();
+        return new StatusDTO(taskDTO.status(), taskDTO.message());
     }
 }

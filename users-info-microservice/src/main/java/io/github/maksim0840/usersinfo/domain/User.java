@@ -33,11 +33,15 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<ParsingParam> parsingParams;
 
+    @Column(nullable = false, unique = true)
     private String name;
+
     @Column(name = "password_hash")     // названия колонок с составными именами лучше указать явно
     private String passwordHash;
+
     @Enumerated(EnumType.STRING)        // сохранить enum в виде строки с именем константы
     private UserRole role;
+
     @CreatedDate                        // автозаполнение даты при сохранении
     @Column(name = "created_at")
     private Instant createdAt;

@@ -21,8 +21,23 @@ public class ExtractionResultRepositoryImpl implements ExtractionResultRepositor
         this.mongoTemplate = mongoTemplate;
     }
 
+    // Извлекаем записи по филтрам и странице
     @Override
-    public List<ExtractionResult> searchWithFiltering(String userId, Instant dateFrom, Instant dateTo, Pageable pageable) {
+    public List<ExtractionResult> searchWithFilteringAndPaging(String userId, Instant dateFrom, Instant dateTo, Pageable pageable) {
+        Criteria criteria = formCriteriaByFilters(userId, dateFrom, dateTo);
+        Query query = new Query(criteria).with(pageable);
+        return mongoTemplate.find(query, ExtractionResult.class);
+    }
+
+    // Получаем количество всех записей, найденных по филтрам
+    @Override
+    public long countAllWithFiltering(String userId, Instant dateFrom, Instant dateTo) {
+        Criteria criteria = formCriteriaByFilters(userId, dateFrom, dateTo);
+        Query query = new Query(criteria);
+        return mongoTemplate.count(query, ExtractionResult.class);
+    }
+
+    private Criteria formCriteriaByFilters(String userId, Instant dateFrom, Instant dateTo) {
         Criteria criteria = new Criteria();
 
         if (userId != null) {
@@ -37,10 +52,8 @@ public class ExtractionResultRepositoryImpl implements ExtractionResultRepositor
         } else if (dateTo != null) {
             criteria = criteria.and("createdAt").lte(dateTo);  // createdDate <= dateTo
         }
-
-        Query query = new Query(criteria).with(pageable);
-
-        List<ExtractionResult> extractionResults = mongoTemplate.find(query, ExtractionResult.class);
-        return extractionResults;
+        return criteria;
     }
+
+
 }

@@ -1,6 +1,6 @@
 package io.github.maksim0840.apigateway.dto;
 
-public record FileInfo(
+public record FileWithContent(
     String fileName,
     byte[] fileBytes
 ) {

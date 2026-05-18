@@ -3,6 +3,7 @@ from html import unescape
 import asyncio
 from common.src.s3_storage_connection import S3Storage
 import os
+from common.src.dto.file_info_dto import FileInfoDTO
 
 # from dotenv import load_dotenv
 # load_dotenv("parser/parser_settings.env") # загружаем .env файл конфигурации
@@ -320,18 +321,27 @@ class HTMLPreprocessing:
         return await self.s3_storage.upload_file_bytes(s3_object_key=html_path, file_bytes=html_bytes)
 
 
-    async def apply_preprocessing(self, html_paths, **kwargs):
+    async def apply_preprocessing(self, html_docs: list[FileInfoDTO], **kwargs):
         async with self.sem:
-            for path in html_paths:
-                # Прочитать файл
-                # html_bytes = await asyncio.to_thread(HTMLPreprocessing.read_html_bytes, html_path)
-                html_bytes = await self.read_html_bytes_from_s3(path)
+            new_html_docs = []
 
-                # Обработать теги
-                processed_html_bytes = await asyncio.to_thread(HTMLPreprocessing.preprocessing_pipeline, html_bytes, **kwargs)
-                
-                # Перезаписать новый html файл с обработанными тегами
-                # await asyncio.to_thread(HTMLPreprocessing.write_html_bytes, html_path, processed_html_bytes)
-                await self.write_html_bytes_to_s3(path, processed_html_bytes)
+            for doc in html_docs:
+                if (not doc.isValid):
+                    new_html_docs.append(doc)
+                    continue
+                try:
+                    # Прочитать файл
+                    # html_bytes = await asyncio.to_thread(HTMLPreprocessing.read_html_bytes, doc.filePath)
+                    html_bytes = await self.read_html_bytes_from_s3(doc.filePath)
 
-            return {"htmlPaths": html_paths}
+                    # Обработать теги
+                    processed_html_bytes = await asyncio.to_thread(HTMLPreprocessing.preprocessing_pipeline, html_bytes, **kwargs)
+                    
+                    # Перезаписать новый html файл с обработанными тегами
+                    # await asyncio.to_thread(HTMLPreprocessing.write_html_bytes, doc.filePath, processed_html_bytes)
+                    await self.write_html_bytes_to_s3(doc.filePath, processed_html_bytes)
+                    new_html_docs.append(FileInfoDTO(filePath=doc.filePath, fileName=doc.fileName, fileType=doc.fileType, sizeBytes=len(processed_html_bytes), description=doc.description, isValid=True, errorMessage=""))
+                except Exception as e:
+                    new_html_docs.append(FileInfoDTO(filePath=doc.filePath, fileName=doc.fileName, fileType=doc.fileType, description=doc.description, isValid=False, errorMessage=str(e)))
+
+            return {"htmlDocs": new_html_docs}

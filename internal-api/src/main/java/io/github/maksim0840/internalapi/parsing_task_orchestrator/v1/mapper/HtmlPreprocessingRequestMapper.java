@@ -10,7 +10,7 @@ public class HtmlPreprocessingRequestMapper {
     public static HtmlPreprocessingRequestProto dtoToProto(HtmlPreprocessingRequestDTO dto) {
         HtmlPreprocessingRequestProto.Builder protoBuilder = HtmlPreprocessingRequestProto.newBuilder();
         protoBuilder.setTaskId(dto.taskId() != null ? dto.taskId() : "");
-        protoBuilder.addAllHtmlPaths(dto.htmlPaths() != null ? dto.htmlPaths() : List.of());
+        protoBuilder.addAllHtmlDocs(dto.htmlDocs() != null ? FileInfoMapper.dtoToProtoList(dto.htmlDocs()) : List.of());
         if (dto.noscriptProcessing() != null) protoBuilder.setNoscriptProcessing(dto.noscriptProcessing());
         if (dto.linkProcessing() != null) protoBuilder.setLinkProcessing(dto.linkProcessing());
         if (dto.styleProcessing() != null) protoBuilder.setStyleProcessing(dto.styleProcessing());
@@ -34,7 +34,7 @@ public class HtmlPreprocessingRequestMapper {
     public static HtmlPreprocessingRequestDTO protoToDto(HtmlPreprocessingRequestProto proto) {
         return HtmlPreprocessingRequestDTO.builder()
                 .taskId(proto.getTaskId())
-                .htmlPaths(proto.getHtmlPathsList())
+                .htmlDocs(FileInfoMapper.protoToDtoList(proto.getHtmlDocsList()))
                 .noscriptProcessing(proto.hasNoscriptProcessing() ? proto.getNoscriptProcessing() : null)
                 .linkProcessing(proto.hasLinkProcessing() ? proto.getLinkProcessing() : null)
                 .styleProcessing(proto.hasStyleProcessing() ? proto.getStyleProcessing() : null)

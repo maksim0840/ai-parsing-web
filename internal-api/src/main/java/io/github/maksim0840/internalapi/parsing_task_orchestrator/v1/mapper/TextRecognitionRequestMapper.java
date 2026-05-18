@@ -10,14 +10,14 @@ public class TextRecognitionRequestMapper {
     public static TextRecognitionRequestProto dtoToProto(TextRecognitionRequestDTO dto) {
         return TextRecognitionRequestProto.newBuilder()
                 .setTaskId(dto.taskId() != null ? dto.taskId() : "")
-                .addAllImagePaths(dto.imagePaths() != null ? dto.imagePaths() : List.of())
+                .addAllImages(dto.images() != null ? FileInfoMapper.dtoToProtoList(dto.images()) : List.of())
                 .build();
     }
 
     public static TextRecognitionRequestDTO protoToDto(TextRecognitionRequestProto proto) {
         return TextRecognitionRequestDTO.builder()
                 .taskId(proto.getTaskId())
-                .imagePaths(proto.getImagePathsList())
+                .images(FileInfoMapper.protoToDtoList(proto.getImagesList()))
                 .build();
     }
 }

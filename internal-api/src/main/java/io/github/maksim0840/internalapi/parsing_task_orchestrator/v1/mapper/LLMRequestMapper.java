@@ -17,8 +17,8 @@ public class LLMRequestMapper {
         protoBuilder.setUserMessage(dto.userMessage() != null ? dto.userMessage() : "");
         if (dto.temperature() != null) protoBuilder.setTemperature(dto.temperature());
         if (dto.maxOutputTokens() != null) protoBuilder.setMaxOutputTokens(dto.maxOutputTokens());
-        protoBuilder.addAllHtmlPaths(dto.htmlPaths() != null ? dto.htmlPaths() : List.of());
-        protoBuilder.putAllTextByImage(dto.textByImage() != null ? dto.textByImage() : Map.of());
+        protoBuilder.addAllHtmlDocs(dto.htmlDocs() != null ? FileInfoMapper.dtoToProtoList(dto.htmlDocs()) : List.of());
+        protoBuilder.addAllImages(dto.images() != null ? FileInfoMapper.dtoToProtoList(dto.images()) : List.of());
         return protoBuilder.build();
     }
 
@@ -30,8 +30,8 @@ public class LLMRequestMapper {
                 .userMessage(proto.getUserMessage())
                 .temperature(proto.hasTemperature() ? proto.getTemperature() : null)
                 .maxOutputTokens(proto.hasMaxOutputTokens() ? proto.getMaxOutputTokens() : null)
-                .htmlPaths(proto.getHtmlPathsList())
-                .textByImage(proto.getTextByImageMap())
+                .htmlDocs(FileInfoMapper.protoToDtoList(proto.getHtmlDocsList()))
+                .images(FileInfoMapper.protoToDtoList(proto.getImagesList()))
                 .build();
     }
 }

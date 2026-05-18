@@ -6,7 +6,8 @@ services:
       dockerfile: api-gateway-microservice/Dockerfile
     image: api:dev
     env_file:
-      - config.env
+      - connection.env
+      - security.env
     ports:
       - "8080:8080"
     networks:

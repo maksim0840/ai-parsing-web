@@ -15,11 +15,11 @@ public record LLMRequestDTO(
         String userMessage,
         Double temperature,
         Integer maxOutputTokens,
-        List<String> htmlPaths,
-        Map<String, String> textByImage
+        List<FileInfoDTO> htmlDocs,
+        List<FileInfoDTO> images
 ) {
-    // Использовать значения этого же объекта, но с измененным полем htmlPaths
-    public LLMRequestDTO withHtmlPaths(List<String> newHtmlPaths) {
+    // Использовать значения этого же объекта, но с измененным полем htmlDocs
+    public LLMRequestDTO withHtmlDocs(List<FileInfoDTO> newHtmlDocs) {
         return new LLMRequestDTO(
                 this.taskId,
                 this.modelName,
@@ -27,27 +27,27 @@ public record LLMRequestDTO(
                 this.userMessage,
                 this.temperature,
                 this.maxOutputTokens,
-                newHtmlPaths,
-                this.textByImage
+                newHtmlDocs,
+                this.images
         );
     }
 
-    // Добавить несколько элементов в htmlPaths
-    public LLMRequestDTO addAllToHtmlPaths(List<String> extraHtmlPaths) {
-        List<String> newHtmlPaths = this.htmlPaths;
-        newHtmlPaths.addAll(extraHtmlPaths);
-        return withHtmlPaths(newHtmlPaths);
+    // Добавить несколько элементов в htmlDocs
+    public LLMRequestDTO addAllToHtmlDocs(List<FileInfoDTO> extraHtmlDocs) {
+        List<FileInfoDTO> newHtmlDocs = this.htmlDocs;
+        newHtmlDocs.addAll(extraHtmlDocs);
+        return withHtmlDocs(newHtmlDocs);
     }
 
-    // Добавить один элемент в htmlPaths
-    public LLMRequestDTO addToHtmlPaths(String extraHtmlPath) {
-        List<String> newHtmlPaths = this.htmlPaths;
-        newHtmlPaths.add(extraHtmlPath);
-        return withHtmlPaths(newHtmlPaths);
+    // Добавить один элемент в htmlDocs
+    public LLMRequestDTO addToHtmlDocs(FileInfoDTO extraHtmlDoc) {
+        List<FileInfoDTO> newHtmlDocs = this.htmlDocs;
+        newHtmlDocs.add(extraHtmlDoc);
+        return withHtmlDocs(newHtmlDocs);
     }
 
-    // Использовать значения этого же объекта, но с измененным полем textByImage
-    public LLMRequestDTO withTextByImage(Map<String, String> newTextByImage) {
+    // Использовать значения этого же объекта, но с измененным полем images
+    public LLMRequestDTO withImages(List<FileInfoDTO> newImages) {
         return new LLMRequestDTO(
                 this.taskId,
                 this.modelName,
@@ -55,15 +55,15 @@ public record LLMRequestDTO(
                 this.userMessage,
                 this.temperature,
                 this.maxOutputTokens,
-                this.htmlPaths,
-                newTextByImage
+                this.htmlDocs,
+                newImages
         );
     }
 
-    // Добавить несколько элементов в textByImage
-    public LLMRequestDTO putAllToTextByImage(Map<String, String> extraTextByImage) {
-        Map<String, String> newTextByImage = this.textByImage;
-        newTextByImage.putAll(extraTextByImage);
-        return withTextByImage(newTextByImage);
+    // Добавить несколько элементов в images
+    public LLMRequestDTO addAllToImages(List<FileInfoDTO> extraImages) {
+        List<FileInfoDTO> newImages = this.images;
+        newImages.addAll(extraImages);
+        return withImages(newImages);
     }
 }

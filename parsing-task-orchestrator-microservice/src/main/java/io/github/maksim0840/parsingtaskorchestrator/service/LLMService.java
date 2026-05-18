@@ -2,6 +2,7 @@ package io.github.maksim0840.parsingtaskorchestrator.service;
 
 import com.openai.errors.NotFoundException;
 import io.github.maksim0840.internalapi.common.v1.s3.S3StorageService;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.FileInfoDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.LLMRequestDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.LLMResponseDTO;
 import io.github.maksim0840.parsingtaskorchestrator.config.S3Config;
@@ -32,22 +33,28 @@ public class LLMService {
         this.s3StorageService = new S3StorageService(s3Client, s3Properties.bucketName());
     }
 
-    public String sendRequestToModel(String model, String systemMessage, String userMessage, Double temperature, Integer maxOutputTokens, List<String> htmlPaths, Map<String, String> textByImage) {
+    public String sendRequestToModel(String model, String systemMessage, String userMessage, Double temperature, Integer maxOutputTokens, List<FileInfoDTO> htmlDocs, List<FileInfoDTO> images) {
         StringBuilder newUserMessage = new StringBuilder(userMessage);
 
         // Добавляем в контекст содержаение html-документов
-        for (int i = 0; i < htmlPaths.size(); ++i) {
-            String htmlFileContent = new String(s3StorageService.downloadFileBytes(htmlPaths.get(i)), StandardCharsets.UTF_8);
-            newUserMessage.append(String.format("\n\n=== HTML-страница №%d ===\n\n%s", i + 1, htmlFileContent));
+        int curHtmlNum = 1;
+        for (FileInfoDTO htmlDoc : htmlDocs) {
+            if (!htmlDoc.isValid()) {
+                continue;
+            }
+            String htmlFileContent = new String(s3StorageService.downloadFileBytes(htmlDoc.filePath()), StandardCharsets.UTF_8);
+            newUserMessage.append(String.format("\n\n=== HTML-страница №%d ===\n\n%s", curHtmlNum, htmlFileContent));
+            ++curHtmlNum;
         }
 
         // Добавляем в контекст текст с изображений
-        int curImgNum = 0;
-        for (Map.Entry<String, String> entry : textByImage.entrySet()) {
-            if (!entry.getValue().isBlank()) {
-                newUserMessage.append(String.format("\n\n=== Текст с картинки №%d ===\n\n%s", curImgNum + 1, entry.getValue()));
-                ++curImgNum;
+        int curImgNum = 1;
+        for (FileInfoDTO img : images) {
+            if (!img.isValid() || img.description().isBlank()) {
+                continue;
             }
+            newUserMessage.append(String.format("\n\n=== Текст с картинки №%d ===\n\n%s", curImgNum, img.description()));
+            ++curImgNum;
         }
 
         if (availableModels.containsKey(model)) {
@@ -58,11 +65,11 @@ public class LLMService {
 
     public LLMResponseDTO processLlmRequest(LLMRequestDTO request) {
         try {
-            String output = sendRequestToModel(request.modelName(), request.systemMessage(), request.userMessage(), request.temperature(), request.maxOutputTokens(), request.htmlPaths(), request.textByImage());
+            String output = sendRequestToModel(request.modelName(), request.systemMessage(), request.userMessage(), request.temperature(), request.maxOutputTokens(), request.htmlDocs(), request.images());
             return new LLMResponseDTO(request.taskId(), true, "", output);
         } catch (Exception e) {
             System.out.println(e.getMessage());
-            return new LLMResponseDTO(request.taskId(), false, "llm error: " + e.getMessage(), null);
+            return new LLMResponseDTO(request.taskId(), false, "[llm service] " + e.getMessage(), null);
         }
     }
 }

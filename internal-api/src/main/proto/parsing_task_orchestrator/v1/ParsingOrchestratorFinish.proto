@@ -4,28 +4,30 @@ package parsing_task_orchestrator.v1;  // namespace для .proto файла
 option java_package = "io.github.maksim0840.parsing_task_orchestrator.v1";  // package для генерации .java классов из .proto файла
 option java_multiple_files = true;  // для удобной генерации и обращения (каждый message/service генерируется в отдельный .java файл)
 
+import "parsing_task_orchestrator/v1/FileInfo.proto";
+
 // ===== Модель =====
 
 message HtmlParserResponseProto {
   string task_id = 1;
   bool success = 2;
   string message = 3;
-  string html_path = 4;
-  repeated string image_paths = 5;
+  repeated FileInfoProto html_docs = 4;
+  repeated FileInfoProto images = 5;
 }
 
 message HtmlPreprocessingResponseProto {
   string task_id = 1;
   bool success = 2;
   string message = 3;
-  repeated string html_paths = 4;
+  repeated FileInfoProto html_docs = 4;
 }
 
 message TextRecognitionResponseProto {
   string task_id = 1;
   bool success = 2;
   string message = 3;
-  map<string, string> text_by_image = 4;
+  repeated FileInfoProto images = 4;
 }
 
 message LLMResponseProto {

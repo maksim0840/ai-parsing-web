@@ -67,7 +67,7 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
             ExtractionResult extractionResult = extractionResultService.getExtractionResultById(id);
             ExtractionResultProto extractionResultProto = ProtoDomainExtractionResultMapper.domainToProto(extractionResult);
             GetExtractionResultResponse response = GetExtractionResultResponse.newBuilder()
-                            .setExtractionResult(extractionResultProto).build();
+                    .setExtractionResult(extractionResultProto).build();
 
             observerResponse.onNext(response);
             observerResponse.onCompleted();
@@ -91,17 +91,35 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
         try {
             List<ExtractionResult> extractionResults = extractionResultService.getListExtractionResultByPageWithFiltering(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc);
             List<ExtractionResultProto> extractionResultsProto = extractionResults.stream()
-                            .map(ProtoDomainExtractionResultMapper::domainToProto)
-                            .toList();
+                    .map(ProtoDomainExtractionResultMapper::domainToProto)
+                    .toList();
             GetListExtractionResultResponse response = GetListExtractionResultResponse.newBuilder()
-                            .addAllExtractionResults(extractionResultsProto).build();
+                    .addAllExtractionResults(extractionResultsProto).build();
 
             observerResponse.onNext(response);
             observerResponse.onCompleted();
         } catch (RuntimeException e) {
             observerResponse.onError(error(Status.UNAVAILABLE, e.getMessage()));
         }
+    }
 
+    @Override
+    public void count(CountExtractionResultRequest request,
+                      StreamObserver<CountExtractionResultResponse> observerResponse) {
+        String userId = request.hasUserId() ? request.getUserId() : null;
+        Instant dateFrom = request.hasCreatedFrom() ? ProtoTimeMapper.timestampToInstant(request.getCreatedFrom()) : null;
+        Instant dateTo = request.hasCreatedTo() ? ProtoTimeMapper.timestampToInstant(request.getCreatedTo()) : null;
+
+        try {
+            long numberOfRecords = extractionResultService.getExtractionResultsNumberByFiltering(userId, dateFrom, dateTo);
+            CountExtractionResultResponse response = CountExtractionResultResponse.newBuilder()
+                    .setNumberOfRecords(numberOfRecords).build();
+
+            observerResponse.onNext(response);
+            observerResponse.onCompleted();
+        } catch (RuntimeException e) {
+            observerResponse.onError(error(Status.UNAVAILABLE, e.getMessage()));
+        }
     }
 
     @Override

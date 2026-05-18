@@ -57,11 +57,30 @@ public class UserGrpcEndpoint extends UserServiceGrpc.UserServiceImplBase {
     }
 
     @Override
-    public void get(GetUserRequest request, StreamObserver<GetUserResponse> observerResponse) {
+    public void getById(GetUserByIdRequest request, StreamObserver<GetUserResponse> observerResponse) {
         Long id = request.getId();
 
         try {
             User user = userService.getUserById(id);
+            UserProto userProto = ProtoDomainUserMapper.domainToProto(user);
+            GetUserResponse response = GetUserResponse.newBuilder()
+                    .setUser(userProto).build();
+
+            observerResponse.onNext(response);
+            observerResponse.onCompleted();
+        } catch (NotFoundException e) {
+            observerResponse.onError(error(Status.NOT_FOUND, e.getMessage()));
+        } catch (RuntimeException e) {
+            observerResponse.onError(error(Status.UNAVAILABLE, e.getMessage()));
+        }
+    }
+
+    @Override
+    public void getByName(GetUserByNameRequest request, StreamObserver<GetUserResponse> observerResponse) {
+        String name = request.getName();
+
+        try {
+            User user = userService.getUserByName(name);
             UserProto userProto = ProtoDomainUserMapper.domainToProto(user);
             GetUserResponse response = GetUserResponse.newBuilder()
                     .setUser(userProto).build();

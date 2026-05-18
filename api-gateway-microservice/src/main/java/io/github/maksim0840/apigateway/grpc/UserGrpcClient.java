@@ -36,19 +36,32 @@ public class UserGrpcClient {
         }
     }
 
-    public UserDTO get(Long id) {
-        GetUserRequest request = GetUserRequest.newBuilder()
+    public UserDTO getById(Long id) {
+        GetUserByIdRequest request = GetUserByIdRequest.newBuilder()
                 .setId(id)
                 .build();
 
         try {
-            GetUserResponse response = blockingStub.get(request);
+            GetUserResponse response = blockingStub.getById(request);
             UserProto userProto = response.getUser();
             return ProtoDTOUserMapper.protoToDto(userProto);
         } catch (StatusRuntimeException e) {
             throw GrpcExceptionMapper.map(e);
         }
+    }
 
+    public UserDTO getByName(String name) {
+        GetUserByNameRequest request = GetUserByNameRequest.newBuilder()
+                .setName(name)
+                .build();
+
+        try {
+            GetUserResponse response = blockingStub.getByName(request);
+            UserProto userProto = response.getUser();
+            return ProtoDTOUserMapper.protoToDto(userProto);
+        } catch (StatusRuntimeException e) {
+            throw GrpcExceptionMapper.map(e);
+        }
     }
 
     public List<UserDTO> getList(UserRole role, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc) {

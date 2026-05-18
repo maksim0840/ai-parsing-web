@@ -1,11 +1,8 @@
 package io.github.maksim0840.usersinfo.users.integration;
 
-import io.github.maksim0840.extraction_result.v1.*;
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 import io.github.maksim0840.internalapi.user.v1.enums.UserRole;
 import io.github.maksim0840.internalapi.user.v1.mapper.ProtoUserRoleMapper;
-import io.github.maksim0840.parsing_param.v1.GetListParsingParamRequest;
-import io.github.maksim0840.parsing_param.v1.ParsingParamServiceGrpc;
 import io.github.maksim0840.user.v1.*;
 import io.github.maksim0840.usersinfo.Main;
 import io.github.maksim0840.usersinfo.domain.ParsingParam;
@@ -16,8 +13,6 @@ import io.github.maksim0840.usersinfo.utils.PasswordEncryption;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import net.devh.boot.grpc.client.inject.GrpcClient;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,18 +25,13 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.shaded.org.checkerframework.checker.nullness.qual.Nullable;
-import org.testcontainers.utility.DockerImageName;
 
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.BDDAssertions.and;
 import static org.assertj.core.api.BDDAssertions.within;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -102,14 +92,14 @@ public class UserGrpcToDb {
     @Test
     void createSeveral() {
         // Создаём запросы
-        UserRole role1 = UserRole.USER;
+        UserRole role1 = UserRole.ROLE_USER;
         CreateUserRequest request1 = CreateUserRequest.newBuilder()
                 .setName("user123")
                 .setPassword("aHjksd82lsKK")
                 .setRole(ProtoUserRoleMapper.domainToProto(role1))
                 .build();
 
-        UserRole role2 = UserRole.VISITOR;
+        UserRole role2 = UserRole.ROLE_VISITOR;
         CreateUserRequest request2 = CreateUserRequest.newBuilder()
                 .setName("pdurov")
                 .setPassword("qwerty12345")
@@ -146,7 +136,7 @@ public class UserGrpcToDb {
     */
     @Test
     void createWithEmptyName() {
-        UserRole role = UserRole.USER;
+        UserRole role = UserRole.ROLE_USER;
         CreateUserRequest request = CreateUserRequest.newBuilder()
                 .setPassword("zX9!mN4#pQ1")
                 .setRole(ProtoUserRoleMapper.domainToProto(role))
@@ -172,7 +162,7 @@ public class UserGrpcToDb {
     */
     @Test
     void createWithEmptyPassword() {
-        UserRole role = UserRole.ADMIN;
+        UserRole role = UserRole.ROLE_ADMIN;
         CreateUserRequest request = CreateUserRequest.newBuilder()
                 .setName("user\uD83D\uDD25")
                 .setRole(ProtoUserRoleMapper.domainToProto(role))
@@ -225,10 +215,10 @@ public class UserGrpcToDb {
     @Test
     void getSeveralExistingData() {
         String password1 = "T3st_Cas3$2026";
-        User entity1 = new User("grace_hopper", PasswordEncryption.makeHash(password1), UserRole.ADMIN);
+        User entity1 = new User("grace_hopper", PasswordEncryption.makeHash(password1), UserRole.ROLE_ADMIN);
 
         String password2 = "Adm1n@Temp#47";
-        User entity2 = new User("boris_test", PasswordEncryption.makeHash(password2), UserRole.VISITOR);
+        User entity2 = new User("boris_test", PasswordEncryption.makeHash(password2), UserRole.ROLE_VISITOR);
 
         Instant timeBefore = Instant.now();
         userRepository.save(entity1);
@@ -255,7 +245,7 @@ public class UserGrpcToDb {
     @Test
     void getWrongIdNotFoundException() {
         String password = "'ILLK'*prep*2";
-        User entity = new User("ivan.petrov", PasswordEncryption.makeHash(password), UserRole.USER);
+        User entity = new User("ivan.petrov", PasswordEncryption.makeHash(password), UserRole.ROLE_USER);
 
         userRepository.save(entity);
 
@@ -282,7 +272,7 @@ public class UserGrpcToDb {
     @Test
     void getListAllParams() {
         GetListUserRequest request = GetListUserRequest.newBuilder()
-                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.USER))
+                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.ROLE_USER))
                 .setCreatedFrom(ProtoTimeMapper.instantToTimestamp(Instant.parse("2026-01-05T00:00:00.000Z")))
                 .setCreatedTo(ProtoTimeMapper.instantToTimestamp(Instant.parse("2026-01-08T00:00:00.000Z")))
                 .setPageNum(0)
@@ -341,7 +331,7 @@ public class UserGrpcToDb {
     @Test
     void getListByRole() {
         GetListUserRequest request = GetListUserRequest.newBuilder()
-                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.VISITOR))
+                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.ROLE_VISITOR))
                 .setPageNum(0)
                 .setPageSize(100)
                 .build();
@@ -536,8 +526,8 @@ public class UserGrpcToDb {
     */
     @Test
     void deleteSeveralExistingData() {
-        User entity1 = new User("daria.qa", PasswordEncryption.makeHash("Em0ji_\uD83D\uDD25_P@ss9"), UserRole.ADMIN);
-        User entity2 = new User("eve.user", PasswordEncryption.makeHash("V!olet-88-Keys"), UserRole.USER);
+        User entity1 = new User("daria.qa", PasswordEncryption.makeHash("Em0ji_\uD83D\uDD25_P@ss9"), UserRole.ROLE_ADMIN);
+        User entity2 = new User("eve.user", PasswordEncryption.makeHash("V!olet-88-Keys"), UserRole.ROLE_USER);
 
         userRepository.save(entity1);
         userRepository.save(entity2);
@@ -561,7 +551,7 @@ public class UserGrpcToDb {
     */
     @Test
     void deleteWrongIdNotFoundException() {
-        User entity = new User("student", PasswordEncryption.makeHash("not a password"), UserRole.VISITOR);
+        User entity = new User("student", PasswordEncryption.makeHash("not a password"), UserRole.ROLE_VISITOR);
 
         userRepository.save(entity);
 
@@ -587,7 +577,7 @@ public class UserGrpcToDb {
     */
     @Test
     void deleteOnCascade() {
-        User entity = new User("mmnsm", PasswordEncryption.makeHash("mmnsm_pass"), UserRole.USER);
+        User entity = new User("mmnsm", PasswordEncryption.makeHash("mmnsm_pass"), UserRole.ROLE_USER);
         userRepository.save(entity);
 
         ParsingParam parsingParam1 = new ParsingParam(entity,"name1", "description1");
@@ -616,24 +606,24 @@ public class UserGrpcToDb {
     */
     @Test
     void setRoleSeveral() {
-        User entity1 = new User("user+tag", PasswordEncryption.makeHash("t@g+user_4"), UserRole.ADMIN);
-        User entity2 = new User("space user", PasswordEncryption.makeHash("sp ace__PW9!"), UserRole.VISITOR);
+        User entity1 = new User("user+tag", PasswordEncryption.makeHash("t@g+user_4"), UserRole.ROLE_ADMIN);
+        User entity2 = new User("space user", PasswordEncryption.makeHash("sp ace__PW9!"), UserRole.ROLE_VISITOR);
 
         userRepository.save(entity1);
         userRepository.save(entity2);
 
         // Проверяем, что в базе находятся старые роли
-        assertThat(entity1.getRole()).isEqualTo(UserRole.ADMIN);
-        assertThat(entity2.getRole()).isEqualTo(UserRole.VISITOR);
+        assertThat(entity1.getRole()).isEqualTo(UserRole.ROLE_ADMIN);
+        assertThat(entity2.getRole()).isEqualTo(UserRole.ROLE_VISITOR);
 
         // Делаем запрос на изменение ролей
         SetUserRoleRequest request1 = SetUserRoleRequest.newBuilder()
                 .setId(entity1.getId())
-                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.USER))
+                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.ROLE_USER))
                 .build();
         SetUserRoleRequest request2 = SetUserRoleRequest.newBuilder()
                 .setId(entity2.getId())
-                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.ADMIN))
+                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.ROLE_ADMIN))
                 .build();
         UserProto responseProto1 = blockingStub.setRole(request1).getUser();
         UserProto responseProto2 = blockingStub.setRole(request2).getUser();
@@ -643,10 +633,10 @@ public class UserGrpcToDb {
         User updatedEntity2 = userRepository.findById(entity2.getId()).orElseThrow();
 
         // Проверяем, что роли изменились (в response и в реальной базе данных)
-        assertThat(ProtoUserRoleMapper.protoToDomain(responseProto1.getRole())).isEqualTo(UserRole.USER);
-        assertThat(ProtoUserRoleMapper.protoToDomain(responseProto2.getRole())).isEqualTo(UserRole.ADMIN);
-        assertThat(updatedEntity1.getRole()).isEqualTo(UserRole.USER);
-        assertThat(updatedEntity2.getRole()).isEqualTo(UserRole.ADMIN);
+        assertThat(ProtoUserRoleMapper.protoToDomain(responseProto1.getRole())).isEqualTo(UserRole.ROLE_USER);
+        assertThat(ProtoUserRoleMapper.protoToDomain(responseProto2.getRole())).isEqualTo(UserRole.ROLE_ADMIN);
+        assertThat(updatedEntity1.getRole()).isEqualTo(UserRole.ROLE_USER);
+        assertThat(updatedEntity2.getRole()).isEqualTo(UserRole.ROLE_ADMIN);
     }
 
     /*
@@ -657,22 +647,22 @@ public class UserGrpcToDb {
     */
     @Test
     void setRoleNoChanges() {
-        User entity = new User("admin.test", PasswordEncryption.makeHash("Adm1n$ecret!!"), UserRole.ADMIN);
+        User entity = new User("admin.test", PasswordEncryption.makeHash("Adm1n$ecret!!"), UserRole.ROLE_ADMIN);
 
         userRepository.save(entity);
 
-        assertThat(entity.getRole()).isEqualTo(UserRole.ADMIN);
+        assertThat(entity.getRole()).isEqualTo(UserRole.ROLE_ADMIN);
 
         SetUserRoleRequest request = SetUserRoleRequest.newBuilder()
                 .setId(entity.getId())
-                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.ADMIN))
+                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.ROLE_ADMIN))
                 .build();
         UserProto responseProto = blockingStub.setRole(request).getUser();
 
         User updatedEntity = userRepository.findById(entity.getId()).orElseThrow();
 
-        assertThat(ProtoUserRoleMapper.protoToDomain(responseProto.getRole())).isEqualTo(UserRole.ADMIN);
-        assertThat(updatedEntity.getRole()).isEqualTo(UserRole.ADMIN);
+        assertThat(ProtoUserRoleMapper.protoToDomain(responseProto.getRole())).isEqualTo(UserRole.ROLE_ADMIN);
+        assertThat(updatedEntity.getRole()).isEqualTo(UserRole.ROLE_ADMIN);
     }
 
     /*
@@ -685,11 +675,11 @@ public class UserGrpcToDb {
     */
     @Test
     void setRoleEmptyRoleInvalidArgumentException() {
-        User entity = new User("boris_01", PasswordEncryption.makeHash("borisPASS_2026"), UserRole.USER);
+        User entity = new User("boris_01", PasswordEncryption.makeHash("borisPASS_2026"), UserRole.ROLE_USER);
 
         userRepository.save(entity);
 
-        assertThat(entity.getRole()).isEqualTo(UserRole.USER);
+        assertThat(entity.getRole()).isEqualTo(UserRole.ROLE_USER);
 
         SetUserRoleRequest request = SetUserRoleRequest.newBuilder()
                 .setId(entity.getId())
@@ -704,7 +694,7 @@ public class UserGrpcToDb {
         assertThat(ex.getStatus().getDescription()).contains("UserRoleProto").contains("not specified");
 
         // Роль не изменилась
-        assertThat(entity.getRole()).isEqualTo(UserRole.USER);
+        assertThat(entity.getRole()).isEqualTo(UserRole.ROLE_USER);
     }
 
     /*
@@ -716,15 +706,15 @@ public class UserGrpcToDb {
     */
     @Test
     void setRoleWrongIdNotFoundException() {
-        User entity = new User("unicode_пользователь", PasswordEncryption.makeHash("Пароль#2026"), UserRole.VISITOR);
+        User entity = new User("unicode_пользователь", PasswordEncryption.makeHash("Пароль#2026"), UserRole.ROLE_VISITOR);
 
         userRepository.save(entity);
 
-        assertThat(entity.getRole()).isEqualTo(UserRole.VISITOR);
+        assertThat(entity.getRole()).isEqualTo(UserRole.ROLE_VISITOR);
 
         SetUserRoleRequest request = SetUserRoleRequest.newBuilder()
                 .setId(-1)
-                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.USER))
+                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.ROLE_USER))
                 .build();
 
         StatusRuntimeException ex = assertThrows(
@@ -736,7 +726,7 @@ public class UserGrpcToDb {
         assertThat(ex.getStatus().getDescription()).contains("not found").contains("-1");
 
         // Роль не изменилась
-        assertThat(entity.getRole()).isEqualTo(UserRole.VISITOR);
+        assertThat(entity.getRole()).isEqualTo(UserRole.ROLE_VISITOR);
     }
 
 
@@ -749,8 +739,8 @@ public class UserGrpcToDb {
     */
     @Test
     void checkPasswordSeveralCorrect() {
-        User entity1 = new User("a", PasswordEncryption.makeHash("A_very_long_password_0000000001!"), UserRole.VISITOR);
-        User entity2 = new User("a", PasswordEncryption.makeHash("Jd-2026-Strong*Pw"), UserRole.USER);
+        User entity1 = new User("a", PasswordEncryption.makeHash("A_very_long_password_0000000001!"), UserRole.ROLE_VISITOR);
+        User entity2 = new User("a", PasswordEncryption.makeHash("Jd-2026-Strong*Pw"), UserRole.ROLE_USER);
 
         userRepository.save(entity1);
         userRepository.save(entity2);
@@ -782,8 +772,8 @@ public class UserGrpcToDb {
     */
     @Test
     void checkPasswordSeveralIncorrect() {
-        User entity1 = new User("grb", PasswordEncryption.makeHash("FirePass!23"), UserRole.VISITOR);
-        User entity2 = new User("kit123", PasswordEncryption.makeHash("OldPassword13748"), UserRole.USER);
+        User entity1 = new User("grb", PasswordEncryption.makeHash("FirePass!23"), UserRole.ROLE_VISITOR);
+        User entity2 = new User("kit123", PasswordEncryption.makeHash("OldPassword13748"), UserRole.ROLE_USER);
 
         userRepository.save(entity1);
         userRepository.save(entity2);
@@ -815,7 +805,7 @@ public class UserGrpcToDb {
     */
     @Test
     void checkPasswordEmptyPassword() {
-        User entity = new User("empty mt", PasswordEncryption.makeHash(""), UserRole.ADMIN);
+        User entity = new User("empty mt", PasswordEncryption.makeHash(""), UserRole.ROLE_ADMIN);
 
         userRepository.save(entity);
 
@@ -839,7 +829,7 @@ public class UserGrpcToDb {
     */
     @Test
     void checkPasswordWrongIdNotFoundException() {
-        User entity = new User("user_name", PasswordEncryption.makeHash("123"), UserRole.USER);
+        User entity = new User("user_name", PasswordEncryption.makeHash("123"), UserRole.ROLE_USER);
 
         userRepository.save(entity);
 
@@ -861,16 +851,16 @@ public class UserGrpcToDb {
     void checkGetListRequest(GetListUserRequest request, List<Long> expectedUserIds) {
         List<String> passwords = List.of("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
         List<User> entities = List.of(
-                User.builder().id(1L).name("name1").passwordHash(PasswordEncryption.makeHash(passwords.get(0))).role(UserRole.VISITOR).createdAt(Instant.parse("2026-01-01T00:00:00.000Z")).build(),
-                User.builder().id(2L).name("name2").passwordHash(PasswordEncryption.makeHash(passwords.get(1))).role(UserRole.USER).createdAt(Instant.parse("2026-01-02T00:00:00.000Z")).build(),
-                User.builder().id(3L).name("name3").passwordHash(PasswordEncryption.makeHash(passwords.get(2))).role(UserRole.ADMIN).createdAt(Instant.parse("2026-01-03T00:00:00.000Z")).build(),
-                User.builder().id(4L).name("name4").passwordHash(PasswordEncryption.makeHash(passwords.get(3))).role(UserRole.VISITOR).createdAt(Instant.parse("2026-01-04T00:00:00.000Z")).build(),
-                User.builder().id(5L).name("name5").passwordHash(PasswordEncryption.makeHash(passwords.get(4))).role(UserRole.USER).createdAt(Instant.parse("2026-01-05T00:00:00.000Z")).build(),
-                User.builder().id(6L).name("name6").passwordHash(PasswordEncryption.makeHash(passwords.get(5))).role(UserRole.ADMIN).createdAt(Instant.parse("2026-01-06T00:00:00.000Z")).build(),
-                User.builder().id(7L).name("name7").passwordHash(PasswordEncryption.makeHash(passwords.get(6))).role(UserRole.VISITOR).createdAt(Instant.parse("2026-01-07T00:00:00.000Z")).build(),
-                User.builder().id(8L).name("name8").passwordHash(PasswordEncryption.makeHash(passwords.get(7))).role(UserRole.USER).createdAt(Instant.parse("2026-01-08T00:00:00.000Z")).build(),
-                User.builder().id(9L).name("name9").passwordHash(PasswordEncryption.makeHash(passwords.get(8))).role(UserRole.ADMIN).createdAt(Instant.parse("2026-01-09T00:00:00.000Z")).build(),
-                User.builder().id(10L).name("name10").passwordHash(PasswordEncryption.makeHash(passwords.get(9))).role(UserRole.VISITOR).createdAt(Instant.parse("2026-01-10T00:00:00.000Z")).build()
+                User.builder().id(1L).name("name1").passwordHash(PasswordEncryption.makeHash(passwords.get(0))).role(UserRole.ROLE_VISITOR).createdAt(Instant.parse("2026-01-01T00:00:00.000Z")).build(),
+                User.builder().id(2L).name("name2").passwordHash(PasswordEncryption.makeHash(passwords.get(1))).role(UserRole.ROLE_USER).createdAt(Instant.parse("2026-01-02T00:00:00.000Z")).build(),
+                User.builder().id(3L).name("name3").passwordHash(PasswordEncryption.makeHash(passwords.get(2))).role(UserRole.ROLE_ADMIN).createdAt(Instant.parse("2026-01-03T00:00:00.000Z")).build(),
+                User.builder().id(4L).name("name4").passwordHash(PasswordEncryption.makeHash(passwords.get(3))).role(UserRole.ROLE_VISITOR).createdAt(Instant.parse("2026-01-04T00:00:00.000Z")).build(),
+                User.builder().id(5L).name("name5").passwordHash(PasswordEncryption.makeHash(passwords.get(4))).role(UserRole.ROLE_USER).createdAt(Instant.parse("2026-01-05T00:00:00.000Z")).build(),
+                User.builder().id(6L).name("name6").passwordHash(PasswordEncryption.makeHash(passwords.get(5))).role(UserRole.ROLE_ADMIN).createdAt(Instant.parse("2026-01-06T00:00:00.000Z")).build(),
+                User.builder().id(7L).name("name7").passwordHash(PasswordEncryption.makeHash(passwords.get(6))).role(UserRole.ROLE_VISITOR).createdAt(Instant.parse("2026-01-07T00:00:00.000Z")).build(),
+                User.builder().id(8L).name("name8").passwordHash(PasswordEncryption.makeHash(passwords.get(7))).role(UserRole.ROLE_USER).createdAt(Instant.parse("2026-01-08T00:00:00.000Z")).build(),
+                User.builder().id(9L).name("name9").passwordHash(PasswordEncryption.makeHash(passwords.get(8))).role(UserRole.ROLE_ADMIN).createdAt(Instant.parse("2026-01-09T00:00:00.000Z")).build(),
+                User.builder().id(10L).name("name10").passwordHash(PasswordEncryption.makeHash(passwords.get(9))).role(UserRole.ROLE_VISITOR).createdAt(Instant.parse("2026-01-10T00:00:00.000Z")).build()
         );
 
         // Вставляем данные в базу данных

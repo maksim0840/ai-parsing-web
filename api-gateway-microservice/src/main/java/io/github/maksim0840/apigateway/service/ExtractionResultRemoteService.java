@@ -19,7 +19,8 @@ public class ExtractionResultRemoteService {
     }
 
     public ExtractionResultDTO createExtractionResult(String url, String userId, String jsonStr) {
-        Map<String, Object> jsonResult = JsonStringMapper.stringToMap(jsonStr);
+        Map<String, Object> jsonResult;
+        jsonResult = JsonStringMapper.stringToMap(jsonStr);
         return grpcClient.create(url, userId, jsonResult);
     }
 
@@ -29,6 +30,10 @@ public class ExtractionResultRemoteService {
 
     public List<ExtractionResultDTO> getListExtractionResultByPageWithFiltering(String userId, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc) {
         return grpcClient.getList(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc);
+    }
+
+    public long getExtractionResultsNumberByFiltering(String userId, Instant dateFrom, Instant dateTo) {
+        return grpcClient.count(userId, dateFrom, dateTo);
     }
 
     public void deleteExtractionResultById(String id) {

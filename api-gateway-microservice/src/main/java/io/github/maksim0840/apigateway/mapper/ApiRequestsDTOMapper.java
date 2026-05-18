@@ -29,10 +29,10 @@ public class ApiRequestsDTOMapper {
                 .build();
     }
 
-    public static HtmlPreprocessingRequestDTO preprocessingApiToDto(PreprocessingApiRequest apiRequest, String taskId, List<String> htmlPaths) {
+    public static HtmlPreprocessingRequestDTO preprocessingApiToDto(PreprocessingApiRequest apiRequest, String taskId) {
         return HtmlPreprocessingRequestDTO.builder()
                 .taskId(taskId)
-                .htmlPaths(htmlPaths)
+                .htmlDocs(apiRequest.htmlDocs())
                 .noscriptProcessing(apiRequest.noscript())
                 .linkProcessing(apiRequest.link())
                 .styleProcessing(apiRequest.style())
@@ -52,14 +52,14 @@ public class ApiRequestsDTOMapper {
                 .build();
     }
 
-    public static TextRecognitionRequestDTO recognitionApiToDto(RecognitionApiRequest apiRequest, String taskId, List<String> imagePaths) {
+    public static TextRecognitionRequestDTO recognitionApiToDto(RecognitionApiRequest apiRequest, String taskId) {
         return TextRecognitionRequestDTO.builder()
                 .taskId(taskId)
-                .imagePaths(imagePaths)
+                .images(apiRequest.images())
                 .build();
     }
 
-    public static LLMRequestDTO llmApiToDto(LLMApiRequest apiRequest, String taskId, List<String> htmlPaths, Map<String, String> textByImage) {
+    public static LLMRequestDTO llmApiToDto(LLMApiRequest apiRequest, String taskId) {
         return LLMRequestDTO.builder()
                 .taskId(taskId)
                 .modelName(apiRequest.modelName())
@@ -67,8 +67,8 @@ public class ApiRequestsDTOMapper {
                 .userMessage(apiRequest.userMessage())
                 .temperature(apiRequest.temperature())
                 .maxOutputTokens(apiRequest.maxOutputTokens())
-                .htmlPaths(htmlPaths)
-                .textByImage(textByImage)
+                .htmlDocs(apiRequest.htmlDocs())
+                .images(apiRequest.images())
                 .build();
     }
 }

@@ -22,7 +22,11 @@ public class UserRemoteService {
     }
 
     public UserDTO getUserById(Long id) {
-        return grpcClient.get(id);
+        return grpcClient.getById(id);
+    }
+
+    public UserDTO getUserByName(String name) {
+        return grpcClient.getByName(name);
     }
 
     public List<UserDTO> getListUserByPageWithFiltering(UserRole role, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc) {

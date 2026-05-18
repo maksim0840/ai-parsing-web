@@ -9,27 +9,27 @@ import java.util.List;
 @Nullable
 public record TextRecognitionRequestDTO(
         String taskId,
-        List<String> imagePaths
+        List<FileInfoDTO> images
 ) {
-    // Использовать значения этого же объекта, но с измененным полем imagePaths
-    public TextRecognitionRequestDTO withImagePaths(List<String> newImagePaths) {
+    // Использовать значения этого же объекта, но с измененным полем images
+    public TextRecognitionRequestDTO withImages(List<FileInfoDTO> newImages) {
         return new TextRecognitionRequestDTO(
                 this.taskId,
-                newImagePaths
+                newImages
         );
     }
 
-    // Добавить несколько элементов в imagePaths
-    public TextRecognitionRequestDTO addAllToImagePaths(List<String> extraImagePaths) {
-        List<String> newImagePaths = this.imagePaths;
-        newImagePaths.addAll(extraImagePaths);
-        return withImagePaths(newImagePaths);
+    // Добавить несколько элементов в images
+    public TextRecognitionRequestDTO addAllToImages(List<FileInfoDTO> extraImages) {
+        List<FileInfoDTO> newImages = this.images;
+        newImages.addAll(extraImages);
+        return withImages(newImages);
     }
 
-    // Добавить один элемент в imagePaths
-    public TextRecognitionRequestDTO addToImagePaths(String extraImagePaths) {
-        List<String> newImagePaths = this.imagePaths;
-        newImagePaths.add(extraImagePaths);
-        return withImagePaths(newImagePaths);
+    // Добавить один элемент в images
+    public TextRecognitionRequestDTO addToImages(FileInfoDTO extraImages) {
+        List<FileInfoDTO> newImages = this.images;
+        newImages.add(extraImages);
+        return withImages(newImages);
     }
 }

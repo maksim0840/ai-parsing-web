@@ -1,0 +1,22 @@
+package io.github.maksim0840.apigateway.mapper;
+
+import io.github.maksim0840.apigateway.dto.ExtractionResultDTO;
+import io.github.maksim0840.apigateway.dto.api.ResultResponse;
+
+import java.util.List;
+
+public class ApiResultDTOMapper {
+
+    public static ResultResponse dtoToApi(ExtractionResultDTO dto) {
+        return new ResultResponse(
+                dto.id(),
+                dto.url(),
+                dto.jsonResult(),
+                dto.createdAt()
+        );
+    }
+
+    public static List<ResultResponse> dtoToApiList(List<ExtractionResultDTO> dtoList) {
+        return dtoList.stream().map(ApiResultDTOMapper::dtoToApi).toList();
+    }
+}

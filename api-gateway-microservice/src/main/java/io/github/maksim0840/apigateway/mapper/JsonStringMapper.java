@@ -12,7 +12,7 @@ public class JsonStringMapper {
         try {
             return OM.readValue(json, new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid JSON string", e);
+            throw new IllegalArgumentException("Invalid JSON");
         }
     }
 }

@@ -1,17 +1,13 @@
 package io.github.maksim0840.usersinfo.parsingparams.integration;
 
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
-import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ProtoJsonMapper;
 import io.github.maksim0840.internalapi.user.v1.enums.UserRole;
-import io.github.maksim0840.internalapi.user.v1.mapper.ProtoUserRoleMapper;
 import io.github.maksim0840.parsing_param.v1.*;
-import io.github.maksim0840.user.v1.*;
 import io.github.maksim0840.usersinfo.Main;
 import io.github.maksim0840.usersinfo.domain.ParsingParam;
 import io.github.maksim0840.usersinfo.domain.User;
 import io.github.maksim0840.usersinfo.repository.ParsingParamRepository;
 import io.github.maksim0840.usersinfo.repository.UserRepository;
-import io.github.maksim0840.usersinfo.utils.PasswordEncryption;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import net.devh.boot.grpc.client.inject.GrpcClient;
@@ -31,10 +27,7 @@ import org.testcontainers.shaded.org.checkerframework.checker.nullness.qual.Null
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.BDDAssertions.within;
@@ -98,8 +91,8 @@ public class ParsingParamGrpcToDb {
     @Test
     void createSeveral() {
         // Создаём контекст
-        User user1 = new User("user1", "passwordHash1", UserRole.USER);
-        User user2 = new User("user2", "passwordHash2", UserRole.ADMIN);
+        User user1 = new User("user1", "passwordHash1", UserRole.ROLE_USER);
+        User user2 = new User("user2", "passwordHash2", UserRole.ROLE_ADMIN);
         userRepository.save(user1);
         userRepository.save(user2);
 
@@ -147,7 +140,7 @@ public class ParsingParamGrpcToDb {
     */
     @Test
     void createWithEmptyUserId() {
-        User user = new User("user", "passwordHash", UserRole.USER);
+        User user = new User("user", "passwordHash", UserRole.ROLE_USER);
         userRepository.save(user);
 
         CreateParsingParamRequest request = CreateParsingParamRequest.newBuilder()
@@ -176,7 +169,7 @@ public class ParsingParamGrpcToDb {
     */
     @Test
     void createWithEmptyName() {
-        User user = new User("user", "passwordHash", UserRole.USER);
+        User user = new User("user", "passwordHash", UserRole.ROLE_USER);
         userRepository.save(user);
 
         CreateParsingParamRequest request = CreateParsingParamRequest.newBuilder()
@@ -205,7 +198,7 @@ public class ParsingParamGrpcToDb {
     */
     @Test
     void createWithEmptyDescription() {
-        User user = new User("user", "passwordHash", UserRole.USER);
+        User user = new User("user", "passwordHash", UserRole.ROLE_USER);
         userRepository.save(user);
 
         CreateParsingParamRequest request = CreateParsingParamRequest.newBuilder()
@@ -236,8 +229,8 @@ public class ParsingParamGrpcToDb {
     */
     @Test
     void getSeveralExistingData() {
-        User user1 = new User("user1", "passwordHash1", UserRole.USER);
-        User user2 = new User("user2", "passwordHash2", UserRole.ADMIN);
+        User user1 = new User("user1", "passwordHash1", UserRole.ROLE_USER);
+        User user2 = new User("user2", "passwordHash2", UserRole.ROLE_ADMIN);
         userRepository.save(user1);
         userRepository.save(user2);
 
@@ -268,7 +261,7 @@ public class ParsingParamGrpcToDb {
     */
     @Test
     void getWrongIdNotFoundException() {
-        User user = new User("user1", "passwordHash1", UserRole.USER);
+        User user = new User("user1", "passwordHash1", UserRole.ROLE_USER);
         userRepository.save(user);
 
         ParsingParam entity = new ParsingParam(user, "Подача тезисов", "дата и время вступительной части конференции");
@@ -572,8 +565,8 @@ public class ParsingParamGrpcToDb {
     */
     @Test
     void deleteSeveralExistingData() {
-        User user1 = new User("user1", "passwordHash1", UserRole.USER);
-        User user2 = new User("user2", "passwordHash2", UserRole.ADMIN);
+        User user1 = new User("user1", "passwordHash1", UserRole.ROLE_USER);
+        User user2 = new User("user2", "passwordHash2", UserRole.ROLE_ADMIN);
         userRepository.save(user1);
         userRepository.save(user2);
 
@@ -605,7 +598,7 @@ public class ParsingParamGrpcToDb {
     */
     @Test
     void deleteWrongIdNotFoundException() {
-        User user = new User("user", "passwordHash", UserRole.USER);
+        User user = new User("user", "passwordHash", UserRole.ROLE_USER);
         userRepository.save(user);
 
         ParsingParam entity = new ParsingParam(user, "not a name 123 @", "not a description 321 %");
@@ -627,10 +620,10 @@ public class ParsingParamGrpcToDb {
     // Вспомогательный метод для тестов getList
     void checkGetListRequest(GetListParsingParamRequest request, List<Long> expectedParamIds) {
         List<User> users = List.of(
-                User.builder().id(1L).name("user1").passwordHash("passwordHash1").role(UserRole.VISITOR).createdAt(Instant.parse("2026-01-01T00:00:00.000Z")).build(),
-                User.builder().id(2L).name("user2").passwordHash("passwordHash2").role(UserRole.USER).createdAt(Instant.parse("2026-01-02T00:00:00.000Z")).build(),
-                User.builder().id(3L).name("user3").passwordHash("passwordHash3").role(UserRole.ADMIN).createdAt(Instant.parse("2026-01-03T00:00:00.000Z")).build(),
-                User.builder().id(4L).name("user4").passwordHash("passwordHash4").role(UserRole.VISITOR).createdAt(Instant.parse("2026-01-04T00:00:00.000Z")).build()
+                User.builder().id(1L).name("user1").passwordHash("passwordHash1").role(UserRole.ROLE_VISITOR).createdAt(Instant.parse("2026-01-01T00:00:00.000Z")).build(),
+                User.builder().id(2L).name("user2").passwordHash("passwordHash2").role(UserRole.ROLE_USER).createdAt(Instant.parse("2026-01-02T00:00:00.000Z")).build(),
+                User.builder().id(3L).name("user3").passwordHash("passwordHash3").role(UserRole.ROLE_ADMIN).createdAt(Instant.parse("2026-01-03T00:00:00.000Z")).build(),
+                User.builder().id(4L).name("user4").passwordHash("passwordHash4").role(UserRole.ROLE_VISITOR).createdAt(Instant.parse("2026-01-04T00:00:00.000Z")).build()
         );
         rawDbInsertUser(users);
         assertThat(userRepository.count()).isEqualTo(users.size());

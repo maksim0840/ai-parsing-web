@@ -11,5 +11,6 @@ import java.util.List;
  * Описание методов для обработки сложных запросов к базе данных
  */
 public interface ExtractionResultRepositoryCustom {
-    List<ExtractionResult> searchWithFiltering(String userId, Instant dateFrom, Instant dateTo, Pageable pageable);
+    List<ExtractionResult> searchWithFilteringAndPaging(String userId, Instant dateFrom, Instant dateTo, Pageable pageable);
+    long countAllWithFiltering(String userId, Instant dateFrom, Instant dateTo);
 }

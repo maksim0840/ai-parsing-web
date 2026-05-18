@@ -5,6 +5,7 @@ import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.Task
 import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorStatusRequest;
 import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorStatusResponse;
 import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorStatusServiceGrpc;
+import io.github.maksim0840.parsingtaskorchestrator.dto.StatusDTO;
 import io.github.maksim0840.parsingtaskorchestrator.service.OrchestratorService;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
@@ -20,14 +21,13 @@ public class OrchestratorStatusGrpcEndpoint extends OrchestratorStatusServiceGrp
     @Override
     public void getStatus(OrchestratorStatusRequest request, StreamObserver<OrchestratorStatusResponse> responseObserver) {
         System.out.println("getStatus");
-        TaskStatus taskStatus = orchestratorService.getStatus(request.getTaskId());
-        String message = orchestratorService.getMessage(request.getTaskId());
-        System.out.println(taskStatus);
+        StatusDTO statusDTO = orchestratorService.getStatusInfo(request.getTaskId());
+        System.out.println(statusDTO);
 
         OrchestratorStatusResponse response = OrchestratorStatusResponse.newBuilder()
                 .setTaskId(request.getTaskId())
-                .setStatus(TaskStatusMapper.enumToProto(taskStatus))
-                .setMessage(message)
+                .setStatus(TaskStatusMapper.enumToProto(statusDTO.status()))
+                .setMessage(statusDTO.message() == null ? "" : statusDTO.message())
                 .build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();

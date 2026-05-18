@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { authFetch } from "./AuthGate.jsx";
 import {
   Upload,
   Download,
@@ -16,6 +17,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock3,
+  Pencil,
+  X,
 } from "lucide-react";
 
 const CLEANUP_TAGS = [
@@ -56,6 +59,9 @@ const STATUS_META = {
   DONE: { label: "Готово", progress: 100 },
   FAILED: { label: "Ошибка", progress: 100 },
 };
+
+let cachedSessionId = "";
+let sessionIdRequestPromise = null;
 
 function debugLog(scope, ...args) {
   const ts = new Date().toISOString();
@@ -190,7 +196,7 @@ function ProxyEditor({ useProxy, setUseProxy, proxyConfig, setProxyConfig }) {
         <div>
           <h3 className="text-sm font-semibold text-slate-900">Proxy</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Прокси-сервер для откправки запросов через другой IP-адрес.
+            Прокси-сервер для отправки запросов через другой IP-адрес.
           </p>
         </div>
         <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
@@ -234,9 +240,17 @@ function StorageFileCard({
   variant = "file",
   onDownload,
   onDelete,
+  onEditImageText,
   deleting,
 }) {
   const isImage = variant === "image";
+  const isInvalid = item.isValid === false;
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const fileDescription = isImage && !isInvalid ? String(item.description || "").trim() : "";
+  const firstDescriptionLine = fileDescription
+    ? fileDescription.split(/\r?\n/).find((line) => line.trim()) || fileDescription
+    : "";
+  const errorMessage = String(item.errorMessage || "").trim() || "Файл не прошёл валидацию.";
 
   return (
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -253,8 +267,38 @@ function StorageFileCard({
 
       <div className="space-y-3 p-4">
         <div>
-          <p className="truncate text-sm font-semibold text-slate-900">{item.name}</p>
+          <div className="flex items-start gap-2">
+            <p className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-900">{item.name}</p>
+            {isInvalid && (
+              <button
+                type="button"
+                onClick={() => setIsErrorModalOpen(true)}
+                className="inline-flex shrink-0 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200"
+                aria-label="Показать описание ошибки файла"
+              >
+                <AlertCircle className="h-4 w-4" />
+              </button>
+            )}
+          </div>
           <p className="mt-1 text-xs text-slate-500">{formatBytes(item.size)}</p>
+          {isImage && !isInvalid ? (
+            <div className="mt-2 border-t border-slate-200 pt-2">
+              <div className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-xs leading-5 text-slate-600">
+                  {firstDescriptionLine || "Текст не распознан"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onEditImageText?.(item)}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+                  title="Открыть полный текст"
+                  aria-label="Открыть полный распознанный текст"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -277,6 +321,48 @@ function StorageFileCard({
           </button>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isErrorModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/40 px-4"
+            onClick={() => setIsErrorModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.96, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.98, opacity: 0 }}
+              className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-3">
+                <div className="rounded-2xl bg-red-50 p-2.5">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-sm font-semibold text-slate-950">Ошибка файла</h4>
+                  <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">
+                    {errorMessage}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsErrorModalOpen(false)}
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 transition hover:bg-slate-50"
+                >
+                  Закрыть
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -294,6 +380,7 @@ function StorageSection({
   variant,
   onDownload,
   onDelete,
+  onEditImageText,
   deletingId,
 }) {
   return (
@@ -332,6 +419,7 @@ function StorageSection({
                 variant={variant}
                 onDownload={onDownload}
                 onDelete={onDelete}
+                onEditImageText={onEditImageText}
                 deleting={deletingId === item.id}
               />
             ))}
@@ -469,6 +557,81 @@ function StatusOverlay({ visible, taskId, status, message, sessionId }) {
   );
 }
 
+
+function ImageTextEditorModal({
+  item,
+  value,
+  onChange,
+  onClose,
+  onSave,
+}) {
+  if (!item) {
+    return null;
+  }
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 px-4"
+      >
+        <motion.div
+          initial={{ scale: 0.96, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.98, opacity: 0 }}
+          className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl"
+        >
+          <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4">
+            <div className="min-w-0">
+              <h3 className="truncate text-lg font-semibold text-slate-950">{item.name}</h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Полный распознанный текст изображения. Здесь его можно просмотреть и отредактировать.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+              aria-label="Закрыть окно редактирования текста"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            <textarea
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              rows={18}
+              className="min-h-[360px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-800 outline-none transition focus:border-slate-400"
+              placeholder="Здесь появится полный распознанный текст..."
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 transition hover:bg-slate-50"
+            >
+              Закрыть
+            </button>
+            <button
+              type="button"
+              onClick={onSave}
+              className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
+            >
+              Сохранить
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 function Section({ icon: Icon, title, description, children }) {
   return (
     <motion.section
@@ -544,21 +707,181 @@ function buildStoredFileUrl(filePath) {
   return `/api/files/download?filePath=${encodeURIComponent(filePath)}`;
 }
 
+function getFileItemKey(item) {
+  return String(item?.filePath || item?.downloadUrl || item?.previewUrl || item?.name || "").trim();
+}
+
+function mergeFileItems(existingItem, incomingItem) {
+  const merged = {
+    ...existingItem,
+    ...incomingItem,
+    id: incomingItem?.id || existingItem?.id,
+    size: incomingItem?.size ?? existingItem?.size,
+    name: incomingItem?.name || existingItem?.name,
+    fileName: incomingItem?.fileName || existingItem?.fileName,
+    filePath: incomingItem?.filePath || existingItem?.filePath,
+    fileType: incomingItem?.fileType ?? existingItem?.fileType,
+    downloadUrl: incomingItem?.downloadUrl || existingItem?.downloadUrl,
+    selected:
+      typeof incomingItem?.selected === "boolean"
+        ? incomingItem.selected
+        : existingItem?.selected,
+  };
+
+  if (existingItem?.previewUrl?.startsWith("blob:") && !incomingItem?.previewUrl?.startsWith("blob:")) {
+    merged.previewUrl = existingItem.previewUrl;
+  } else {
+    merged.previewUrl = incomingItem?.previewUrl || existingItem?.previewUrl || "";
+  }
+
+  if (
+    existingItem?.rawFileInfo &&
+    typeof existingItem.rawFileInfo === "object" &&
+    incomingItem?.rawFileInfo &&
+    typeof incomingItem.rawFileInfo === "object"
+  ) {
+    merged.rawFileInfo = {
+      ...existingItem.rawFileInfo,
+      ...incomingItem.rawFileInfo,
+      sizeBytes:
+        typeof incomingItem.rawFileInfo.sizeBytes === "number"
+          ? incomingItem.rawFileInfo.sizeBytes
+          : typeof merged.size === "number"
+            ? merged.size
+            : existingItem.rawFileInfo.sizeBytes,
+    };
+  } else if (!incomingItem?.rawFileInfo && existingItem?.rawFileInfo) {
+    merged.rawFileInfo = {
+      ...existingItem.rawFileInfo,
+      sizeBytes:
+        typeof existingItem.rawFileInfo.sizeBytes === "number"
+          ? existingItem.rawFileInfo.sizeBytes
+          : typeof merged.size === "number"
+            ? merged.size
+            : existingItem.rawFileInfo.sizeBytes,
+    };
+  }
+
+  return merged;
+}
+
 function appendUniqueFiles(prevItems, nextItems) {
-  const seen = new Set(
-    prevItems.map((item) => item.filePath || item.downloadUrl || item.previewUrl || item.name)
+  const updatedItems = [...prevItems];
+  const keyToIndex = new Map(
+    prevItems.map((item, index) => [getFileItemKey(item), index]).filter(([key]) => key)
   );
 
-  const filtered = nextItems.filter((item) => {
-    const key = item.filePath || item.downloadUrl || item.previewUrl || item.name;
-    if (seen.has(key)) {
-      return false;
+  nextItems.forEach((item) => {
+    const key = getFileItemKey(item);
+
+    if (!key) {
+      updatedItems.push(item);
+      return;
     }
-    seen.add(key);
-    return true;
+
+    if (keyToIndex.has(key)) {
+      const existingIndex = keyToIndex.get(key);
+      updatedItems[existingIndex] = mergeFileItems(updatedItems[existingIndex], item);
+      return;
+    }
+
+    keyToIndex.set(key, updatedItems.length);
+    updatedItems.push(item);
   });
 
-  return [...prevItems, ...filtered];
+  return updatedItems;
+}
+
+
+function normalizeFileInfoDto(fileInfo, options = {}) {
+  if (!fileInfo || typeof fileInfo !== "object") {
+    return null;
+  }
+
+  const filePath = String(fileInfo.filePath || "").trim();
+  const fileName = String(fileInfo.fileName || "").trim();
+  const resolvedName = fileName || getFileNameFromPath(filePath, options.fallbackName || "file");
+  const isImage = options.variant === "image";
+  const normalizedSizeBytes =
+    typeof fileInfo.sizeBytes === "number"
+      ? fileInfo.sizeBytes
+      : typeof fileInfo.size_bytes === "number"
+        ? fileInfo.size_bytes
+        : typeof options.sizeBytes === "number"
+          ? options.sizeBytes
+          : undefined;
+
+  return {
+    id: filePath || crypto.randomUUID(),
+    name: resolvedName,
+    fileName: resolvedName,
+    size: normalizedSizeBytes,
+    filePath,
+    fileType: fileInfo.fileType || options.fileType || null,
+    description: String(fileInfo.description || ""),
+    isValid: typeof fileInfo.isValid === "boolean" ? fileInfo.isValid : true,
+    errorMessage: String(fileInfo.errorMessage || ""),
+    previewUrl: options.previewUrl ?? (isImage && filePath ? buildStoredFileUrl(filePath) : ""),
+    rawFileInfo: {
+      ...fileInfo,
+      fileName: fileName || resolvedName,
+      filePath,
+      sizeBytes: normalizedSizeBytes,
+    },
+  };
+}
+
+function normalizeFileInfoDtoList(fileInfos, options = {}) {
+  if (!Array.isArray(fileInfos)) {
+    return [];
+  }
+
+  return fileInfos
+    .map((fileInfo) => normalizeFileInfoDto(fileInfo, options))
+    .filter(Boolean);
+}
+
+function serializeFileInfoDto(fileItem) {
+  if (!fileItem || typeof fileItem !== "object") {
+    return null;
+  }
+
+  if (fileItem.rawFileInfo && typeof fileItem.rawFileInfo === "object") {
+    return {
+      ...fileItem.rawFileInfo,
+      sizeBytes:
+        typeof fileItem.rawFileInfo.sizeBytes === "number"
+          ? fileItem.rawFileInfo.sizeBytes
+          : typeof fileItem.size === "number"
+            ? fileItem.size
+            : fileItem.rawFileInfo.sizeBytes,
+    };
+  }
+
+  const filePath = String(fileItem.filePath || "").trim();
+  if (!filePath) {
+    return null;
+  }
+
+  return {
+    filePath,
+    fileName: String(fileItem.fileName || fileItem.name || getFileNameFromPath(filePath, "file")),
+    fileType: fileItem.fileType ?? null,
+    sizeBytes: typeof fileItem.size === "number" ? fileItem.size : undefined,
+    description: String(fileItem.description || ""),
+    isValid: typeof fileItem.isValid === "boolean" ? fileItem.isValid : true,
+    errorMessage: String(fileItem.errorMessage || ""),
+  };
+}
+
+function serializeFileInfoDtoList(fileItems) {
+  if (!Array.isArray(fileItems)) {
+    return [];
+  }
+
+  return fileItems
+    .map((fileItem) => serializeFileInfoDto(fileItem))
+    .filter(Boolean);
 }
 
 function formatBytes(size) {
@@ -604,6 +927,9 @@ export default function ConferenceParserPage() {
   const [htmlUploading, setHtmlUploading] = useState(false);
   const [htmlDeletingId, setHtmlDeletingId] = useState(null);
 
+  const [imageTextEditorItem, setImageTextEditorItem] = useState(null);
+  const [imageTextEditorValue, setImageTextEditorValue] = useState("");
+
   const [model, setModel] = useState("YandexGPT 5.1 Pro");
   const [temperature, setTemperature] = useState(0.2);
   const [maxOutputTokens, setMaxOutputTokens] = useState(2048);
@@ -615,6 +941,10 @@ export default function ConferenceParserPage() {
   );
 
   const [result, setResult] = useState("");
+  const [isSavingResult, setIsSavingResult] = useState(false);
+  const [saveResultMessage, setSaveResultMessage] = useState("");
+  const [saveResultError, setSaveResultError] = useState("");
+  const [savedResultId, setSavedResultId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [sessionId, setSessionId] = useState("");
@@ -659,31 +989,57 @@ export default function ConferenceParserPage() {
   async function loadSessionId() {
     setIsSessionLoading(true);
     setError("");
-    debugLog("session", "requesting sessionId");
 
     try {
-      const response = await fetch("/api/sessionId", {
-        method: "GET",
-        headers: {
-          Accept: "text/plain, application/json",
-        },
-        cache: "no-store",
-      });
+      if (cachedSessionId) {
+        debugLog("session", "using cached sessionId", cachedSessionId);
 
-      debugLog("session", "sessionId response HTTP", response.status);
-
-      if (!response.ok) {
-        throw new Error(`Не удалось получить sessionId: ${response.status}`);
+        if (isMountedRef.current) {
+          setSessionId(cachedSessionId);
+          setGarageImages([]);
+          setGarageHtmlFiles([]);
+        }
+        return;
       }
 
-      const rawText = await response.text();
-      const nextSessionId = String(rawText || "").trim().replace(/^"|"$/g, "");
+      if (!sessionIdRequestPromise) {
+        debugLog("session", "requesting sessionId");
 
-      debugLog("session", "received sessionId", nextSessionId);
+        sessionIdRequestPromise = authFetch("/api/sessionId", {
+          method: "GET",
+          headers: {
+            Accept: "text/plain, application/json",
+          },
+          cache: "no-store",
+        })
+          .then(async (response) => {
+            debugLog("session", "sessionId response HTTP", response.status);
 
-      if (!nextSessionId) {
-        throw new Error("Сервер вернул пустой sessionId.");
+            if (!response.ok) {
+              throw new Error(`Не удалось получить sessionId: ${response.status}`);
+            }
+
+            const rawText = await response.text();
+            const nextSessionId = String(rawText || "").trim().replace(/^"|"$/g, "");
+
+            debugLog("session", "received sessionId", nextSessionId);
+
+            if (!nextSessionId) {
+              throw new Error("Сервер вернул пустой sessionId.");
+            }
+
+            cachedSessionId = nextSessionId;
+            return nextSessionId;
+          })
+          .catch((error) => {
+            sessionIdRequestPromise = null;
+            throw error;
+          });
+      } else {
+        debugLog("session", "awaiting existing sessionId request");
       }
+
+      const nextSessionId = await sessionIdRequestPromise;
 
       if (isMountedRef.current) {
         setSessionId(nextSessionId);
@@ -724,7 +1080,7 @@ export default function ConferenceParserPage() {
     resultRequestedRef.current = true;
     debugLog("result", "requesting pipeline result", nextTaskId);
 
-    const response = await fetch(`/api/pipeline/${nextTaskId}/result`, {
+    const response = await authFetch(`/api/pipeline/${nextTaskId}/result`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -742,38 +1098,45 @@ export default function ConferenceParserPage() {
     debugLog("result", "result JSON", data);
 
     const llmOutput = data?.llmResponse?.llmOutput;
-    const htmlPath = data?.htmlParserResponse?.htmlPath;
-    const imagePaths = Array.isArray(data?.htmlParserResponse?.imagePaths)
-      ? data.htmlParserResponse.imagePaths
-      : [];
+
+    const htmlDocs =
+      Array.isArray(data?.htmlPreprocessingResponse?.htmlDocs) && data.htmlPreprocessingResponse.htmlDocs.length > 0
+        ? data.htmlPreprocessingResponse.htmlDocs
+        : Array.isArray(data?.htmlParserResponse?.htmlDocs)
+          ? data.htmlParserResponse.htmlDocs
+          : [];
+
+    const imageDocs =
+      Array.isArray(data?.textRecognitionResponse?.images) && data.textRecognitionResponse.images.length > 0
+        ? data.textRecognitionResponse.images
+        : Array.isArray(data?.htmlParserResponse?.images)
+          ? data.htmlParserResponse.images
+          : [];
 
     if (!isMountedRef.current) {
       return;
     }
 
-    if (htmlPath) {
-      const htmlItem = {
-        id: crypto.randomUUID(),
-        name: getFileNameFromPath(htmlPath, "page.html"),
-        size: undefined,
-        filePath: htmlPath,
-      };
+    const normalizedHtmlDocs = normalizeFileInfoDtoList(htmlDocs, {
+      variant: "file",
+      fallbackName: "page.html",
+      fileType: "HTML",
+    });
 
-      setGarageHtmlFiles((prev) => appendUniqueFiles(prev, [htmlItem]));
-      debugLog("result", "html path added to storage section", htmlPath);
+    const normalizedImageDocs = normalizeFileInfoDtoList(imageDocs, {
+      variant: "image",
+      fallbackName: "image",
+      fileType: "IMG",
+    });
+
+    if (normalizedHtmlDocs.length > 0) {
+      setGarageHtmlFiles((prev) => appendUniqueFiles(prev, normalizedHtmlDocs));
+      debugLog("result", "html docs added to storage section", normalizedHtmlDocs);
     }
 
-    if (imagePaths.length > 0) {
-      const imageItems = imagePaths.map((imagePath) => ({
-        id: crypto.randomUUID(),
-        name: getFileNameFromPath(imagePath, "image"),
-        size: undefined,
-        filePath: imagePath,
-        previewUrl: buildStoredFileUrl(imagePath),
-      }));
-
-      setGarageImages((prev) => appendUniqueFiles(prev, imageItems));
-      debugLog("result", "image paths added to storage section", imagePaths);
+    if (normalizedImageDocs.length > 0) {
+      setGarageImages((prev) => appendUniqueFiles(prev, normalizedImageDocs));
+      debugLog("result", "image docs added to storage section", normalizedImageDocs);
     }
 
     setLastSuccessfulTaskId(nextTaskId);
@@ -783,7 +1146,7 @@ export default function ConferenceParserPage() {
   async function requestTaskStatus(nextTaskId) {
     debugLog("status", "sending status request", nextTaskId);
 
-    const response = await fetch(`/api/pipeline/${nextTaskId}/status`, {
+    const response = await authFetch(`/api/pipeline/${nextTaskId}/status`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -898,7 +1261,7 @@ export default function ConferenceParserPage() {
 
       debugLog("files", "uploading file", { sessionId, fileType, name: file.name, size: file.size });
 
-      const response = await fetch("/api/files/upload", {
+      const response = await authFetch("/api/files/upload", {
         method: "POST",
         body: formData,
       });
@@ -909,27 +1272,50 @@ export default function ConferenceParserPage() {
         throw new Error(`Не удалось загрузить файл ${file.name}: ${response.status}`);
       }
 
-      const rawText = await response.text();
-      const filePath = String(rawText || "").trim().replace(/^"|"$/g, "");
+      const fileInfo = await response.json();
+      debugLog("files", "upload response JSON", fileInfo);
 
-      if (!filePath) {
+      const normalizedItem = normalizeFileInfoDto(fileInfo, {
+        variant: fileType === "IMG" ? "image" : "file",
+        fallbackName: file.name,
+        fileType,
+        previewUrl: fileType === "IMG" ? URL.createObjectURL(file) : "",
+      });
+
+      if (!normalizedItem?.filePath) {
         throw new Error(`Сервер вернул пустой путь для файла ${file.name}.`);
       }
 
-      uploadedItems.push({
-        id: crypto.randomUUID(),
-        name: file.name,
-        size: file.size,
-        filePath,
-        previewUrl: fileType === "IMG" ? URL.createObjectURL(file) : "",
-      });
+      if (typeof normalizedItem.size !== "number") {
+        normalizedItem.size = file.size;
+        if (normalizedItem.rawFileInfo && typeof normalizedItem.rawFileInfo === "object") {
+          normalizedItem.rawFileInfo.sizeBytes = file.size;
+        }
+      }
+
+      uploadedItems.push(normalizedItem);
     }
 
     return uploadedItems;
   }
 
+  async function deleteStoredFile(filePath) {
+    const response = await authFetch(`/api/files/delete?filePath=${encodeURIComponent(filePath)}`, {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json, text/plain, */*",
+      },
+    });
+
+    debugLog("files", "delete response HTTP", response.status, { filePath });
+
+    if (!response.ok) {
+      throw new Error(`Не удалось удалить файл: ${response.status}`);
+    }
+  }
+
   async function downloadStoredFile(filePath, fallbackName) {
-    const response = await fetch(`/api/files/download?filePath=${encodeURIComponent(filePath)}`, {
+    const response = await authFetch(`/api/files/download?filePath=${encodeURIComponent(filePath)}`, {
       method: "GET",
       headers: {
         Accept: "application/octet-stream",
@@ -968,7 +1354,7 @@ export default function ConferenceParserPage() {
 
     try {
       const uploadedItems = await uploadStoredFiles(files, "IMG");
-      setGarageImages((prev) => [...prev, ...uploadedItems]);
+      setGarageImages((prev) => appendUniqueFiles(prev, uploadedItems));
       event.target.value = "";
     } catch (e) {
       setError(e.message || "Ошибка при загрузке изображений.");
@@ -986,7 +1372,7 @@ export default function ConferenceParserPage() {
 
     try {
       const uploadedItems = await uploadStoredFiles(files, "HTML");
-      setGarageHtmlFiles((prev) => [...prev, ...uploadedItems]);
+      setGarageHtmlFiles((prev) => appendUniqueFiles(prev, uploadedItems));
       event.target.value = "";
     } catch (e) {
       setError(e.message || "Ошибка при загрузке HTML-файлов.");
@@ -999,6 +1385,51 @@ export default function ConferenceParserPage() {
     setCleanupTags((prev) =>
       prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag]
     );
+  }
+
+  function openImageTextEditor(item) {
+    setImageTextEditorItem(item);
+    setImageTextEditorValue(String(item?.description || ""));
+  }
+
+  function closeImageTextEditor() {
+    setImageTextEditorItem(null);
+    setImageTextEditorValue("");
+  }
+
+  function saveImageTextEditor() {
+    if (!imageTextEditorItem) {
+      return;
+    }
+
+    const nextDescription = imageTextEditorValue;
+    const currentId = imageTextEditorItem.id;
+
+    setGarageImages((prev) =>
+      prev.map((image) =>
+        image.id === currentId
+          ? {
+              ...image,
+              description: nextDescription,
+              rawFileInfo:
+                image.rawFileInfo && typeof image.rawFileInfo === "object"
+                  ? {
+                      ...image.rawFileInfo,
+                      description: nextDescription,
+                      sizeBytes:
+                        typeof image.rawFileInfo.sizeBytes === "number"
+                          ? image.rawFileInfo.sizeBytes
+                          : typeof image.size === "number"
+                            ? image.size
+                            : image.rawFileInfo.sizeBytes,
+                    }
+                  : image.rawFileInfo,
+            }
+          : image
+      )
+    );
+
+    closeImageTextEditor();
   }
 
   async function handleDownloadImage(image) {
@@ -1017,18 +1448,56 @@ export default function ConferenceParserPage() {
     }
   }
 
-  function handleDeleteImage(imageId) {
-    setGarageImages((prev) => {
-      const target = prev.find((image) => image.id === imageId);
-      if (target?.previewUrl?.startsWith("blob:")) {
-        URL.revokeObjectURL(target.previewUrl);
+  async function handleDeleteImage(imageId) {
+    setImageDeletingId(imageId);
+    setError("");
+
+    const target = garageImages.find((image) => image.id === imageId);
+    if (!target) {
+      setImageDeletingId(null);
+      return;
+    }
+
+    try {
+      if (target.filePath) {
+        await deleteStoredFile(target.filePath);
       }
-      return prev.filter((image) => image.id !== imageId);
-    });
+
+      setGarageImages((prev) => {
+        const currentTarget = prev.find((image) => image.id === imageId);
+        if (currentTarget?.previewUrl?.startsWith("blob:")) {
+          URL.revokeObjectURL(currentTarget.previewUrl);
+        }
+        return prev.filter((image) => image.id !== imageId);
+      });
+    } catch (e) {
+      setError(e.message || "Ошибка при удалении изображения.");
+    } finally {
+      setImageDeletingId(null);
+    }
   }
 
-  function handleDeleteHtmlFile(fileId) {
-    setGarageHtmlFiles((prev) => prev.filter((file) => file.id !== fileId));
+  async function handleDeleteHtmlFile(fileId) {
+    setHtmlDeletingId(fileId);
+    setError("");
+
+    const target = garageHtmlFiles.find((file) => file.id === fileId);
+    if (!target) {
+      setHtmlDeletingId(null);
+      return;
+    }
+
+    try {
+      if (target.filePath) {
+        await deleteStoredFile(target.filePath);
+      }
+
+      setGarageHtmlFiles((prev) => prev.filter((file) => file.id !== fileId));
+    } catch (e) {
+      setError(e.message || "Ошибка при удалении HTML-файла.");
+    } finally {
+      setHtmlDeletingId(null);
+    }
   }
 
   async function handleStartParsing() {
@@ -1043,6 +1512,9 @@ export default function ConferenceParserPage() {
     submittingRef.current = true;
     setIsSubmitting(true);
     setError("");
+    setSaveResultMessage("");
+    setSaveResultError("");
+    setSavedResultId("");
     setResult("");
     setTaskStatus("CREATED");
     setTaskMessage("Задача отправлена на сервер и ожидает запуска.");
@@ -1060,6 +1532,9 @@ export default function ConferenceParserPage() {
       return;
     }
 
+    const htmlDocsPayload = serializeFileInfoDtoList(garageHtmlFiles);
+    const imageDocsPayload = serializeFileInfoDtoList(garageImages);
+
     const payload = {
       parsing: {
         url: siteUrl.trim(),
@@ -1070,21 +1545,28 @@ export default function ConferenceParserPage() {
         pageComplexity: parsingComplexity,
         additionalPageLoadTimeoutS: Number(extraWaitSeconds) || 0,
       },
-      preprocessing: buildPreprocessingPayload(cleanupTags),
-      recognition: {},
+      preprocessing: {
+        htmlDocs: htmlDocsPayload,
+        ...buildPreprocessingPayload(cleanupTags),
+      },
+      recognition: {
+        images: imageDocsPayload,
+      },
       llm: {
         modelName: model,
         systemMessage: systemPrompt,
         userMessage: userPrompt,
         temperature,
         maxOutputTokens,
+        htmlDocs: htmlDocsPayload,
+        images: imageDocsPayload,
       },
     };
 
     debugLog("pipeline", "sending pipeline payload", { sessionId, payload });
 
     try {
-      const response = await fetch(`/api/pipeline/${encodeURIComponent(sessionId)}`, {
+      const response = await authFetch(`/api/pipeline/${encodeURIComponent(sessionId)}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1126,6 +1608,70 @@ export default function ConferenceParserPage() {
     }
   }
 
+  async function handleSaveResult() {
+    if (isSavingResult) {
+      return;
+    }
+
+    const normalizedUrl = String(siteUrl || "").trim();
+    const normalizedResult = String(result || "").trim();
+
+    setSaveResultMessage("");
+    setSaveResultError("");
+    setSavedResultId("");
+
+    if (!normalizedUrl) {
+      setSaveResultError("Невозможно сохранить результат без URL страницы.");
+      return;
+    }
+
+    if (!normalizedResult) {
+      setSaveResultError("Невозможно сохранить пустой результат.");
+      return;
+    }
+
+    setIsSavingResult(true);
+
+    try {
+      const response = await authFetch("/api/results/save", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          url: normalizedUrl,
+          result: normalizedResult,
+        }),
+      });
+
+      if (!response.ok) {
+        const rawText = await response.text();
+        let message = String(rawText || "").trim();
+
+        try {
+          const parsed = JSON.parse(message);
+          message = parsed?.message || parsed?.error || parsed?.details || message;
+        } catch {
+          // keep plain text
+        }
+
+        throw new Error(message || `Не удалось сохранить результат: ${response.status}`);
+      }
+
+      const data = await response.json();
+      debugLog("results", "save response JSON", data);
+
+      const nextSavedId = String(data?.id || "").trim();
+      setSavedResultId(nextSavedId);
+      setSaveResultMessage("Результат успешно сохранён в базу данных.");
+    } catch (e) {
+      setSaveResultError(e.message || "Ошибка при сохранении результата.");
+    } finally {
+      setIsSavingResult(false);
+    }
+  }
+
   const canStartParsing =
     Boolean(siteUrl.trim()) && Boolean(sessionId.trim()) && !isSessionLoading;
   const statusMeta = getStatusMeta(taskStatus);
@@ -1138,6 +1684,13 @@ export default function ConferenceParserPage() {
         status={taskStatus}
         message={taskMessage}
         sessionId={sessionId}
+      />
+      <ImageTextEditorModal
+        item={imageTextEditorItem}
+        value={imageTextEditorValue}
+        onChange={setImageTextEditorValue}
+        onClose={closeImageTextEditor}
+        onSave={saveImageTextEditor}
       />
 
       <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -1341,6 +1894,7 @@ export default function ConferenceParserPage() {
                   variant="image"
                   onDownload={handleDownloadImage}
                   onDelete={handleDeleteImage}
+                  onEditImageText={openImageTextEditor}
                   deletingId={imageDeletingId}
                 />
               </Section>
@@ -1497,11 +2051,49 @@ export default function ConferenceParserPage() {
               >
                 <textarea
                   value={result}
-                  onChange={(e) => setResult(e.target.value)}
+                  onChange={(e) => {
+                    setResult(e.target.value);
+                    setSaveResultMessage("");
+                    setSaveResultError("");
+                    setSavedResultId("");
+                  }}
                   rows={24}
                   placeholder="Здесь появится ответ от нейросети..."
                   className="min-h-[420px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-slate-400"
                 />
+
+                <div className="mt-4 space-y-3">
+                  <button
+                    type="button"
+                    onClick={handleSaveResult}
+                    disabled={isSavingResult || !result.trim() || !siteUrl.trim()}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSavingResult ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Сохраняем результат...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        Сохранить json в базу данных
+                      </>
+                    )}
+                  </button>
+
+                  {saveResultMessage ? (
+                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 whitespace-pre-wrap break-words">
+                      {saveResultMessage}
+                    </div>
+                  ) : null}
+
+                  {saveResultError ? (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 whitespace-pre-wrap break-words">
+                      {saveResultError}
+                    </div>
+                  ) : null}
+                </div>
               </Section>
             </div>
           </div>

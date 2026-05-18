@@ -44,6 +44,6 @@ public class OrchestratorStartGrpcClient {
         }
 
         OrchestratorStartResponse response = blockingStub.startParsing(requestBuilder.build());
-        return taskId;
+        return response.getTaskId();
     }
 }

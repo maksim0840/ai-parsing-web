@@ -29,6 +29,12 @@ dependencies {
     // Spring
     implementation("org.springframework.boot:spring-boot-starter-web")
 
+    // Security
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("io.jsonwebtoken:jjwt-api:0.13.0")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.13.0")
+
     // s3
     implementation(platform("software.amazon.awssdk:bom:2.44.4"))
     implementation("software.amazon.awssdk:s3")

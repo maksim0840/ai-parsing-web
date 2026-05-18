@@ -4,7 +4,12 @@ import asyncio
 from parser.src.html_parser import HTMLParser, PageComplexity
 from parser.src.html_preprocessing import HTMLPreprocessing
 import json
+from dataclasses import asdict
 import os
+from parser.src.dto.html_parser_request_dto import HtmlParserRequestDTO
+from parser.src.dto.html_preprocessing_request_dto import HtmlPreprocessingRequestDTO
+from parser.src.dto.html_parser_response_dto import HtmlParserResponseDTO
+from parser.src.dto.html_preprocessing_response_dto import HtmlPreprocessingResponseDTO
 
 # from dotenv import load_dotenv
 # load_dotenv("parser/parser_settings.env") # загружаем .env файл конфигурации
@@ -36,131 +41,77 @@ html_preprocessing = HTMLPreprocessing()
 
 @broker.subscriber(QUEUE_HTML_PARSING_REQUEST)
 async def handle_html_parsing(msg: str):
-    print("request:", msg)
     msg = json.loads(msg)
-
     task_id = msg.get("taskId")
-    url = msg.get("url")
-    html_out_dir = msg.get("htmlOutDir")
-    images_out_dir = msg.get("imagesOutDir")
-    download_images = msg.get("downloadImages", False)
-    headers = msg.get("headers", {})
-    cookies = msg.get("cookies", {})
-    proxy = msg.get("proxy", {})
-    page_complexity = msg.get("pageComplexity", "DEFAULT")
-    additional_page_load_timeout_s = msg.get("additionalPageLoadTimeoutS", 0)
-    
-    if (task_id is None):
-        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Not specified parameter task_id for parsing"})
-        print({"taskId": task_id, "success": False, "message": "Not specified parameter task_id for parsing"})
-        return
-    if (url is None): 
-        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Not specified parameter url for parsing"})
-        print({"taskId": task_id, "success": False, "message": "Not specified parameter url for parsing"})
-        return
-    if (html_out_dir is None): 
-        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Not specified parameter html_out_dir for parsing"})
-        print({"taskId": task_id, "success": False, "message": "Not specified parameter html_out_dir for parsing"})
-        return
-    if (images_out_dir is None): 
-        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Not specified parameter images_out_dir for parsing"})
-        print({"taskId": task_id, "success": False, "message": "Not specified parameter images_out_dir for parsing"})
-        return
-    
-    if (page_complexity == "LIGHT"): page_complexity_enum = PageComplexity.LIGHT.value
-    elif (page_complexity == "DEFAULT"): page_complexity_enum = PageComplexity.DEFAULT.value
-    elif (page_complexity == "DIFFICULT"): page_complexity_enum = PageComplexity.DIFFICULT.value
-    else:
-        await send_html_parsing_response({"taskId": task_id, "success": False, "message": "Unknown page complexity type"})
-        print({"taskId": task_id, "success": False, "message": "Unknown page complexity type"})
-        return
-    
     try:
+        request = HtmlParserRequestDTO.from_dict(msg)
+        print("request:", request)
+        
         r = await html_parser.download_html_content(
-            url=url,
-            html_out_dir=html_out_dir,
-            images_out_dir=images_out_dir,
-            download_images=download_images,
-            headers=headers,
-            cookies=cookies,
-            proxy=proxy,
-            settings=page_complexity_enum,
-            additional_page_load_timeout_s=additional_page_load_timeout_s
+            url=request.url,
+            html_out_dir=request.htmlOutDir,
+            images_out_dir=request.imagesOutDir,
+            download_images=request.downloadImages,
+            headers=request.headers,
+            cookies=request.cookies,
+            proxy=request.proxy,
+            settings=request.pageComplexity,
+            additional_page_load_timeout_s=request.additionalPageLoadTimeoutS
         )
-        await send_html_parsing_response({"taskId": task_id, "success": True, "message": "OK", "htmlPath": r["htmlPath"], "imagePaths": r["imagePaths"]})
-        print({"taskId": task_id, "success": True, "message": "OK", "htmlPath": r["htmlPath"], "imagePaths": r["imagePaths"]})
+        response = HtmlParserResponseDTO(taskId=task_id, success=True, message="", htmlDocs=r["htmlDocs"], images=r["images"])
+        await send_html_parsing_response(response)
+        print("response:", response)
     except Exception as e:
-        await send_html_parsing_response({"taskId": task_id, "success": False, "message": str(e)})
-        print({"taskId": task_id, "success": False, "message": str(e)})
+        response = HtmlParserResponseDTO(taskId=task_id, success=False, message=f"[html_parser service] {str(e)}", htmlDocs=[], images=[])
+        await send_html_parsing_response(response)
+        print("response:", response)
 
 
 
 @broker.subscriber(QUEUE_HTML_PREPROCESSING_REQUEST)
 async def handle_html_preprocessing(msg: str):
-    print("request:", msg)
     msg = json.loads(msg)
-
     task_id = msg.get("taskId")
-    html_paths = msg.get("htmlPaths")
-    noscript_processing = msg.get("noscriptProcessing", False)
-    link_processing = msg.get("linkProcessing", False)
-    style_processing = msg.get("styleProcessing", False)
-    meta_processing = msg.get("metaProcessing", False)
-    script_processing = msg.get("scriptProcessing", False)
-    canvas_processing = msg.get("canvasProcessing", False)
-    svg_processing = msg.get("svgProcessing", False)
-    area_processing = msg.get("areaProcessing", False)
-    img_processing = msg.get("imgProcessing", False)
-    video_processing = msg.get("videoProcessing", False)
-    audio_processing = msg.get("audioProcessing", False)
-    iframe_processing= msg.get("iframeProcessing", False)
-    portal_processing = msg.get("portalProcessing", False)
-    embed_processing = msg.get("embedProcessing", False)
-    object_processing = msg.get("objectProcessing", False)
-    source_processing = msg.get("sourceProcessing", False)
-
-    if (task_id is None): 
-        await send_html_preprocessing_response({"taskId": task_id, "success": False, "message": "Not specified parameter task_id for preprocessing"})
-        print({"taskId": task_id, "success": False, "message": "Not specified parameter task_id for preprocessing"})
-        return
-    if (html_paths is None): 
-        await send_html_preprocessing_response({"taskId": task_id, "success": False, "message": "Not specified parameter html_paths for preprocessing"})
-        print({"taskId": task_id, "success": False, "message": "Not specified parameter html_paths for preprocessing"})
-        return
-
     try:
+        request = HtmlPreprocessingRequestDTO.from_dict(msg)
+        print("request:", request)
+
         r = await html_preprocessing.apply_preprocessing(
-            html_paths=html_paths,
-            noscript_processing=noscript_processing,
-            link_processing=link_processing,
-            style_processing=style_processing,
-            meta_processing=meta_processing,
-            script_processing=script_processing,
-            canvas_processing=canvas_processing,
-            svg_processing=svg_processing,
-            area_processing=area_processing,
-            img_processing=img_processing,
-            video_processing=video_processing,
-            audio_processing=audio_processing,
-            iframe_processing=iframe_processing,
-            portal_processing=portal_processing,
-            embed_processing=embed_processing,
-            object_processing=object_processing,
-            source_processing=source_processing
+            html_docs=request.htmlDocs,
+            noscript_processing=request.noscriptProcessing,
+            link_processing=request.linkProcessing,
+            style_processing=request.styleProcessing,
+            meta_processing=request.metaProcessing,
+            script_processing=request.scriptProcessing,
+            canvas_processing=request.canvasProcessing,
+            svg_processing=request.svgProcessing,
+            area_processing=request.areaProcessing,
+            img_processing=request.imgProcessing,
+            video_processing=request.videoProcessing,
+            audio_processing=request.audioProcessing,
+            iframe_processing=request.iframeProcessing,
+            portal_processing=request.portalProcessing,
+            embed_processing=request.embedProcessing,
+            object_processing=request.objectProcessing,
+            source_processing=request.sourceProcessing
         )
-        await send_html_preprocessing_response({"taskId": task_id, "success": True, "message": "OK", "htmlPaths": r["htmlPaths"]})
-        print({"taskId": task_id, "success": True, "message": "OK", "htmlPaths": r["htmlPaths"]})
+        response = HtmlPreprocessingResponseDTO(taskId=task_id, success=True, message="", htmlDocs=r["htmlDocs"])
+        await send_html_preprocessing_response(response)
+        print("response:", response)
     except Exception as e:
-        await send_html_preprocessing_response({"taskId": task_id, "success": False, "message": str(e)})
-        print({"taskId": task_id, "success": False, "message": str(e)})
+        response = HtmlPreprocessingResponseDTO(taskId=task_id, success=False, message=f"[html_preprocessing service] {str(e)}", htmlDocs=[])
+        await send_html_preprocessing_response(response)
+        print("response:", response)
 
 
 
-async def send_html_parsing_response(response):
-    await broker.publish(response, queue=QUEUE_HTML_PARSING_RESPONSE)
+async def send_html_parsing_response(response: HtmlParserResponseDTO):
+    json_string = json.dumps(asdict(response), ensure_ascii=False)
+    await broker.publish(json_string, queue=QUEUE_HTML_PARSING_RESPONSE)
 
-async def send_html_preprocessing_response(response):
-    await broker.publish(response, queue=QUEUE_HTML_PREPROCESSING_RESPONSE)
+async def send_html_preprocessing_response(response: HtmlPreprocessingResponseDTO):
+    json_string = json.dumps(asdict(response), ensure_ascii=False)
+    await broker.publish(json_string, queue=QUEUE_HTML_PREPROCESSING_RESPONSE)
 
 
 async def main():

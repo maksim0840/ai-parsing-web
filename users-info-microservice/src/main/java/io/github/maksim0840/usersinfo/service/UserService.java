@@ -47,6 +47,15 @@ public class UserService {
         }
     }
 
+    public User getUserByName(String name) {
+        try {
+            return userRepository.findByName(name).orElseThrow(() ->
+                    new NotFoundException("PostgreSQL user not found (name: " + name + ")"));
+        } catch (DataAccessException e) {
+            throw new RuntimeException("PostgreSQL user read failed", e);
+        }
+    }
+
     public User getUserById(Long id) {
         try {
             return userRepository.findById(id).orElseThrow(() ->

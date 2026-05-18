@@ -4,6 +4,9 @@ import asyncio
 from text_recognition.src.text_recognition import TextRecognition
 import os
 import json
+from dataclasses import asdict
+from text_recognition.src.dto.text_recognition_request_dto import TextRecognitionRequestDTO
+from text_recognition.src.dto.text_recognition_response_dto import TextRecognitionResponseDTO
 
 # from dotenv import load_dotenv
 # load_dotenv("text_recognition/recognition_settings.env") # загружаем .env файл конфигурации
@@ -31,30 +34,28 @@ text_recognition_model = TextRecognition()
 
 @broker.subscriber(QUEUE_TEXT_RECOGNITION_REQUEST)
 async def handle_text_recognition(msg: str):
-    print("request:", msg)
     msg = json.loads(msg)
-
     task_id = msg.get("taskId")
-    image_paths = msg.get("imagePaths")
-    
-    if (task_id is None): 
-        await send_text_recognition_response({"taskId": task_id, "success": False, "message": "Not specified parameter task_id for text recognition"})
-        print({"taskId": task_id, "success": False, "message": "Not specified parameter task_id for text recognition"})
-        return
-    if (image_paths is None): 
-        await send_text_recognition_response({"taskId": task_id, "success": False, "message": "Not specified parameter image_paths for text recognition"})
-        print({"taskId": task_id, "success": False, "message": "Not specified parameter image_paths for text recognition"})
-        return
     try:
-        r = await text_recognition_model.run_ocr(image_paths=image_paths)
-        await send_text_recognition_response({"taskId": task_id, "success": True, "message": "OK", "textByImage": r["textByImage"]})
-        print({"taskId": task_id, "success": True, "message": "OK", "textByImage": r["textByImage"]})
-    except Exception as e:
-        await send_text_recognition_response({"taskId": task_id, "success": False, "message": str(e)})
-        print({"taskId": task_id, "success": False, "message": str(e)})
+        request = TextRecognitionRequestDTO.from_dict(msg)
+        print("request:", request)
 
-async def send_text_recognition_response(response):
-    await broker.publish(response, queue=QUEUE_TEXT_RECOGNITION_RESPONSE)
+        r = await text_recognition_model.run_ocr(
+            images=request.images
+        )
+        response = TextRecognitionResponseDTO(taskId=task_id, success=True, message="", images=r["images"])
+        await send_text_recognition_response(response)
+        print("response:", response)
+    except Exception as e:
+        response = TextRecognitionResponseDTO(taskId=task_id, success=False, message=f"[text_recognition service] {str(e)}", images=[])
+        await send_text_recognition_response(response)
+        print("response:", response)
+
+
+async def send_text_recognition_response(response: TextRecognitionResponseDTO):
+    json_string = json.dumps(asdict(response), ensure_ascii=False)
+    await broker.publish(json_string, queue=QUEUE_TEXT_RECOGNITION_RESPONSE)
+
 
 
 async def main():

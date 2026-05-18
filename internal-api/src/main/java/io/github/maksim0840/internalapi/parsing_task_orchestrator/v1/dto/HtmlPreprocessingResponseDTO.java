@@ -11,6 +11,6 @@ public record HtmlPreprocessingResponseDTO(
         String taskId,
         boolean success,
         String message,
-        List<String> htmlPaths
+        List<FileInfoDTO> htmlDocs
 ) {
 }

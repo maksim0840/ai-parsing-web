@@ -43,6 +43,12 @@ message GetListExtractionResultRequest {
     optional bool sort_created_desc = 6;
 }
 
+message CountExtractionResultRequest {
+    optional string user_id = 1;
+    optional google.protobuf.Timestamp created_from = 2;
+    optional google.protobuf.Timestamp created_to = 3;
+}
+
 // Удалить запись по id
 message DeleteExtractionResultRequest {
     string id = 1;
@@ -63,6 +69,10 @@ message GetListExtractionResultResponse {
     repeated ExtractionResultProto extraction_results = 1;
 }
 
+message CountExtractionResultResponse {
+    int64 number_of_records = 1;
+}
+
 message DeleteExtractionResultResponse {
 }
 
@@ -73,5 +83,6 @@ service ExtractionResultService {
   rpc Create(CreateExtractionResultRequest) returns (CreateExtractionResultResponse);
   rpc Get(GetExtractionResultRequest) returns (GetExtractionResultResponse);
   rpc GetList(GetListExtractionResultRequest) returns (GetListExtractionResultResponse);
+  rpc Count(CountExtractionResultRequest) returns (CountExtractionResultResponse);
   rpc Delete(DeleteExtractionResultRequest) returns (DeleteExtractionResultResponse);
 }

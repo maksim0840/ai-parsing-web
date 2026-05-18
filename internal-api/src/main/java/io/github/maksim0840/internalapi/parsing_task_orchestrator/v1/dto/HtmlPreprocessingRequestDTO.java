@@ -9,7 +9,7 @@ import java.util.List;
 @Nullable
 public record HtmlPreprocessingRequestDTO(
         String taskId,
-        List<String> htmlPaths,
+        List<FileInfoDTO> htmlDocs,
         Boolean noscriptProcessing,
         Boolean linkProcessing,
         Boolean styleProcessing,
@@ -27,11 +27,11 @@ public record HtmlPreprocessingRequestDTO(
         Boolean objectProcessing,
         Boolean sourceProcessing
 ) {
-    // Использовать значения этого же объекта, но с измененным полем htmlPaths
-    public HtmlPreprocessingRequestDTO withHtmlPaths(List<String> newHtmlPaths) {
+    // Использовать значения этого же объекта, но с измененным полем htmlDocs
+    public HtmlPreprocessingRequestDTO withHtmlDocs(List<FileInfoDTO> newHtmlDocs) {
         return new HtmlPreprocessingRequestDTO(
                 this.taskId,
-                newHtmlPaths,
+                newHtmlDocs,
                 this.noscriptProcessing,
                 this.linkProcessing,
                 this.styleProcessing,
@@ -51,17 +51,17 @@ public record HtmlPreprocessingRequestDTO(
         );
     }
 
-    // Добавить несколько элементов в htmlPaths
-    public HtmlPreprocessingRequestDTO addAllToHtmlPaths(List<String> extraHtmlPaths) {
-        List<String> newHtmlPaths = this.htmlPaths;
-        newHtmlPaths.addAll(extraHtmlPaths);
-        return withHtmlPaths(newHtmlPaths);
+    // Добавить несколько элементов в htmlDocs
+    public HtmlPreprocessingRequestDTO addAllToHtmlDocs(List<FileInfoDTO> extraHtmlDocs) {
+        List<FileInfoDTO> newHtmlDocs = this.htmlDocs;
+        newHtmlDocs.addAll(extraHtmlDocs);
+        return withHtmlDocs(newHtmlDocs);
     }
 
-    // Добавить один элемент в htmlPaths
-    public HtmlPreprocessingRequestDTO addToHtmlPaths(String extraHtmlPath) {
-        List<String> newHtmlPaths = this.htmlPaths;
-        newHtmlPaths.add(extraHtmlPath);
-        return withHtmlPaths(newHtmlPaths);
+    // Добавить один элемент в htmlDocs
+    public HtmlPreprocessingRequestDTO addToHtmlDocs(FileInfoDTO extraHtmlDocs) {
+        List<FileInfoDTO> newHtmlDocs = this.htmlDocs;
+        newHtmlDocs.add(extraHtmlDocs);
+        return withHtmlDocs(newHtmlDocs);
     }
 }

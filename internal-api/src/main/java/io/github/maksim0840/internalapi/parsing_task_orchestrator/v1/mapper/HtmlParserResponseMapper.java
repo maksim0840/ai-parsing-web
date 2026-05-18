@@ -12,8 +12,8 @@ public class HtmlParserResponseMapper {
                 .setTaskId(dto.taskId() != null ? dto.taskId() : "")
                 .setSuccess(dto.success())
                 .setMessage(dto.message() != null ? dto.message() : "")
-                .setHtmlPath(dto.htmlPath() != null ? dto.htmlPath() : "")
-                .addAllImagePaths(dto.imagePaths() != null ? dto.imagePaths() : List.of())
+                .addAllHtmlDocs(dto.htmlDocs() != null ? FileInfoMapper.dtoToProtoList(dto.htmlDocs()) : List.of())
+                .addAllImages(dto.images() != null ? FileInfoMapper.dtoToProtoList(dto.images()) : List.of())
                 .build();
     }
 
@@ -22,8 +22,8 @@ public class HtmlParserResponseMapper {
                 .taskId(proto.getTaskId())
                 .success(proto.getSuccess())
                 .message(proto.getMessage())
-                .htmlPath(proto.getHtmlPath())
-                .imagePaths(proto.getImagePathsList())
+                .htmlDocs(FileInfoMapper.protoToDtoList(proto.getHtmlDocsList()))
+                .images(FileInfoMapper.protoToDtoList(proto.getImagesList()))
                 .build();
     }
 }

@@ -11,7 +11,7 @@ public record HtmlParserResponseDTO(
         String taskId,
         boolean success,
         String message,
-        String htmlPath,
-        List<String> imagePaths
+        List<FileInfoDTO> htmlDocs,
+        List<FileInfoDTO> images
 ) {
 }

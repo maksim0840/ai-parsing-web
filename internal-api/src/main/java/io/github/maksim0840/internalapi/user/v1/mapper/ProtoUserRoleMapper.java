@@ -10,9 +10,9 @@ public class ProtoUserRoleMapper {
             throw new IllegalArgumentException("null UserRole mapping");
         }
         return switch (domain) {
-            case VISITOR -> UserRoleProto.VISITOR;
-            case USER -> UserRoleProto.USER;
-            case ADMIN -> UserRoleProto.ADMIN;
+            case ROLE_VISITOR -> UserRoleProto.VISITOR;
+            case ROLE_USER -> UserRoleProto.USER;
+            case ROLE_ADMIN -> UserRoleProto.ADMIN;
             default -> throw new IllegalArgumentException("Unknown UserRole argument mapping: " + domain);
         };
     }
@@ -23,9 +23,9 @@ public class ProtoUserRoleMapper {
         }
         return switch (proto) {
             case USER_ROLE_UNSPECIFIED -> throw new IllegalArgumentException("UserRoleProto mapping not specified");
-            case VISITOR -> UserRole.VISITOR;
-            case USER -> UserRole.USER;
-            case ADMIN -> UserRole.ADMIN;
+            case VISITOR -> UserRole.ROLE_VISITOR;
+            case USER -> UserRole.ROLE_USER;
+            case ADMIN -> UserRole.ROLE_ADMIN;
             default -> throw new IllegalArgumentException("Unknown UserRoleProto argument mapping: " + proto);
         };
     }

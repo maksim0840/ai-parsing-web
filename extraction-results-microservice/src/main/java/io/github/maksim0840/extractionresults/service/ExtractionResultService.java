@@ -55,7 +55,15 @@ public class ExtractionResultService {
 
         // Выполняем запрос
         try {
-            return extractionResultsRepository.searchWithFiltering(userId, dateFrom, dateTo, pageable);
+            return extractionResultsRepository.searchWithFilteringAndPaging(userId, dateFrom, dateTo, pageable);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("MongoDB extractionResult read failed", e);
+        }
+    }
+
+    public long getExtractionResultsNumberByFiltering(String userId, Instant dateFrom, Instant dateTo) {
+        try {
+            return extractionResultsRepository.countAllWithFiltering(userId, dateFrom, dateTo);
         } catch (DataAccessException e) {
             throw new RuntimeException("MongoDB extractionResult read failed", e);
         }

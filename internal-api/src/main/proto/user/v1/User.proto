@@ -35,8 +35,13 @@ message CreateUserRequest {
 }
 
 // Запросы на получение записи по id
-message GetUserRequest {
+message GetUserByIdRequest {
   int64 id = 1;
+}
+
+// Запросы на получение записи по name
+message GetUserByNameRequest {
+  string name = 1;
 }
 
 // Запрос на получение списка записей по фильтрам
@@ -96,7 +101,8 @@ message CheckUserPasswordResponse {
 
 service UserService {
   rpc Create(CreateUserRequest) returns (CreateUserResponse);
-  rpc Get(GetUserRequest) returns (GetUserResponse);
+  rpc GetById(GetUserByIdRequest) returns (GetUserResponse);
+  rpc GetByName(GetUserByNameRequest) returns (GetUserResponse);
   rpc GetList(GetListUserRequest) returns (GetListUserResponse);
   rpc Delete(DeleteUserRequest) returns (DeleteUserResponse);
   rpc SetRole(SetUserRoleRequest) returns (SetUserRoleResponse);

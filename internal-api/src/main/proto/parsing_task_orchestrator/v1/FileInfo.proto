@@ -1,0 +1,23 @@
+syntax = "proto3";
+package parsing_task_orchestrator.v1;  // namespace для .proto файла
+
+option java_package = "io.github.maksim0840.parsing_task_orchestrator.v1";  // package для генерации .java классов из .proto файла
+option java_multiple_files = true;  // для удобной генерации и обращения (каждый message/service генерируется в отдельный .java файл)
+
+// ===== Модель =====
+
+enum FileTypeProto {
+    FILE_TYPE_UNSPECIFIED = 0;
+    HTML = 1;
+    IMG = 2;
+}
+
+message FileInfoProto {
+  string file_path = 1;
+  string file_name = 2;
+  FileTypeProto file_type = 3;
+  int64 size_bytes = 4;
+  string description = 5;
+  bool is_valid = 6;
+  string error_message = 7;
+}
