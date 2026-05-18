@@ -15,6 +15,7 @@ services:
       - grpc-orchestrator-api-net
       - grpc-results-api-net
       - grpc-users-api-net
+      - api-frontend-net
       
 networks:
   garage-net:
@@ -29,3 +30,6 @@ networks:
   grpc-users-api-net:
     external: true
     name: grpc-users-api-net
+  api-frontend-net:
+    external: true
+    name: api-frontend-net

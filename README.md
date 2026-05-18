@@ -1,14 +1,18 @@
-# ai-parsing-web
 
-# Установка необходимых зависимостей
-- установке docker, docker compose
+# Установка зависимостей
 
-- добавляем docker registry mirror
+Необходимо установить:
+
+- docker
+- docker compose
+- openssl
+
+Для успешной загрузки образов указать registry-mirrors и proxy:
+
 ```
 sudo nano /etc/docker/daemon.json
 ```
 
-- указать registry-mirrors и proxy для загрузки образов
 ```                       
 {
   "registry-mirrors": [
@@ -25,10 +29,9 @@ sudo nano /etc/docker/daemon.json
 }
 ```
 
-# Первый запуск
+# Первый запуск и настройка сервисов
 
-
-1. Создаём docker-сети
+## 1. Создаём docker-сети
 
 ```
 docker network create garage-net
@@ -36,61 +39,88 @@ docker network create rabbitmq-net
 docker network create grpc-orchestrator-api-net
 docker network create grpc-results-api-net
 docker network create grpc-users-api-net
+docker network create api-frontend-net
 ```
 
 
-2. Настройка S3 хранилища Garage
+## 2. Настройка Garage S3
 ```
 cd ai-parsing-web/garage
 ```
 
-- генерируем ключи
+### 2.1. Генерация секретов
+Сгенерируйте значения для `rpc_secret`, `admin_token` и `metrics_token`:
 ```
-openssl rand -hex 32		# rpc_secret
-openssl rand -base64 32		# admin_token
-openssl rand -base64 32		# metrics_token
+openssl rand -hex 32      # rpc_secret
+openssl rand -base64 32   # admin_token
+openssl rand -base64 32   # metrics_token
 ```
 
-- настраиваем конфиги
-    - указать ключ rpc_secret в файлах: garage.toml 
-    - указать ключ admin_token в файлах: garage.toml, docker-compose.garage.yaml 
-    - указать ключ metrics_token в файлах: garage.toml
-    - (опцианально) изменить период для автоматической очистки бакетов в файле custom-lifecycle.json
+### 2.2. Настройка конфигов
+Укажите сгенерированные значения в конфигурационных файлах:
 
-- запуск
+- `rpc_secret` — в файле `garage.toml`
+- `admin_token` — в файлах `garage.toml` и `docker-compose.garage.yaml`
+- `metrics_token` — в файле `garage.toml`
+
+Опционально можно изменить период автоматической очистки объектов в файле `custom-lifecycle.json`.
+
+### 2.3. Запуск контейнера Garage
+Создайте служебные директории для хранения метаданных и данных Garage:
 ```
-# служебные папки
 mkdir -p meta data
+```
 
-# запуск контейнера
+Запустите контейнер Garage:
+```
 docker compose -f docker-compose.garage.yaml -p garage up -d
 ```
 
-- получить NODE_ID
+### 2.4. Инициализация layout
+Получите `NODE_ID` текущего узла:
 ```
 docker exec -it garage /garage status
 ```
 
-- назначить layout (указать свой NODE_ID)
+Назначьте узел в layout. Вместо `<CHANGE_ME_NODE_ID>` укажите полученный `NODE_ID`:
 ```
 docker exec -it garage /garage layout assign -z dc1 -c 1G <CHANGE_ME_NODE_ID>
 docker exec -it garage /garage layout apply --version 1
 ```
 
-- создать ключ и получить Key ID (ACCESS_KEY) и Secret Key (SECRET_ACCESS_KEY)
+### 2.5. Создание S3-ключа
+
+Создайте S3-ключ для доступа приложения к Garage:
 ```
 docker exec -it garage /garage key create my-app-key
 ```
+После выполнения команды сохраните значения:
+- `Key ID` — это `ACCESS_KEY`
+- `Secret Key` — это `SECRET_ACCESS_KEY`
 
-- создать бакеты
+### 2.6. Создание бакетов
+
+Создайте основной бакет и бакет с автоматической очисткой:
 ```
 docker exec -it garage /garage bucket create garage-default-bucket
 docker exec -it garage /garage bucket create garage-custom-ttl-bucket
+```
+
+Создайте основной бакет и бакет с автоматической очисткой:
+```
 docker exec -it garage /garage bucket allow --read --write --owner garage-default-bucket --key my-app-key
 docker exec -it garage /garage bucket allow --read --write --owner garage-custom-ttl-bucket --key my-app-key
 ```
 
-- настроить ttl на бакете (указать свои ACCESS_KEY и SECRET_ACCESS_KEY)
+### 2.7. Настройка TTL-бакета
+Примените lifecycle-конфигурацию к бакету `garage-custom-ttl-bucket`.
+
+Перед запуском команды замените:
+
+- `<CHANGE_ME_ACCESS_KEY>` на `ACCESS_KEY`
+- `<CHANGE_ME_SECRET_ACCESS_KEY>` на `SECRET_ACCESS_KEY`
+
+Команду нужно выполнить один раз и дождаться её завершения:
 ```
 docker run --rm \
   --network host \
@@ -106,84 +136,103 @@ docker run --rm \
   --endpoint-url http://127.0.0.1:3900
 ```
 
-- настроить подключение к garage в других сервисах (указать свои ACCESS_KEY и SECRET_ACCESS_KEY)
-  - ai-parsing-web/parsing/common/s3_settings.env
-  - ai-parsing-web/parsing-task-orchestrator-microservice/connection.env
-  - ai-parsing-web/api-gateway-microservice/connection.env
+### 2.8. Подключение Garage к сервисам приложения
+Укажите `ACCESS_KEY` и `SECRET_ACCESS_KEY` в env-файлах сервисов, которые обращаются к Garage:
+  - `ai-parsing-web/parsing/common/s3_settings.env`
+  - `ai-parsing-web/parsing-task-orchestrator-microservice/connection.env`
+  - `ai-parsing-web/api-gateway-microservice/connection.env`
 
 
-3. Настройка сервиса-оркестратора (parsing-task-orchestrator)
+## 3. Настройка сервиса-оркестратора
 ```
 cd ai-parsing-web/parsing-task-orchestrator-microservice
 ```
 
-- настроить взаимодействие с LLM-моделями в файле llm.env
-  - указать API-ключи для доступа к GigaChat и YandexGPT (YANDEXGPT_API_KEY и GIGACHAT_AUTH_KEY)
-  - (опционально) указать начальную температуру, количество выходных токенов и таймауты
+Настройте подключение к LLM-моделям в файле `llm.env`. Необходимо указать API-ключи для доступа к GigaChat и YandexGPT:
+- `YANDEXGPT_API_KEY`
+- `GIGACHAT_AUTH_KEY`
 
-- запустить сервис
+Опционально можно изменить начальные значения температуры, количества выходных токенов и таймаутов.
+
+Запустите сервис-оркестратор:
 ```
 docker compose -f docker-compose.orchestrator.yaml -p orchestrator up -d
 ```
 
 
-4. Настройка сервисов парсинга и распознования (parsing)
+## 4. Настройка сервисов парсинга и распознавания текста
 ```
 cd ai-parsing-web/parsing
 ```
 
-- (опционально) настроить максимальное количество обрабатываемых запросов при парсинге и предобработке в файле parser/parser_settings.env
+Опционально можно изменить настройки (максимальное количество одновременно обрабатываемых запросов) парсинга и предобработки HTML в файле:
+- `parser/parser_settings.env`
 
-- (опционально) настроить количество запущенных моделей распознования текста в файле recognition_settings.env
+Опционально можно изменить настройки (количество запущенных моделей) сервиса распознавания текста в файле:
+- `text_recognition/recognition_settings.env`
 
-- запустить сервисы
+Запустите сервис парсинга:
 ```
 docker compose -f docker-compose.parser.yaml -p parser up -d
+```
+
+Запустите сервис распознавания текста:
+```
 docker compose -f docker-compose.recognition.yaml -p recognition up -d
 ```
 
-5. Настройка сервиса хранения результатов анализа
+## 5. Настройка сервиса хранения результатов анализа
 ```
 cd ai-parsing-web/extraction-results-microservice
 ```
 
-- запустить сервисы
+Запустите сервис хранения результатов: 
 ```
 docker compose -f docker-compose.results.yaml -p results up -d
 ```
 
 
-6. Настройка сервиса хранения пользовательской информации
+## 6. Настройка сервиса хранения пользовательской информации
 ```
 cd ai-parsing-web/users-info-microservice
 ```
 
-- запустить сервисы
+Запустите сервис хранения пользовательской информации:
 ```
 docker compose -f docker-compose.users.yaml -p users up -d
 ```
 
 
-7. Настройка сервиса-шлюза пользовательских запросов
+## 7. Настройка сервиса-шлюза пользовательских запросов
 ```
 cd ai-parsing-web/api-gateway-microservice
 ```
 
-- генерируем ключи
+Сгенерируйте секретный ключ для подписи JWT-токенов:
 ```
-openssl rand -base64 32		# jwt_secret
+openssl rand -base64 32
 ```
 
-- настраиваем секретный ключ JWT (jwt_secret) и время работы токена без обновления в файле security.env
+Укажите сгенерированное значение `jwt_secret` в файле `security.env`. В этом же файле опционально можно настроить время действия токена без обновления.
 
-- запустить сервисы
+Запустите сервис-шлюз:
 ```
 docker compose -f docker-compose.api.yaml -p api up -d
 ```
 
-8. Настройка фронтенда
+## 8. Настройка фронтенда
 ```
 cd ai-parsing-web/frontend
+```
+
+Запустите frontend:
+```
+docker compose -f docker-compose.frontend.yaml -p frontend up -d
+```
+
+После запуска frontend будет доступен по адресу:
+```
+http://localhost:5173
 ```
 
 
@@ -193,24 +242,24 @@ cd ai-parsing-web/frontend
 cd ai-parsing-web
 
 cd garage
-docker compose -f docker-compose.garage.yaml -p garage up
+docker compose -f docker-compose.garage.yaml -p garage up -d
 
 cd ../parsing-task-orchestrator-microservice
-docker compose -f docker-compose.orchestrator.yaml -p orchestrator up
+docker compose -f docker-compose.orchestrator.yaml -p orchestrator up -d
 
 cd ../parsing
-docker compose -f docker-compose.parser.yaml -p parser up
-docker compose -f docker-compose.recognition.yaml -p recognition up
+docker compose -f docker-compose.parser.yaml -p parser up -d
+docker compose -f docker-compose.recognition.yaml -p recognition up -d
 
 cd ../extraction-results-microservice
-docker compose -f docker-compose.results.yaml -p results up
+docker compose -f docker-compose.results.yaml -p results up -d
 
 cd ../users-info-microservice
-docker compose -f docker-compose.users.yaml -p users up
+docker compose -f docker-compose.users.yaml -p users up -d
 
 cd ../api-gateway-microservice
-docker compose -f docker-compose.api.yaml -p api up
+docker compose -f docker-compose.api.yaml -p api up -d
 
 cd ../frontend
-npm run dev
+docker compose -f docker-compose.frontend.yaml -p frontend up -d
 ```

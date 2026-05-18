@@ -1,0 +1,16 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: frontend:dev
+    ports:
+      - "5173:80"
+    networks:
+      - api-frontend-net
+    restart: unless-stopped
+
+networks:
+  api-frontend-net:
+    external: true
+    name: api-frontend-net
