@@ -60,4 +60,4 @@ s3:
   endpoint_url: ${S3_ENDPOINT_URL:http://garage:3900}
   path_style_access: ${S3_PATH_STYLE_ACCESS:true}
   region_name: ${S3_REGION_NAME:garage}
-  bucket_name: ${S3_TTL_7D_BUCKET_NAME}
+  bucket_name: ${S3_CUSTOM_TTL_BUCKET_NAME}

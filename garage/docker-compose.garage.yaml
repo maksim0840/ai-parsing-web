@@ -15,7 +15,7 @@ services:
       - ./data:/var/lib/garage/data
     networks:
       - garage-net
-      
+
   webui: # веб интерфейс
     image: khairul169/garage-webui:latest
     container_name: garage-webui
@@ -28,7 +28,7 @@ services:
       - ./garage.toml:/etc/garage.toml:ro
     environment:
       API_BASE_URL: "http://garage:3903"
-      API_ADMIN_KEY: "VjUAjjXzl5YAooBWTaj0NbTTE3HCB7eZGgmsRqXuTng="
+      API_ADMIN_KEY: "<CHANGE_ME_ADMIN_TOKEN>"
       S3_ENDPOINT_URL: "http://garage:3900"
       S3_REGION: "garage"
     networks:

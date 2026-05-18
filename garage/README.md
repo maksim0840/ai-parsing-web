@@ -14,11 +14,11 @@ docker exec -it garage /garage key create my-app-key
 
 # создаём бакеты
 docker exec -it garage /garage bucket create garage-default-bucket
-docker exec -it garage /garage bucket create garage-ttl-7d-bucket
+docker exec -it garage /garage bucket create garage-custom-ttl-bucket
 docker exec -it garage /garage bucket allow --read --write --owner garage-default-bucket --key my-app-key
-docker exec -it garage /garage bucket allow --read --write --owner garage-ttl-7d-bucket --key my-app-key
+docker exec -it garage /garage bucket allow --read --write --owner garage-custom-ttl-bucket --key my-app-key
 
-# задаём ttl на бакет garage-ttl-7d-bucket (правила из файла lifecycle-7d.json)
+# задаём ttl на бакет garage-custom-ttl-bucket (правила из файла custom-lifecycle.json)
 docker run --rm \
   --network host \
   -e AWS_ACCESS_KEY_ID='ТВОЙ_ACCESS_KEY' \
@@ -28,8 +28,8 @@ docker run --rm \
   -w /work \
   public.ecr.aws/aws-cli/aws-cli \
   s3api put-bucket-lifecycle-configuration \
-  --bucket garage-ttl-7d-bucket \
-  --lifecycle-configuration file://lifecycle-7d.json \
+  --bucket garage-custom-ttl-bucket \
+  --lifecycle-configuration file://custom-lifecycle.json \
   --endpoint-url http://127.0.0.1:3900
 
 

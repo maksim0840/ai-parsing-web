@@ -15,7 +15,7 @@ S3_REGION_NAME = os.getenv("S3_REGION_NAME")
 
 S3_TIME_TO_LIVE_FLAG = True if os.getenv("S3_TIME_TO_LIVE_FLAG") == "True" else False
 DEFAULT_BUCKET_NAME = os.getenv("DEFAULT_BUCKET_NAME")
-TTL_7D_BUCKET_NAME = os.getenv("TTL_7D_BUCKET_NAME")
+CUSTOM_TTL_BUCKET_NAME = os.getenv("CUSTOM_TTL_BUCKET_NAME")
 
 
 class S3Storage:
@@ -36,7 +36,7 @@ class S3Storage:
             "config": Config(s3={"addressing_style": addressing_style})
         }
         self.session = get_session()
-        self.bucket_name = TTL_7D_BUCKET_NAME if withTimeToLive else DEFAULT_BUCKET_NAME
+        self.bucket_name = CUSTOM_TTL_BUCKET_NAME if withTimeToLive else DEFAULT_BUCKET_NAME
 
     @asynccontextmanager
     async def get_client(self):
