@@ -17,13 +17,8 @@ server:
   port: 8080
 
 grpc:
-  client:
-    parsing_orchestrator_finish:
-      address: dns:///api:9093
-      negotiationType: plaintext
-
   server:
-    port: 9092 # parsing_orchestrator_start
+    port: 9092 # parsing_orchestrator
 
 rabbitmq:
   html_parser_queue:

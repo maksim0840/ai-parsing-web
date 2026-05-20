@@ -7,7 +7,7 @@ import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRec
 import lombok.Builder;
 
 @Builder
-public record OrchestratorFinishDTO(
+public record OrchestratorTaskResultDTO(
         String taskId,
         HtmlParserResponseDTO htmlParserResponse,
         HtmlPreprocessingResponseDTO htmlPreprocessingResponse,

@@ -11,3 +11,21 @@ replay_pid*
 .idea/
 *.iml
 out/
+
+
+# Garage
+garage/data/
+garage/meta/
+garage/garage.toml
+garage/garage-s3.env
+
+# Файлы подключений к Garage
+parsing/common/s3_settings.env
+parsing-task-orchestrator-microservice/s3_settings.env
+api-gateway-microservice/s3_settings.env
+
+# Файлы с рандомными ключами
+api-gateway-microservice/security.env
+
+# Файлы с настраиваемыми ключами
+parsing-task-orchestrator-microservice/llm.env

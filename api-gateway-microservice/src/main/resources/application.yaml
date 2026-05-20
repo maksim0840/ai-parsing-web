@@ -9,12 +9,9 @@ grpc:
     users_info:
       address: dns:///users:9091
       negotiationType: plaintext
-    parsing_orchestrator_start:
+    parsing_orchestrator:
       address: dns:///orchestrator:9092
       negotiationType: plaintext
-
-  server:
-    port: 9093 # parsing_orchestrator_finish
 
 security:
   jwt:

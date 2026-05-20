@@ -4,7 +4,7 @@ import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.enums.TaskS
 import lombok.Builder;
 
 @Builder
-public record OrchestratorStatusDTO(
+public record OrchestratorTaskStatusDTO(
         String taskId,
         TaskStatus status,
         String message

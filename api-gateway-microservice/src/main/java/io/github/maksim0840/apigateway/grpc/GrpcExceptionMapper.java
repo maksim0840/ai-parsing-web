@@ -1,4 +1,4 @@
-package io.github.maksim0840.apigateway.mapper;
+package io.github.maksim0840.apigateway.grpc;
 
 import io.github.maksim0840.apigateway.exception.DataNotFoundException;
 import io.github.maksim0840.apigateway.exception.DataUnavailableException;

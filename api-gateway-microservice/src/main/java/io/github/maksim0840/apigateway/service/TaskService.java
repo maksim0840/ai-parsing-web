@@ -1,30 +1,23 @@
 package io.github.maksim0840.apigateway.service;
 
-import io.github.maksim0840.apigateway.dto.OrchestratorFinishDTO;
-import io.github.maksim0840.apigateway.dto.OrchestratorStatusDTO;
-import io.github.maksim0840.apigateway.grpc.OrchestratorStatusGrpcClient;
-import io.github.maksim0840.apigateway.storage.TaskStorage;
+import io.github.maksim0840.apigateway.dto.OrchestratorTaskResultDTO;
+import io.github.maksim0840.apigateway.dto.OrchestratorTaskStatusDTO;
+import io.github.maksim0840.apigateway.grpc.OrchestratorStorageGrpcClient;
 import org.springframework.stereotype.Service;
 
 @Service
 public class TaskService {
-    private final OrchestratorStatusGrpcClient statusGrpcClient;
-    private final TaskStorage storage;
+    private final OrchestratorStorageGrpcClient storageGrpcClient;
 
-    public TaskService(OrchestratorStatusGrpcClient statusGrpcClient, TaskStorage storage) {
-        this.statusGrpcClient = statusGrpcClient;
-        this.storage = storage;
+    public TaskService(OrchestratorStorageGrpcClient storageGrpcClient) {
+        this.storageGrpcClient = storageGrpcClient;
     }
 
-    public OrchestratorStatusDTO getStatus(String taskId) {
-        return statusGrpcClient.getStatus(taskId);
+    public OrchestratorTaskStatusDTO getStatus(String taskId) {
+        return storageGrpcClient.getTaskStatus(taskId);
     }
 
-    public OrchestratorFinishDTO getResult(String taskId) {
-        return storage.getResult(taskId);
-    }
-
-    public void addResult(String taskId, OrchestratorFinishDTO result) {
-        storage.addResult(taskId, result);
+    public OrchestratorTaskResultDTO getResult(String taskId) {
+        return storageGrpcClient.getTaskResult(taskId);
     }
 }

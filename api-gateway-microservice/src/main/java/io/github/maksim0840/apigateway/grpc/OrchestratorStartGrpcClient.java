@@ -8,16 +8,14 @@ import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.Html
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlPreprocessingRequestMapper;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.LLMRequestMapper;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.TextRecognitionRequestMapper;
-import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorStartRequest;
-import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorStartResponse;
-import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorStartServiceGrpc;
+import io.github.maksim0840.parsing_task_orchestrator.v1.*;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Service;
 
 @Service
 public class OrchestratorStartGrpcClient {
 
-    @GrpcClient("parsing_orchestrator_start")
+    @GrpcClient("parsing_orchestrator")
     private OrchestratorStartServiceGrpc.OrchestratorStartServiceBlockingStub blockingStub;
 
     public String startParsing(
@@ -28,7 +26,7 @@ public class OrchestratorStartGrpcClient {
             LLMRequestDTO llmRequestDTO) {
 
         System.out.println("startParsing");
-        OrchestratorStartRequest.Builder requestBuilder = OrchestratorStartRequest.newBuilder();
+        StartParsingOrchestratorRequest.Builder requestBuilder = StartParsingOrchestratorRequest.newBuilder();
         requestBuilder.setTaskId(taskId);
         if (htmlParserRequestDTO != null) {
             requestBuilder.setHtmlParserRequest(HtmlParserRequestMapper.dtoToProto(htmlParserRequestDTO));
@@ -43,7 +41,7 @@ public class OrchestratorStartGrpcClient {
             requestBuilder.setLlmRequest(LLMRequestMapper.dtoToProto(llmRequestDTO));
         }
 
-        OrchestratorStartResponse response = blockingStub.startParsing(requestBuilder.build());
+        StartParsingOrchestratorResponse response = blockingStub.startParsing(requestBuilder.build());
         return response.getTaskId();
     }
 }

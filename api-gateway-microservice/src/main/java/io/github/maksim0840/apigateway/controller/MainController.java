@@ -1,19 +1,11 @@
 package io.github.maksim0840.apigateway.controller;
 
-import io.github.maksim0840.apigateway.config.properties.S3Properties;
-import io.github.maksim0840.apigateway.dto.OrchestratorFinishDTO;
-import io.github.maksim0840.apigateway.dto.OrchestratorStatusDTO;
+import io.github.maksim0840.apigateway.dto.OrchestratorTaskStatusDTO;
 import io.github.maksim0840.apigateway.dto.api.*;
 import io.github.maksim0840.apigateway.service.OrchestratorStartService;
 import io.github.maksim0840.apigateway.service.TaskService;
-import io.github.maksim0840.apigateway.storage.TaskStorage;
-import io.github.maksim0840.internalapi.common.v1.s3.S3StorageService;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.enums.TaskStatus;
 import org.springframework.web.bind.annotation.*;
-import software.amazon.awssdk.services.s3.S3Client;
 
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -44,7 +36,7 @@ public class MainController {
     }
 
     @GetMapping("/pipeline/{taskId}/status")
-    public OrchestratorStatusDTO getPipelineStatus(@PathVariable String taskId) {
+    public OrchestratorTaskStatusDTO getPipelineStatus(@PathVariable String taskId) {
         System.out.println("getPipelineStatus: " + taskId);
         return taskService.getStatus(taskId);
     }

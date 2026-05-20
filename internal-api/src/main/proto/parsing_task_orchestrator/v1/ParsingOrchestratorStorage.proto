@@ -8,6 +8,18 @@ import "parsing_task_orchestrator/v1/FileInfo.proto";
 
 // ===== Модель =====
 
+enum TaskStatusProto {
+    TASK_STATUS_UNSPECIFIED = 0;
+    NOT_REGISTERED = 1;
+    CREATED = 2;
+    HTML_PARSING = 3;
+    HTML_PREPROCESSING = 4;
+    TEXT_RECOGNITION = 5;
+    LLM_PROCESSING = 6;
+    DONE = 7;
+    FAILED = 8;
+}
+
 message HtmlParserResponseProto {
   string task_id = 1;
   bool success = 2;
@@ -38,9 +50,26 @@ message LLMResponseProto {
 }
 
 
-// ===== Запросы (parsing-task-orchestrator) -> (api-gateway) =====
+// ===== Запросы к сервису parsing-task-orchestrator =====
 
-message OrchestratorFinishRequest {
+message GetTaskStatusOrchestratorRequest {
+    string task_id = 1;
+}
+
+message GetTaskResultOrchestratorRequest {
+    string task_id = 1;
+}
+
+
+// ===== Ответы от сервиса parsing-task-orchestrator =====
+
+message GetTaskStatusOrchestratorResponse {
+    string task_id = 1;
+    TaskStatusProto status = 2;
+    string message = 3;
+}
+
+message GetTaskResultOrchestratorResponse {
     string task_id = 1;
     optional HtmlParserResponseProto html_parser_response = 2;
     optional HtmlPreprocessingResponseProto html_preprocessing_response = 3;
@@ -49,15 +78,9 @@ message OrchestratorFinishRequest {
 }
 
 
-// ===== Ответы (api-gateway) -> (parsing-task-orchestrator) =====
-
-message OrchestratorFinishResponse {
-    string task_id = 1;
-}
-
-
 // ===== Сервис (gRPC api) =====
 
-service OrchestratorFinishService {
-  rpc FinishParsing(OrchestratorFinishRequest) returns (OrchestratorFinishResponse);
+service OrchestratorStorageService {
+    rpc GetTaskStatus(GetTaskStatusOrchestratorRequest) returns (GetTaskStatusOrchestratorResponse);
+    rpc GetTaskResult(GetTaskResultOrchestratorRequest) returns (GetTaskResultOrchestratorResponse);
 }

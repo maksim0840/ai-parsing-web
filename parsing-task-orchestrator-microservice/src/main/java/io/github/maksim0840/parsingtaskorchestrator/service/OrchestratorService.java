@@ -5,11 +5,9 @@ import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.*;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.enums.TaskStatus;
 import io.github.maksim0840.parsingtaskorchestrator.dto.StatusDTO;
 import io.github.maksim0840.parsingtaskorchestrator.dto.TaskDTO;
-import io.github.maksim0840.parsingtaskorchestrator.grpc.OrchestratorFinishGrpcClient;
+import io.github.maksim0840.parsingtaskorchestrator.exception.TaskNotFoundException;
 import io.github.maksim0840.parsingtaskorchestrator.rabbitmq.RabbitMQSender;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class OrchestratorService {
@@ -17,13 +15,11 @@ public class OrchestratorService {
     private final TaskService taskService;
     private final LLMService llmService;
     private final RabbitMQSender rabbitMQSender;
-    private final OrchestratorFinishGrpcClient finishGrpcClient;
 
-    public OrchestratorService(TaskService taskService, LLMService llmService, RabbitMQSender rabbitMQSender, OrchestratorFinishGrpcClient finishGrpcClient) {
+    public OrchestratorService(TaskService taskService, LLMService llmService, RabbitMQSender rabbitMQSender) {
         this.taskService = taskService;
         this.llmService = llmService;
         this.rabbitMQSender = rabbitMQSender;
-        this.finishGrpcClient = finishGrpcClient;
     }
 
     public void startRequestsPipeline(TaskDTO task) throws JsonProcessingException {
@@ -150,13 +146,11 @@ public class OrchestratorService {
     private void endPipelineSuccess(String taskId) {
         System.out.println("endPipelineSuccess");
         TaskDTO taskDTO = taskService.setStatusAndMessage(taskId, TaskStatus.DONE, "");
-        finishGrpcClient.finishParsing(taskId, taskDTO.htmlParserResponse(), taskDTO.htmlPreprocessingResponse(), taskDTO.textRecognitionResponse(), taskDTO.llmResponse());
     }
 
     private void endPipelineFail(String taskId, String message) {
         System.out.println("endRequestsPipelineFail");
         TaskDTO taskDTO = taskService.setStatusAndMessage(taskId, TaskStatus.FAILED, message);
-        finishGrpcClient.finishParsing(taskId, taskDTO.htmlParserResponse(), taskDTO.htmlPreprocessingResponse(), taskDTO.textRecognitionResponse(), taskDTO.llmResponse());
     }
 
     private void startHtmlParsing(HtmlParserRequestDTO request) throws JsonProcessingException {
@@ -187,5 +181,9 @@ public class OrchestratorService {
         }
         TaskDTO taskDTO = taskService.getTask(taskId);
         return new StatusDTO(taskDTO.status(), taskDTO.message());
+    }
+
+    public TaskDTO getTask(String taskId) {
+        return taskService.getTask(taskId);
     }
 }

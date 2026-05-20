@@ -9,9 +9,7 @@ import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.Html
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlPreprocessingRequestMapper;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.LLMRequestMapper;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.TextRecognitionRequestMapper;
-import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorStartRequest;
-import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorStartResponse;
-import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorStartServiceGrpc;
+import io.github.maksim0840.parsing_task_orchestrator.v1.*;
 import io.github.maksim0840.parsingtaskorchestrator.dto.TaskDTO;
 import io.github.maksim0840.parsingtaskorchestrator.service.OrchestratorService;
 import io.github.maksim0840.parsingtaskorchestrator.service.TaskService;
@@ -30,7 +28,7 @@ public class OrchestratorStartGrpcEndpoint extends OrchestratorStartServiceGrpc.
     }
 
     @Override
-    public void startParsing(OrchestratorStartRequest request, StreamObserver<OrchestratorStartResponse> responseObserver) {
+    public void startParsing(StartParsingOrchestratorRequest request, StreamObserver<StartParsingOrchestratorResponse> responseObserver) {
         String taskId = request.getTaskId();
         HtmlParserRequestDTO htmlParserRequest =
                 request.hasHtmlParserRequest()
@@ -51,7 +49,7 @@ public class OrchestratorStartGrpcEndpoint extends OrchestratorStartServiceGrpc.
 
         TaskDTO task = taskService.addTask(taskId, htmlParserRequest, htmlPreprocessingRequest, textRecognitionRequest, llmRequestDTO);
 
-        OrchestratorStartResponse response = OrchestratorStartResponse.newBuilder()
+        StartParsingOrchestratorResponse response = StartParsingOrchestratorResponse.newBuilder()
                 .setTaskId(task.id()).build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
