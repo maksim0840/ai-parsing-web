@@ -6,7 +6,7 @@ services:
       dockerfile: api-gateway-microservice/Dockerfile
     image: api:dev
     env_file:
-      - connection.env
+      - s3_settings.env
       - security.env
     ports:
       - "8080:8080"

@@ -7,7 +7,7 @@ services:
     image: orchestrator:dev
     env_file:
       - llm.env
-      - connection.env
+      - s3_settings.env
     networks:
       - rabbitmq-net
       - mongodb-orchestrator-net

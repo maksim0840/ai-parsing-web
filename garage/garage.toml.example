@@ -5,7 +5,7 @@ db_engine = "sqlite"
 replication_factor = 1
 rpc_bind_addr = "[::]:3901"
 rpc_public_addr = "garage:3901"
-rpc_secret = "9ae026e81a3632be319f42a47e545b8e9dcab2d24e0b3b4fa490c58c7104d0f2"
+rpc_secret = "<CHANGE_ME_RPC_SECRET>"
 
 [s3_api]
 s3_region = "garage"
@@ -22,5 +22,5 @@ api_bind_addr = "[::]:3904"
 
 [admin]
 api_bind_addr = "[::]:3903"
-admin_token = "2yQAIQ4HgrPmIxai1qvXyus8D7Z7GuCOwo/suOnK4ME="
-metrics_token = "KnKttJwq7oEeCZ0BdiemtbMqATglPbi2HYrAvWjAz1M="
+admin_token = "<CHANGE_ME_ADMIN_TOKEN>"
+metrics_token = "<CHANGE_ME_METRICS_TOKEN>"

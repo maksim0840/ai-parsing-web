@@ -5,32 +5,10 @@ services:
     restart: unless-stopped
     ports:
       - "3900:3900"  # S3 API
-      - "3901:3901"  # internal RPC
-      - "3902:3902"  # web
-      - "3903:3903"  # admin API
-      - "3904:3904"  # k2v
     volumes:
       - ./garage.toml:/etc/garage.toml:ro
       - ./meta:/var/lib/garage/meta
       - ./data:/var/lib/garage/data
-    networks:
-      - garage-net
-
-  webui: # веб интерфейс
-    image: khairul169/garage-webui:latest
-    container_name: garage-webui
-    restart: unless-stopped
-    depends_on:
-      - garage
-    ports:
-      - "3909:3909"
-    volumes:
-      - ./garage.toml:/etc/garage.toml:ro
-    environment:
-      API_BASE_URL: "http://garage:3903"
-      API_ADMIN_KEY: "<CHANGE_ME_ADMIN_TOKEN>"
-      S3_ENDPOINT_URL: "http://garage:3900"
-      S3_REGION: "garage"
     networks:
       - garage-net
 
