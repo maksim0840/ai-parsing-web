@@ -1,18 +1,14 @@
 package io.github.maksim0840.parsingtaskorchestrator.domain;
 
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlParserResponseDTO;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingResponseDTO;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRecognitionResponseDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.enums.TaskStatus;
+import io.github.maksim0840.parsingtaskorchestrator.domain.model.*;
 import lombok.*;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.redis.core.RedisHash;
 
 import java.time.Instant;
-import java.util.Map;
 
-@Document("tasks")
+@RedisHash(value = "tasks", timeToLive = 1800) // запись храниться 30 минут
 @Getter
 @Setter
 @Builder
@@ -23,24 +19,22 @@ public class Task {
     private String id;
 
     private boolean htmlParserRequired;
-    private Map<String, Object> jsonHtmlParserRequest;
+    private HtmlParserRequest htmlParserRequest;
 
     private boolean htmlPreprocessingRequired;
-    private Map<String, Object> jsonHtmlPreprocessingRequest;
+    private HtmlPreprocessingRequest htmlPreprocessingRequest;
 
     private boolean textRecognitionRequired;
-    private Map<String, Object> jsonTextRecognitionRequest;
+    private TextRecognitionRequest textRecognitionRequest;
 
     private boolean llmRequired;
-    private Map<String, Object> jsonLLMRequest;
+    private LLMRequest llmRequest;
 
-    private Map<String, Object> jsonHtmlParserResponse;
-    private Map<String, Object> jsonHtmlPreprocessingResponse;
-    private Map<String, Object> jsonTextRecognitionResponse;
-    private Map<String, Object> jsonLLMResponse;
+    private HtmlParserResponse htmlParserResponse;
+    private HtmlPreprocessingResponse htmlPreprocessingResponse;
+    private TextRecognitionResponse textRecognitionResponse;
+    private LLMResponse llmResponse;
 
-    // Запись удалиться через 30 минут (time to live)
-    @Indexed(expireAfter = "30m")
     private Instant createdAt;
 
     private TaskStatus status;
@@ -49,27 +43,27 @@ public class Task {
 
     public Task(String id,
                 boolean htmlParserRequired,
-                Map<String, Object> jsonHtmlParserRequest,
+                HtmlParserRequest htmlParserRequest,
                 boolean htmlPreprocessingRequired,
-                Map<String, Object> jsonHtmlPreprocessingRequest,
+                HtmlPreprocessingRequest htmlPreprocessingRequest,
                 boolean textRecognitionRequired,
-                Map<String, Object> jsonTextRecognitionRequest,
+                TextRecognitionRequest textRecognitionRequest,
                 boolean llmRequired,
-                Map<String, Object> jsonLLMRequest) {
+                LLMRequest llmRequest) {
 
         this.id = id;
         this.htmlParserRequired = htmlParserRequired;
-        this.jsonHtmlParserRequest = jsonHtmlParserRequest;
+        this.htmlParserRequest = htmlParserRequest;
         this.htmlPreprocessingRequired = htmlPreprocessingRequired;
-        this.jsonHtmlPreprocessingRequest = jsonHtmlPreprocessingRequest;
+        this.htmlPreprocessingRequest = htmlPreprocessingRequest;
         this.textRecognitionRequired = textRecognitionRequired;
-        this.jsonTextRecognitionRequest = jsonTextRecognitionRequest;
+        this.textRecognitionRequest = textRecognitionRequest;
         this.llmRequired = llmRequired;
-        this.jsonLLMRequest = jsonLLMRequest;
-        this.jsonHtmlParserResponse = Map.of();
-        this.jsonHtmlPreprocessingResponse = Map.of();
-        this.jsonTextRecognitionResponse = Map.of();
-        this.jsonLLMResponse = Map.of();
+        this.llmRequest = llmRequest;
+        this.htmlParserResponse = new HtmlParserResponse();
+        this.htmlPreprocessingResponse = new HtmlPreprocessingResponse();
+        this.textRecognitionResponse = new TextRecognitionResponse();
+        this.llmResponse = new LLMResponse();
         this.createdAt = Instant.now();
         this.status = TaskStatus.CREATED;
         this.message = "";
