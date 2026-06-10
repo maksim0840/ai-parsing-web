@@ -3,8 +3,8 @@ package io.github.maksim0840.extractionresults.grpc;
 import io.github.maksim0840.extraction_result.v1.*;
 import io.github.maksim0840.extractionresults.entity.ExtractionResult;
 import io.github.maksim0840.extractionresults.exception.NotFoundException;
-import io.github.maksim0840.extractionresults.mapper.ProtoDomainExtractionResultMapper;
 import io.github.maksim0840.extractionresults.service.ExtractionResultService;
+import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ExtractionResultMapper;
 import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ProtoJsonMapper;
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 import io.grpc.Status;
@@ -43,7 +43,7 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
 
         try {
             ExtractionResult extractionResult = extractionResultService.createExtractionResult(url, userId, jsonResult);
-            ExtractionResultProto extractionResultProto = ProtoDomainExtractionResultMapper.domainToProto(extractionResult);
+            ExtractionResultProto extractionResultProto = ExtractionResultMapper.domainToProto(extractionResult);
             CreateExtractionResultResponse response = CreateExtractionResultResponse.newBuilder()
                     .setExtractionResult(extractionResultProto).build();
 
@@ -65,7 +65,7 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
 
         try {
             ExtractionResult extractionResult = extractionResultService.getExtractionResultById(id);
-            ExtractionResultProto extractionResultProto = ProtoDomainExtractionResultMapper.domainToProto(extractionResult);
+            ExtractionResultProto extractionResultProto = ExtractionResultMapper.domainToProto(extractionResult);
             GetExtractionResultResponse response = GetExtractionResultResponse.newBuilder()
                     .setExtractionResult(extractionResultProto).build();
 
@@ -91,7 +91,7 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
         try {
             List<ExtractionResult> extractionResults = extractionResultService.getListExtractionResultByPageWithFiltering(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc);
             List<ExtractionResultProto> extractionResultsProto = extractionResults.stream()
-                    .map(ProtoDomainExtractionResultMapper::domainToProto)
+                    .map(ExtractionResultMapper::domainToProto)
                     .toList();
             GetListExtractionResultResponse response = GetListExtractionResultResponse.newBuilder()
                     .addAllExtractionResults(extractionResultsProto).build();
