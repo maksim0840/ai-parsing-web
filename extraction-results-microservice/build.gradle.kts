@@ -21,9 +21,15 @@ repositories {
 extra["testcontainers.version"] = "2.0.3"
 
 dependencies {
+    // Mapstruct
+    implementation("org.mapstruct:mapstruct:1.5.5.Final")
+
     // Lombok
     compileOnly("org.projectlombok:lombok")
-    annotationProcessor("org.projectlombok:lombok")
+
+    annotationProcessor("org.mapstruct:mapstruct-processor:1.5.5.Final")
+    annotationProcessor("org.projectlombok:lombok:1.18.30")
+    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
 
     // MongoDB
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")

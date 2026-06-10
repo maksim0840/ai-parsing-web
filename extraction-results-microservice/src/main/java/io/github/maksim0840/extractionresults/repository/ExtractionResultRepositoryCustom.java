@@ -1,7 +1,6 @@
 package io.github.maksim0840.extractionresults.repository;
 
-import io.github.maksim0840.extractionresults.domain.ExtractionResult;
-import org.springframework.data.domain.Page;
+import io.github.maksim0840.extractionresults.entity.ExtractionResult;
 import org.springframework.data.domain.Pageable;
 
 import java.time.Instant;

@@ -5,7 +5,7 @@ import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPar
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingResponseDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRecognitionResponseDTO;
 import io.github.maksim0840.parsingtaskorchestrator.service.OrchestratorService;
-import io.github.maksim0840.parsingtaskorchestrator.util.JsonMapper;
+import io.github.maksim0840.parsingtaskorchestrator.mapper.JsonMapper;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 

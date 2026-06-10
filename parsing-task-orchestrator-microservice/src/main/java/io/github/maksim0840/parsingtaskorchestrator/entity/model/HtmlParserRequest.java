@@ -1,4 +1,4 @@
-package io.github.maksim0840.parsingtaskorchestrator.domain.model;
+package io.github.maksim0840.parsingtaskorchestrator.entity.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

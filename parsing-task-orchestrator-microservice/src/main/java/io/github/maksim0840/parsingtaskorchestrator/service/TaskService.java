@@ -1,26 +1,27 @@
 package io.github.maksim0840.parsingtaskorchestrator.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.*;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.enums.TaskStatus;
-import io.github.maksim0840.parsingtaskorchestrator.domain.Task;
+import io.github.maksim0840.parsingtaskorchestrator.entity.Task;
+import io.github.maksim0840.parsingtaskorchestrator.entity.model.HtmlParserRequest;
+import io.github.maksim0840.parsingtaskorchestrator.entity.model.HtmlPreprocessingRequest;
+import io.github.maksim0840.parsingtaskorchestrator.entity.model.LLMRequest;
+import io.github.maksim0840.parsingtaskorchestrator.entity.model.TextRecognitionRequest;
 import io.github.maksim0840.parsingtaskorchestrator.dto.TaskDTO;
 import io.github.maksim0840.parsingtaskorchestrator.exception.TaskNotFoundException;
+import io.github.maksim0840.parsingtaskorchestrator.mapper.TaskMapper;
 import io.github.maksim0840.parsingtaskorchestrator.repository.TaskRepository;
-import io.github.maksim0840.parsingtaskorchestrator.util.JsonMapper;
-import io.github.maksim0840.parsingtaskorchestrator.util.TaskMapper;
-import org.springframework.stereotype.Service;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.OptionalInt;
+import org.springframework.stereotype.Service;
 
 @Service
 public class TaskService {
     private final TaskRepository taskRepository;
+    private final TaskMapper taskMapper;
 
-    public TaskService(TaskRepository taskRepository) {
+    public TaskService(TaskRepository taskRepository, TaskMapper taskMapper) {
         this.taskRepository = taskRepository;
+        this.taskMapper = taskMapper;
     }
 
     public TaskDTO addTask(String taskId,
@@ -37,15 +38,15 @@ public class TaskService {
         Task task = new Task(
                 taskId,
                 htmlParserRequired,
-                htmlParserRequired ? JsonMapper.objectToMap(htmlParserRequest) : Map.of(),
+                htmlParserRequired ? taskMapper.toEntity(htmlParserRequest) : new HtmlParserRequest(),
                 htmlPreprocessingRequired,
-                htmlPreprocessingRequired ? JsonMapper.objectToMap(htmlPreprocessingRequest) : Map.of(),
+                htmlPreprocessingRequired ? taskMapper.toEntity(htmlPreprocessingRequest) : new HtmlPreprocessingRequest(),
                 textRecognitionRequired,
-                textRecognitionRequired ? JsonMapper.objectToMap(textRecognitionRequest) : Map.of(),
+                textRecognitionRequired ? taskMapper.toEntity(textRecognitionRequest) : new TextRecognitionRequest(),
                 llmRequired,
-                llmRequired ? JsonMapper.objectToMap(llmRequest) : Map.of()
+                llmRequired ? taskMapper.toEntity(llmRequest) : new LLMRequest()
         );
-        return TaskMapper.domainToDto(taskRepository.save(task));
+        return taskMapper.toDto(taskRepository.save(task));
     }
 
     public boolean isTaskExists(String taskId) {
@@ -54,63 +55,63 @@ public class TaskService {
 
     public TaskDTO getTask(String taskId) {
         Task task = findTaskById(taskId);
-        return TaskMapper.domainToDto(task);
+        return taskMapper.toDto(task);
     }
 
-    public TaskDTO setHtmlParserRequest(String taskId, HtmlParserRequestDTO htmlParserRequest) {
+    public TaskDTO setHtmlParserRequest(String taskId, HtmlParserRequestDTO htmlParserRequestDTO) {
         Task task = findTaskById(taskId);
-        task.setJsonHtmlParserRequest(JsonMapper.objectToMap(htmlParserRequest));
+        task.setHtmlParserRequest(taskMapper.toEntity(htmlParserRequestDTO));
         taskRepository.save(task);
-        return TaskMapper.domainToDto(task);
+        return taskMapper.toDto(task);
     }
 
-    public TaskDTO setHtmlPreprocessingRequest(String taskId, HtmlPreprocessingRequestDTO htmlPreprocessingRequest) {
+    public TaskDTO setHtmlPreprocessingRequest(String taskId, HtmlPreprocessingRequestDTO htmlPreprocessingRequestDTO) {
         Task task = findTaskById(taskId);
-        task.setJsonHtmlPreprocessingRequest(JsonMapper.objectToMap(htmlPreprocessingRequest));
+        task.setHtmlPreprocessingRequest(taskMapper.toEntity(htmlPreprocessingRequestDTO));
         taskRepository.save(task);
-        return TaskMapper.domainToDto(task);
+        return taskMapper.toDto(task);
     }
 
-    public TaskDTO setTextRecognitionRequest(String taskId, TextRecognitionRequestDTO textRecognitionRequest) {
+    public TaskDTO setTextRecognitionRequest(String taskId, TextRecognitionRequestDTO textRecognitionRequestDTO) {
         Task task = findTaskById(taskId);
-        task.setJsonTextRecognitionRequest(JsonMapper.objectToMap(textRecognitionRequest));
+        task.setTextRecognitionRequest(taskMapper.toEntity(textRecognitionRequestDTO));
         taskRepository.save(task);
-        return TaskMapper.domainToDto(task);
+        return taskMapper.toDto(task);
     }
 
-    public TaskDTO setLLMRequest(String taskId, LLMRequestDTO llmRequest) {
+    public TaskDTO setLLMRequest(String taskId, LLMRequestDTO llmRequestDTO) {
         Task task = findTaskById(taskId);
-        task.setJsonLLMRequest(JsonMapper.objectToMap(llmRequest));
+        task.setLlmRequest(taskMapper.toEntity(llmRequestDTO));
         taskRepository.save(task);
-        return TaskMapper.domainToDto(task);
+        return taskMapper.toDto(task);
     }
 
-    public TaskDTO setHtmlParserResponse(String taskId, HtmlParserResponseDTO htmlParserResponse) {
+    public TaskDTO setHtmlParserResponse(String taskId, HtmlParserResponseDTO htmlParserResponseDTO) {
         Task task = findTaskById(taskId);
-        task.setJsonHtmlParserResponse(JsonMapper.objectToMap(htmlParserResponse));
+        task.setHtmlParserResponse(taskMapper.toEntity(htmlParserResponseDTO));
         taskRepository.save(task);
-        return TaskMapper.domainToDto(task);
+        return taskMapper.toDto(task);
     }
 
-    public TaskDTO setHtmlPreprocessingResponse(String taskId, HtmlPreprocessingResponseDTO htmlPreprocessingResponse) {
+    public TaskDTO setHtmlPreprocessingResponse(String taskId, HtmlPreprocessingResponseDTO htmlPreprocessingResponseDTO) {
         Task task = findTaskById(taskId);
-        task.setJsonHtmlPreprocessingResponse(JsonMapper.objectToMap(htmlPreprocessingResponse));
+        task.setHtmlPreprocessingResponse(taskMapper.toEntity(htmlPreprocessingResponseDTO));
         taskRepository.save(task);
-        return TaskMapper.domainToDto(task);
+        return taskMapper.toDto(task);
     }
 
-    public TaskDTO setTextRecognitionResponse(String taskId, TextRecognitionResponseDTO textRecognitionResponse) {
+    public TaskDTO setTextRecognitionResponse(String taskId, TextRecognitionResponseDTO textRecognitionResponseDTO) {
         Task task = findTaskById(taskId);
-        task.setJsonTextRecognitionResponse(JsonMapper.objectToMap(textRecognitionResponse));
+        task.setTextRecognitionResponse(taskMapper.toEntity(textRecognitionResponseDTO));
         taskRepository.save(task);
-        return TaskMapper.domainToDto(task);
+        return taskMapper.toDto(task);
     }
 
-    public TaskDTO setLLMResponse(String taskId, LLMResponseDTO llmResponse) {
+    public TaskDTO setLLMResponse(String taskId, LLMResponseDTO llmResponseDTO) {
         Task task = findTaskById(taskId);
-        task.setJsonLLMResponse(JsonMapper.objectToMap(llmResponse));
+        task.setLlmResponse(taskMapper.toEntity(llmResponseDTO));
         taskRepository.save(task);
-        return TaskMapper.domainToDto(task);
+        return taskMapper.toDto(task);
     }
 
     public TaskDTO setStatusAndMessage(String taskId, TaskStatus status, String message) {
@@ -118,7 +119,7 @@ public class TaskService {
         task.setStatus(status);
         task.setMessage(message);
         taskRepository.save(task);
-        return TaskMapper.domainToDto(task);
+        return taskMapper.toDto(task);
     }
 
     private Task findTaskById(String taskId) {

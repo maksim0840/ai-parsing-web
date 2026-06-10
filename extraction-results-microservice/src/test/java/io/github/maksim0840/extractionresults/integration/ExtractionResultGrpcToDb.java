@@ -1,7 +1,7 @@
 package io.github.maksim0840.extractionresults.integration;
 
 import io.github.maksim0840.extraction_result.v1.*;
-import io.github.maksim0840.extractionresults.domain.ExtractionResult;
+import io.github.maksim0840.extractionresults.entity.ExtractionResult;
 import io.github.maksim0840.extractionresults.repository.ExtractionResultRepository;
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ProtoJsonMapper;
@@ -25,16 +25,12 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.BDDAssertions.and;
 import static org.assertj.core.api.BDDAssertions.within;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.springframework.data.mongodb.core.aggregation.BooleanOperators.And.and;
 
 /**
  * Тесты для проверки корректности работы grpc сервера extraction-results.

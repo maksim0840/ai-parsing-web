@@ -1,13 +1,12 @@
 package io.github.maksim0840.usersinfo.service;
 
-import io.github.maksim0840.usersinfo.domain.ParsingParam;
-import io.github.maksim0840.usersinfo.domain.User;
+import io.github.maksim0840.usersinfo.entity.ParsingParam;
+import io.github.maksim0840.usersinfo.entity.User;
 import io.github.maksim0840.usersinfo.exception.NotFoundException;
 import io.github.maksim0840.usersinfo.repository.ParsingParamRepository;
 import io.github.maksim0840.usersinfo.repository.ParsingParamSpecification;
 import io.github.maksim0840.usersinfo.repository.UserRepository;
 import org.springframework.dao.DataAccessException;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;

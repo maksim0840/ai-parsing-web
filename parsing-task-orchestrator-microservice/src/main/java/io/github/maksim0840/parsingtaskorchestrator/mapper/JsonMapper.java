@@ -1,4 +1,4 @@
-package io.github.maksim0840.parsingtaskorchestrator.util;
+package io.github.maksim0840.parsingtaskorchestrator.mapper;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;

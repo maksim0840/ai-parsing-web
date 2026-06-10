@@ -1,7 +1,7 @@
 package io.github.maksim0840.extractionresults.mapper;
 
 import io.github.maksim0840.extraction_result.v1.ExtractionResultProto;
-import io.github.maksim0840.extractionresults.domain.ExtractionResult;
+import io.github.maksim0840.extractionresults.entity.ExtractionResult;
 import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ProtoJsonMapper;
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 

@@ -37,8 +37,7 @@ repositories {
 
 dependencies {
     // Lombok
-    compileOnly("org.projectlombok:lombok:1.18.44")
-    annotationProcessor("org.projectlombok:lombok:1.18.44")
+    compileOnly("org.projectlombok:lombok")
 
     // Json Mapping
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")

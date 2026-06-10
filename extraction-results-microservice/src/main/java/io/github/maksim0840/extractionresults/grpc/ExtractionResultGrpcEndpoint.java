@@ -1,7 +1,7 @@
 package io.github.maksim0840.extractionresults.grpc;
 
 import io.github.maksim0840.extraction_result.v1.*;
-import io.github.maksim0840.extractionresults.domain.ExtractionResult;
+import io.github.maksim0840.extractionresults.entity.ExtractionResult;
 import io.github.maksim0840.extractionresults.exception.NotFoundException;
 import io.github.maksim0840.extractionresults.mapper.ProtoDomainExtractionResultMapper;
 import io.github.maksim0840.extractionresults.service.ExtractionResultService;

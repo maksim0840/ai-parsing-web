@@ -1,7 +1,7 @@
-package io.github.maksim0840.parsingtaskorchestrator.domain;
+package io.github.maksim0840.parsingtaskorchestrator.entity;
 
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.enums.TaskStatus;
-import io.github.maksim0840.parsingtaskorchestrator.domain.model.*;
+import io.github.maksim0840.parsingtaskorchestrator.entity.model.*;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;

@@ -1,6 +1,6 @@
 package io.github.maksim0840.usersinfo.service;
 
-import io.github.maksim0840.usersinfo.domain.User;
+import io.github.maksim0840.usersinfo.entity.User;
 import io.github.maksim0840.internalapi.user.v1.enums.UserRole;
 import io.github.maksim0840.usersinfo.exception.EncryptionException;
 import io.github.maksim0840.usersinfo.exception.EncryptionIllegalArgumentException;
@@ -8,7 +8,6 @@ import io.github.maksim0840.usersinfo.exception.NotFoundException;
 import io.github.maksim0840.usersinfo.repository.UserRepository;
 import io.github.maksim0840.usersinfo.repository.UserSpecification;
 import io.github.maksim0840.usersinfo.utils.PasswordEncryption;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.PageRequest;

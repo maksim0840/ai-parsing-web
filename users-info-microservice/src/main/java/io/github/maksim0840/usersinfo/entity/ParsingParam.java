@@ -1,9 +1,8 @@
-package io.github.maksim0840.usersinfo.domain;
+package io.github.maksim0840.usersinfo.entity;
 
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;

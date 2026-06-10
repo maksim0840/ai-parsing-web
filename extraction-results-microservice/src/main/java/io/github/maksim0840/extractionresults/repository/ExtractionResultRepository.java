@@ -1,6 +1,6 @@
 package io.github.maksim0840.extractionresults.repository;
 
-import io.github.maksim0840.extractionresults.domain.ExtractionResult;
+import io.github.maksim0840.extractionresults.entity.ExtractionResult;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 /**

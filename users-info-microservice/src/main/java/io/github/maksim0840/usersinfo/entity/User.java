@@ -1,4 +1,4 @@
-package io.github.maksim0840.usersinfo.domain;
+package io.github.maksim0840.usersinfo.entity;
 
 import io.github.maksim0840.internalapi.user.v1.enums.UserRole;
 import jakarta.persistence.*;

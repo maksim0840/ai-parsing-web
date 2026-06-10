@@ -8,7 +8,7 @@
 //import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorStartServiceGrpc;
 //import io.github.maksim0840.parsingtaskorchestrator.config.RabbitConfiguration;
 //import io.github.maksim0840.parsingtaskorchestrator.repository.TaskRepository;
-//import io.github.maksim0840.parsingtaskorchestrator.util.JsonMapper;
+//import io.github.maksim0840.parsingtaskorchestrator.mapper.JsonMapper;
 //import net.devh.boot.grpc.client.inject.GrpcClient;
 //import org.junit.jupiter.api.Test;
 //import org.springframework.amqp.core.AmqpAdmin;

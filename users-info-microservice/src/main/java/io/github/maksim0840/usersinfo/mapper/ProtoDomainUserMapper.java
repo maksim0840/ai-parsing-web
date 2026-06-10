@@ -3,7 +3,7 @@ package io.github.maksim0840.usersinfo.mapper;
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 import io.github.maksim0840.internalapi.user.v1.mapper.ProtoUserRoleMapper;
 import io.github.maksim0840.user.v1.UserProto;
-import io.github.maksim0840.usersinfo.domain.User;
+import io.github.maksim0840.usersinfo.entity.User;
 
 public class ProtoDomainUserMapper {
 

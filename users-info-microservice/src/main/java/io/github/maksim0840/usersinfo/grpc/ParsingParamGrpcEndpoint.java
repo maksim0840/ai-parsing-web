@@ -3,7 +3,7 @@ package io.github.maksim0840.usersinfo.grpc;
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 import io.github.maksim0840.parsing_param.v1.*;
 import io.github.maksim0840.user.v1.DeleteUserResponse;
-import io.github.maksim0840.usersinfo.domain.ParsingParam;
+import io.github.maksim0840.usersinfo.entity.ParsingParam;
 import io.github.maksim0840.usersinfo.exception.NotFoundException;
 import io.github.maksim0840.usersinfo.mapper.ProtoDomainParsingParamMapper;
 import io.github.maksim0840.usersinfo.service.ParsingParamService;

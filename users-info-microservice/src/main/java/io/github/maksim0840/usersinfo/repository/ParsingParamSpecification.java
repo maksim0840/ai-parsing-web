@@ -1,7 +1,6 @@
 package io.github.maksim0840.usersinfo.repository;
 
-import io.github.maksim0840.usersinfo.domain.ParsingParam;
-import io.github.maksim0840.usersinfo.domain.User;
+import io.github.maksim0840.usersinfo.entity.ParsingParam;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.Instant;

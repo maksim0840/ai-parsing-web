@@ -1,6 +1,6 @@
 package io.github.maksim0840.usersinfo.repository;
 
-import io.github.maksim0840.usersinfo.domain.User;
+import io.github.maksim0840.usersinfo.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 

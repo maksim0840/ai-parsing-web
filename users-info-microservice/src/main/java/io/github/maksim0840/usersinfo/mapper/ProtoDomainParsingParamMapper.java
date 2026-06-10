@@ -2,7 +2,7 @@ package io.github.maksim0840.usersinfo.mapper;
 
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 import io.github.maksim0840.parsing_param.v1.ParsingParamProto;
-import io.github.maksim0840.usersinfo.domain.ParsingParam;
+import io.github.maksim0840.usersinfo.entity.ParsingParam;
 
 public class ProtoDomainParsingParamMapper {
 

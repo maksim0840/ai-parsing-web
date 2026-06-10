@@ -1,6 +1,6 @@
 package io.github.maksim0840.usersinfo.repository;
 
-import io.github.maksim0840.usersinfo.domain.User;
+import io.github.maksim0840.usersinfo.entity.User;
 import io.github.maksim0840.internalapi.user.v1.enums.UserRole;
 import org.springframework.data.jpa.domain.Specification;
 
