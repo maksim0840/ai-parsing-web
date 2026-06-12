@@ -1,6 +1,6 @@
 package io.github.maksim0840.apigateway.security;
 
-import io.github.maksim0840.apigateway.dto.UserDTO;
+import io.github.maksim0840.internalapi.user.v1.dto.UserDTO;
 import io.github.maksim0840.internalapi.user.v1.enums.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;

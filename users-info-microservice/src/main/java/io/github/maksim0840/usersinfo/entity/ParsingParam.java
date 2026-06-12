@@ -1,11 +1,17 @@
 package io.github.maksim0840.usersinfo.entity;
 
+import io.github.maksim0840.internalapi.user.v1.dto.HtmlPreprocessingParamsDTO;
+import io.github.maksim0840.usersinfo.entity.model.HtmlParserParams;
+import io.github.maksim0840.usersinfo.entity.model.HtmlPreprocessingParams;
+import io.github.maksim0840.usersinfo.entity.model.LLMParams;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.type.SqlTypes;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -36,24 +42,28 @@ public class ParsingParam {
     private User user;
 
     private String name;
-    private String description;
+
     @CreatedDate                            // автозаполнение даты при сохранении
     @Column(name = "created_at")            // названия колонок с составными именами лучше указать явно
     private Instant createdAt;
 
-    public ParsingParam() {}
+    @JdbcTypeCode(SqlTypes.JSON)            // храним как jsonb
+    @Column(name = "html_parser_params", columnDefinition = "jsonb")
+    HtmlParserParams htmlParserParams;
 
-    public ParsingParam(User user, String name, String description) {
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "html_preprocessing_params", columnDefinition = "jsonb")
+    HtmlPreprocessingParams htmlPreprocessingParams;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "llm_params", columnDefinition = "jsonb")
+    LLMParams llmParams;
+
+    public ParsingParam(User user, String name, HtmlParserParams htmlParserParams, HtmlPreprocessingParams htmlPreprocessingParams, LLMParams llmParams) {
         this.user = user;
         this.name = name;
-        this.description = description;
-    }
-
-    public ParsingParam(Long id, User user, String name, String description, Instant createdAt) {
-        this.id = id;
-        this.user = user;
-        this.name = name;
-        this.description = description;
-        this.createdAt = createdAt;
+        this.htmlParserParams = htmlParserParams;
+        this.htmlPreprocessingParams = htmlPreprocessingParams;
+        this.llmParams = llmParams;
     }
 }

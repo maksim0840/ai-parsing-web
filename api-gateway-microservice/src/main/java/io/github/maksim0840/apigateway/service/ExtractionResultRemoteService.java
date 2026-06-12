@@ -1,8 +1,8 @@
 package io.github.maksim0840.apigateway.service;
 
-import io.github.maksim0840.apigateway.dto.ExtractionResultDTO;
 import io.github.maksim0840.apigateway.grpc.ExtractionResultGrpcClient;
 import io.github.maksim0840.apigateway.mapper.JsonStringMapper;
+import io.github.maksim0840.internalapi.extraction_result.v1.dto.ExtractionResultDTO;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;

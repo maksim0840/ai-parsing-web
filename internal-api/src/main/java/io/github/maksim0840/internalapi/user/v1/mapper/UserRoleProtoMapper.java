@@ -3,7 +3,7 @@ package io.github.maksim0840.internalapi.user.v1.mapper;
 import io.github.maksim0840.internalapi.user.v1.enums.UserRole;
 import io.github.maksim0840.user.v1.UserRoleProto;
 
-public class ProtoUserRoleMapper {
+public class UserRoleProtoMapper {
 
     public static UserRoleProto domainToProto(UserRole domain) {
         if (domain == null) {

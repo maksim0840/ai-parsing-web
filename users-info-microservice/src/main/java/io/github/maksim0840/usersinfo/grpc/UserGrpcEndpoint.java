@@ -1,14 +1,15 @@
 package io.github.maksim0840.usersinfo.grpc;
 
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
+import io.github.maksim0840.internalapi.user.v1.dto.UserDTO;
 import io.github.maksim0840.internalapi.user.v1.enums.UserRole;
-import io.github.maksim0840.internalapi.user.v1.mapper.ProtoUserRoleMapper;
+import io.github.maksim0840.internalapi.user.v1.mapper.UserProtoMapper;
+import io.github.maksim0840.internalapi.user.v1.mapper.UserRoleProtoMapper;
 import io.github.maksim0840.user.v1.*;
 import io.github.maksim0840.usersinfo.entity.User;
 import io.github.maksim0840.usersinfo.exception.EncryptionException;
 import io.github.maksim0840.usersinfo.exception.EncryptionIllegalArgumentException;
 import io.github.maksim0840.usersinfo.exception.NotFoundException;
-import io.github.maksim0840.usersinfo.mapper.ProtoDomainUserMapper;
 import io.github.maksim0840.usersinfo.service.UserService;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -33,15 +34,15 @@ public class UserGrpcEndpoint extends UserServiceGrpc.UserServiceImplBase {
         String password = request.getPassword();
         UserRole role;
         try {
-            role = ProtoUserRoleMapper.protoToDomain(request.getRole());
+            role = UserRoleProtoMapper.protoToDomain(request.getRole());
         } catch (IllegalArgumentException e) {
             observerResponse.onError(error(Status.INVALID_ARGUMENT, e.getMessage()));
             return;
         }
 
         try {
-            User user = userService.createUser(name, password, role);
-            UserProto userProto = ProtoDomainUserMapper.domainToProto(user);
+            UserDTO user = userService.createUser(name, password, role);
+            UserProto userProto = UserProtoMapper.dtoToProto(user);
             CreateUserResponse response = CreateUserResponse.newBuilder()
                     .setUser(userProto).build();
 
@@ -61,8 +62,8 @@ public class UserGrpcEndpoint extends UserServiceGrpc.UserServiceImplBase {
         Long id = request.getId();
 
         try {
-            User user = userService.getUserById(id);
-            UserProto userProto = ProtoDomainUserMapper.domainToProto(user);
+            UserDTO user = userService.getUserById(id);
+            UserProto userProto = UserProtoMapper.dtoToProto(user);
             GetUserResponse response = GetUserResponse.newBuilder()
                     .setUser(userProto).build();
 
@@ -80,8 +81,8 @@ public class UserGrpcEndpoint extends UserServiceGrpc.UserServiceImplBase {
         String name = request.getName();
 
         try {
-            User user = userService.getUserByName(name);
-            UserProto userProto = ProtoDomainUserMapper.domainToProto(user);
+            UserDTO user = userService.getUserByName(name);
+            UserProto userProto = UserProtoMapper.dtoToProto(user);
             GetUserResponse response = GetUserResponse.newBuilder()
                     .setUser(userProto).build();
 
@@ -98,7 +99,7 @@ public class UserGrpcEndpoint extends UserServiceGrpc.UserServiceImplBase {
     public void getList(GetListUserRequest request, StreamObserver<GetListUserResponse> observerResponse) {
         UserRole role;
         try {
-            role = request.hasRole() ? ProtoUserRoleMapper.protoToDomain(request.getRole()) : null;
+            role = request.hasRole() ? UserRoleProtoMapper.protoToDomain(request.getRole()) : null;
         } catch (IllegalArgumentException e) {
             observerResponse.onError(error(Status.INVALID_ARGUMENT, e.getMessage()));
             return;
@@ -110,9 +111,9 @@ public class UserGrpcEndpoint extends UserServiceGrpc.UserServiceImplBase {
         Boolean isSortDesc = request.hasSortCreatedDesc() ? request.getSortCreatedDesc() : null;
 
         try {
-            List<User> users = userService.getListUserByPageWithFiltering(role, createdFrom, createdTo, pageNum, pageSize, isSortDesc);
+            List<UserDTO> users = userService.getListUserByPageWithFiltering(role, createdFrom, createdTo, pageNum, pageSize, isSortDesc);
             List<UserProto> usersProto = users.stream()
-                    .map(ProtoDomainUserMapper::domainToProto)
+                    .map(UserProtoMapper::dtoToProto)
                     .toList();
             GetListUserResponse response = GetListUserResponse.newBuilder()
                     .addAllUsers(usersProto).build();
@@ -146,15 +147,15 @@ public class UserGrpcEndpoint extends UserServiceGrpc.UserServiceImplBase {
         Long id = request.getId();
         UserRole role;
         try {
-            role = ProtoUserRoleMapper.protoToDomain(request.getRole());
+            role = UserRoleProtoMapper.protoToDomain(request.getRole());
         } catch (IllegalArgumentException e) {
             observerResponse.onError(error(Status.INVALID_ARGUMENT, e.getMessage()));
             return;
         }
 
         try {
-            User user = userService.setUserRoleById(id, role);
-            UserProto userProto = ProtoDomainUserMapper.domainToProto(user);
+            UserDTO user = userService.setUserRoleById(id, role);
+            UserProto userProto = UserProtoMapper.dtoToProto(user);
             SetUserRoleResponse response = SetUserRoleResponse.newBuilder()
                     .setUser(userProto).build();
 

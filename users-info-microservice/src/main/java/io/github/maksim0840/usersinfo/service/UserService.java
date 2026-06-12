@@ -1,10 +1,12 @@
 package io.github.maksim0840.usersinfo.service;
 
+import io.github.maksim0840.internalapi.user.v1.dto.UserDTO;
 import io.github.maksim0840.usersinfo.entity.User;
 import io.github.maksim0840.internalapi.user.v1.enums.UserRole;
 import io.github.maksim0840.usersinfo.exception.EncryptionException;
 import io.github.maksim0840.usersinfo.exception.EncryptionIllegalArgumentException;
 import io.github.maksim0840.usersinfo.exception.NotFoundException;
+import io.github.maksim0840.usersinfo.mapper.UserMapper;
 import io.github.maksim0840.usersinfo.repository.UserRepository;
 import io.github.maksim0840.usersinfo.repository.UserSpecification;
 import io.github.maksim0840.usersinfo.utils.PasswordEncryption;
@@ -23,12 +25,14 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, UserMapper userMapper) {
         this.userRepository = userRepository;
+        this.userMapper = userMapper;
     }
 
-    public User createUser(String name, String password, UserRole role) {
+    public UserDTO createUser(String name, String password, UserRole role) {
         String passwordHash;
         try {
             passwordHash = PasswordEncryption.makeHash(password);
@@ -40,31 +44,29 @@ public class UserService {
 
         User user = new User(name, passwordHash, role);
         try {
-            return userRepository.save(user);
+            user = userRepository.save(user);
+            return userMapper.toDto(user);
         } catch (DataAccessException e) {
             throw new RuntimeException("PostgreSQL user write failed", e);
         }
     }
 
-    public User getUserByName(String name) {
+    public UserDTO getUserByName(String name) {
         try {
-            return userRepository.findByName(name).orElseThrow(() ->
+            User user = userRepository.findByName(name).orElseThrow(() ->
                     new NotFoundException("PostgreSQL user not found (name: " + name + ")"));
+            return userMapper.toDto(user);
         } catch (DataAccessException e) {
             throw new RuntimeException("PostgreSQL user read failed", e);
         }
     }
 
-    public User getUserById(Long id) {
-        try {
-            return userRepository.findById(id).orElseThrow(() ->
-                    new NotFoundException("PostgreSQL user not found (id: " + id + ")"));
-        } catch (DataAccessException e) {
-            throw new RuntimeException("PostgreSQL user read failed", e);
-        }
+    public UserDTO getUserById(Long id) {
+        User user = getUser(id);
+        return userMapper.toDto(user);
     }
 
-    public List<User> getListUserByPageWithFiltering(UserRole role, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc) {
+    public List<UserDTO> getListUserByPageWithFiltering(UserRole role, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc) {
         // Настраиваем фильтрацию
         Specification<User> spec = Specification.where(null);
         if (dateFrom != null) spec = spec.and(UserSpecification.greaterOrEqualCreatedAt(dateFrom));
@@ -81,7 +83,8 @@ public class UserService {
 
         // Выполняем запрос
         try {
-            return userRepository.findAll(spec, pageable).getContent();
+            List<User> users = userRepository.findAll(spec, pageable).getContent();
+            return users.stream().map(userMapper::toDto).toList();
         } catch (DataAccessException e) {
             throw new RuntimeException("PostgreSQL user read failed", e);
         }
@@ -100,15 +103,15 @@ public class UserService {
     }
 
     @Transactional
-    public User setUserRoleById(Long id, UserRole role) {
-        User user = getUserById(id);
+    public UserDTO setUserRoleById(Long id, UserRole role) {
+        User user = getUser(id);
         user.setRole(role);
-        return user;
+        return userMapper.toDto(user);
     }
 
     public boolean checkUserPasswordById(Long id, String password) {
-        User user = getUserById(id);
-        String passwordHash = user.getPasswordHash();
+        UserDTO user = getUserById(id);
+        String passwordHash = user.passwordHash();
         try {
             return PasswordEncryption.checkMatching(password, passwordHash);
         } catch (IllegalArgumentException e) {
@@ -123,6 +126,15 @@ public class UserService {
             return userRepository.existsById(id);
         } catch (DataAccessException e) {
             throw new RuntimeException("PostgreSQL user check existence failed", e);
+        }
+    }
+
+    private User getUser(Long id) {
+        try {
+            return userRepository.findById(id).orElseThrow(() ->
+                    new NotFoundException("PostgreSQL user not found (id: " + id + ")"));
+        } catch (DataAccessException e) {
+            throw new RuntimeException("PostgreSQL user read failed", e);
         }
     }
 }

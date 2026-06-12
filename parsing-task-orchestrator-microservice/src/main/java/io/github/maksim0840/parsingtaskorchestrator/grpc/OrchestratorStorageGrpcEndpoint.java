@@ -27,7 +27,7 @@ public class OrchestratorStorageGrpcEndpoint extends OrchestratorStorageServiceG
 
         GetTaskStatusOrchestratorResponse response = GetTaskStatusOrchestratorResponse.newBuilder()
                 .setTaskId(request.getTaskId())
-                .setStatus(TaskStatusMapper.enumToProto(statusDTO.status()))
+                .setStatus(TaskStatusProtoMapper.enumToProto(statusDTO.status()))
                 .setMessage(statusDTO.message() == null ? "" : statusDTO.message())
                 .build();
         responseObserver.onNext(response);
@@ -48,16 +48,16 @@ public class OrchestratorStorageGrpcEndpoint extends OrchestratorStorageServiceG
         GetTaskResultOrchestratorResponse.Builder responseBuilder = GetTaskResultOrchestratorResponse.newBuilder();
         responseBuilder.setTaskId(request.getTaskId());
         if (taskDTO.htmlParserResponse() != null) {
-            responseBuilder.setHtmlParserResponse(HtmlParserResponseMapper.dtoToProto(taskDTO.htmlParserResponse()));
+            responseBuilder.setHtmlParserResponse(HtmlParserResponseProtoMapper.dtoToProto(taskDTO.htmlParserResponse()));
         }
         if (taskDTO.htmlPreprocessingResponse() != null) {
-            responseBuilder.setHtmlPreprocessingResponse(HtmlPreprocessingResponseMapper.dtoToProto(taskDTO.htmlPreprocessingResponse()));
+            responseBuilder.setHtmlPreprocessingResponse(HtmlPreprocessingResponseProtoMapper.dtoToProto(taskDTO.htmlPreprocessingResponse()));
         }
         if (taskDTO.textRecognitionResponse() != null) {
-            responseBuilder.setTextRecognitionResponse(TextRecognitionResponseMapper.dtoToProto(taskDTO.textRecognitionResponse()));
+            responseBuilder.setTextRecognitionResponse(TextRecognitionResponseProtoMapper.dtoToProto(taskDTO.textRecognitionResponse()));
         }
         if (taskDTO.llmResponse() != null) {
-            responseBuilder.setLlmResponse(LLMResponseMapper.dtoToProto(taskDTO.llmResponse()));
+            responseBuilder.setLlmResponse(LLMResponseProtoMapper.dtoToProto(taskDTO.llmResponse()));
         }
 
         responseObserver.onNext(responseBuilder.build());

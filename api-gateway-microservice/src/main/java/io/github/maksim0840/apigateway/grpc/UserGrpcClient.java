@@ -1,10 +1,10 @@
 package io.github.maksim0840.apigateway.grpc;
 
-import io.github.maksim0840.apigateway.dto.UserDTO;
-import io.github.maksim0840.apigateway.mapper.ProtoDTOUserMapper;
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
+import io.github.maksim0840.internalapi.user.v1.dto.UserDTO;
 import io.github.maksim0840.internalapi.user.v1.enums.UserRole;
-import io.github.maksim0840.internalapi.user.v1.mapper.ProtoUserRoleMapper;
+import io.github.maksim0840.internalapi.user.v1.mapper.UserProtoMapper;
+import io.github.maksim0840.internalapi.user.v1.mapper.UserRoleProtoMapper;
 import io.github.maksim0840.user.v1.*;
 import io.grpc.StatusRuntimeException;
 import net.devh.boot.grpc.client.inject.GrpcClient;
@@ -23,13 +23,13 @@ public class UserGrpcClient {
         CreateUserRequest request = CreateUserRequest.newBuilder()
                 .setName(name)
                 .setPassword(password)
-                .setRole(ProtoUserRoleMapper.domainToProto(role))
+                .setRole(UserRoleProtoMapper.domainToProto(role))
                 .build();
 
         try {
             CreateUserResponse response = blockingStub.create(request);
             UserProto userProto = response.getUser();
-            return ProtoDTOUserMapper.protoToDto(userProto);
+            return UserProtoMapper.protoToDto(userProto);
         } catch (StatusRuntimeException e) {
             throw GrpcExceptionMapper.map(e);
         }
@@ -43,7 +43,7 @@ public class UserGrpcClient {
         try {
             GetUserResponse response = blockingStub.getById(request);
             UserProto userProto = response.getUser();
-            return ProtoDTOUserMapper.protoToDto(userProto);
+            return UserProtoMapper.protoToDto(userProto);
         } catch (StatusRuntimeException e) {
             throw GrpcExceptionMapper.map(e);
         }
@@ -57,7 +57,7 @@ public class UserGrpcClient {
         try {
             GetUserResponse response = blockingStub.getByName(request);
             UserProto userProto = response.getUser();
-            return ProtoDTOUserMapper.protoToDto(userProto);
+            return UserProtoMapper.protoToDto(userProto);
         } catch (StatusRuntimeException e) {
             throw GrpcExceptionMapper.map(e);
         }
@@ -67,7 +67,7 @@ public class UserGrpcClient {
         GetListUserRequest.Builder requestBuilder = GetListUserRequest.newBuilder()
                 .setPageNum(pageNum)
                 .setPageSize(pageSize);
-        if (role != null) requestBuilder.setRole(ProtoUserRoleMapper.domainToProto(role));
+        if (role != null) requestBuilder.setRole(UserRoleProtoMapper.domainToProto(role));
         if (dateFrom != null) requestBuilder.setCreatedFrom(ProtoTimeMapper.instantToTimestamp(dateFrom));
         if (dateTo != null) requestBuilder.setCreatedTo(ProtoTimeMapper.instantToTimestamp(dateTo));
         if (isSortDesc != null) requestBuilder.setSortCreatedDesc(isSortDesc);
@@ -77,7 +77,7 @@ public class UserGrpcClient {
             GetListUserResponse response = blockingStub.getList(request);
             List<UserProto> usersProto = response.getUsersList();
             return usersProto.stream()
-                    .map(ProtoDTOUserMapper::protoToDto)
+                    .map(UserProtoMapper::protoToDto)
                     .toList();
         } catch (StatusRuntimeException e) {
             throw GrpcExceptionMapper.map(e);
@@ -99,13 +99,13 @@ public class UserGrpcClient {
     public UserDTO setRole(Long id, UserRole role) {
         SetUserRoleRequest request = SetUserRoleRequest.newBuilder()
                 .setId(id)
-                .setRole(ProtoUserRoleMapper.domainToProto(role))
+                .setRole(UserRoleProtoMapper.domainToProto(role))
                 .build();
 
         try {
             SetUserRoleResponse response = blockingStub.setRole(request);
             UserProto userProto = response.getUser();
-            return ProtoDTOUserMapper.protoToDto(userProto);
+            return UserProtoMapper.protoToDto(userProto);
         } catch (StatusRuntimeException e) {
             throw GrpcExceptionMapper.map(e);
         }

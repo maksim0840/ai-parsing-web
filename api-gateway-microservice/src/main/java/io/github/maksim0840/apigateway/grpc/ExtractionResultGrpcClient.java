@@ -1,8 +1,8 @@
 package io.github.maksim0840.apigateway.grpc;
 
-import io.github.maksim0840.apigateway.dto.ExtractionResultDTO;
-import io.github.maksim0840.apigateway.mapper.ProtoDTOExtractionResultMapper;
 import io.github.maksim0840.extraction_result.v1.*;
+import io.github.maksim0840.internalapi.extraction_result.v1.dto.ExtractionResultDTO;
+import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ExtractionResultProtoMapper;
 import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ProtoJsonMapper;
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 import io.grpc.StatusRuntimeException;
@@ -29,7 +29,7 @@ public class ExtractionResultGrpcClient {
         try {
             CreateExtractionResultResponse response = blockingStub.create(request);
             ExtractionResultProto extractionResultProto = response.getExtractionResult();
-            return ProtoDTOExtractionResultMapper.protoToDto(extractionResultProto);
+            return ExtractionResultProtoMapper.protoToDto(extractionResultProto);
         } catch (StatusRuntimeException e) {
             throw GrpcExceptionMapper.map(e);
         }
@@ -43,7 +43,7 @@ public class ExtractionResultGrpcClient {
         try {
             GetExtractionResultResponse response = blockingStub.get(request);
             ExtractionResultProto extractionResultProto = response.getExtractionResult();
-            return ProtoDTOExtractionResultMapper.protoToDto(extractionResultProto);
+            return ExtractionResultProtoMapper.protoToDto(extractionResultProto);
         } catch (StatusRuntimeException e) {
             throw GrpcExceptionMapper.map(e);
         }
@@ -63,7 +63,7 @@ public class ExtractionResultGrpcClient {
             GetListExtractionResultResponse response = blockingStub.getList(request);
             List<ExtractionResultProto> extractionResultsProto = response.getExtractionResultsList();
             return extractionResultsProto.stream()
-                    .map(ProtoDTOExtractionResultMapper::protoToDto)
+                    .map(ExtractionResultProtoMapper::protoToDto)
                     .toList();
         } catch (StatusRuntimeException e) {
             throw GrpcExceptionMapper.map(e);

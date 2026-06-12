@@ -4,7 +4,8 @@ import io.github.maksim0840.extraction_result.v1.*;
 import io.github.maksim0840.extractionresults.entity.ExtractionResult;
 import io.github.maksim0840.extractionresults.exception.NotFoundException;
 import io.github.maksim0840.extractionresults.service.ExtractionResultService;
-import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ExtractionResultMapper;
+import io.github.maksim0840.internalapi.extraction_result.v1.dto.ExtractionResultDTO;
+import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ExtractionResultProtoMapper;
 import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ProtoJsonMapper;
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 import io.grpc.Status;
@@ -42,8 +43,8 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
         }
 
         try {
-            ExtractionResult extractionResult = extractionResultService.createExtractionResult(url, userId, jsonResult);
-            ExtractionResultProto extractionResultProto = ExtractionResultMapper.domainToProto(extractionResult);
+            ExtractionResultDTO extractionResult = extractionResultService.createExtractionResult(url, userId, jsonResult);
+            ExtractionResultProto extractionResultProto = ExtractionResultProtoMapper.dtoToProto(extractionResult);
             CreateExtractionResultResponse response = CreateExtractionResultResponse.newBuilder()
                     .setExtractionResult(extractionResultProto).build();
 
@@ -64,8 +65,8 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
         }
 
         try {
-            ExtractionResult extractionResult = extractionResultService.getExtractionResultById(id);
-            ExtractionResultProto extractionResultProto = ExtractionResultMapper.domainToProto(extractionResult);
+            ExtractionResultDTO extractionResult = extractionResultService.getExtractionResultById(id);
+            ExtractionResultProto extractionResultProto = ExtractionResultProtoMapper.dtoToProto(extractionResult);
             GetExtractionResultResponse response = GetExtractionResultResponse.newBuilder()
                     .setExtractionResult(extractionResultProto).build();
 
@@ -89,9 +90,9 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
         Boolean isSortDesc = request.hasSortCreatedDesc() ? request.getSortCreatedDesc() : null;
 
         try {
-            List<ExtractionResult> extractionResults = extractionResultService.getListExtractionResultByPageWithFiltering(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc);
+            List<ExtractionResultDTO> extractionResults = extractionResultService.getListExtractionResultByPageWithFiltering(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc);
             List<ExtractionResultProto> extractionResultsProto = extractionResults.stream()
-                    .map(ExtractionResultMapper::domainToProto)
+                    .map(ExtractionResultProtoMapper::dtoToProto)
                     .toList();
             GetListExtractionResultResponse response = GetListExtractionResultResponse.newBuilder()
                     .addAllExtractionResults(extractionResultsProto).build();

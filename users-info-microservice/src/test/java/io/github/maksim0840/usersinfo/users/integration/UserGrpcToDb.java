@@ -2,7 +2,7 @@ package io.github.maksim0840.usersinfo.users.integration;
 
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 import io.github.maksim0840.internalapi.user.v1.enums.UserRole;
-import io.github.maksim0840.internalapi.user.v1.mapper.ProtoUserRoleMapper;
+import io.github.maksim0840.internalapi.user.v1.mapper.UserRoleProtoMapper;
 import io.github.maksim0840.user.v1.*;
 import io.github.maksim0840.usersinfo.Main;
 import io.github.maksim0840.usersinfo.entity.ParsingParam;
@@ -96,14 +96,14 @@ public class UserGrpcToDb {
         CreateUserRequest request1 = CreateUserRequest.newBuilder()
                 .setName("user123")
                 .setPassword("aHjksd82lsKK")
-                .setRole(ProtoUserRoleMapper.domainToProto(role1))
+                .setRole(UserRoleProtoMapper.domainToProto(role1))
                 .build();
 
         UserRole role2 = UserRole.ROLE_VISITOR;
         CreateUserRequest request2 = CreateUserRequest.newBuilder()
                 .setName("pdurov")
                 .setPassword("qwerty12345")
-                .setRole(ProtoUserRoleMapper.domainToProto(role2))
+                .setRole(UserRoleProtoMapper.domainToProto(role2))
                 .build();
 
         // Отправляем запросы на сервер и получаем ответы
@@ -139,7 +139,7 @@ public class UserGrpcToDb {
         UserRole role = UserRole.ROLE_USER;
         CreateUserRequest request = CreateUserRequest.newBuilder()
                 .setPassword("zX9!mN4#pQ1")
-                .setRole(ProtoUserRoleMapper.domainToProto(role))
+                .setRole(UserRoleProtoMapper.domainToProto(role))
                 .build();
 
         Instant timeBefore = Instant.now();
@@ -165,7 +165,7 @@ public class UserGrpcToDb {
         UserRole role = UserRole.ROLE_ADMIN;
         CreateUserRequest request = CreateUserRequest.newBuilder()
                 .setName("user\uD83D\uDD25")
-                .setRole(ProtoUserRoleMapper.domainToProto(role))
+                .setRole(UserRoleProtoMapper.domainToProto(role))
                 .build();
 
         Instant timeBefore = Instant.now();
@@ -272,7 +272,7 @@ public class UserGrpcToDb {
     @Test
     void getListAllParams() {
         GetListUserRequest request = GetListUserRequest.newBuilder()
-                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.ROLE_USER))
+                .setRole(UserRoleProtoMapper.domainToProto(UserRole.ROLE_USER))
                 .setCreatedFrom(ProtoTimeMapper.instantToTimestamp(Instant.parse("2026-01-05T00:00:00.000Z")))
                 .setCreatedTo(ProtoTimeMapper.instantToTimestamp(Instant.parse("2026-01-08T00:00:00.000Z")))
                 .setPageNum(0)
@@ -331,7 +331,7 @@ public class UserGrpcToDb {
     @Test
     void getListByRole() {
         GetListUserRequest request = GetListUserRequest.newBuilder()
-                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.ROLE_VISITOR))
+                .setRole(UserRoleProtoMapper.domainToProto(UserRole.ROLE_VISITOR))
                 .setPageNum(0)
                 .setPageSize(100)
                 .build();
@@ -619,11 +619,11 @@ public class UserGrpcToDb {
         // Делаем запрос на изменение ролей
         SetUserRoleRequest request1 = SetUserRoleRequest.newBuilder()
                 .setId(entity1.getId())
-                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.ROLE_USER))
+                .setRole(UserRoleProtoMapper.domainToProto(UserRole.ROLE_USER))
                 .build();
         SetUserRoleRequest request2 = SetUserRoleRequest.newBuilder()
                 .setId(entity2.getId())
-                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.ROLE_ADMIN))
+                .setRole(UserRoleProtoMapper.domainToProto(UserRole.ROLE_ADMIN))
                 .build();
         UserProto responseProto1 = blockingStub.setRole(request1).getUser();
         UserProto responseProto2 = blockingStub.setRole(request2).getUser();
@@ -633,8 +633,8 @@ public class UserGrpcToDb {
         User updatedEntity2 = userRepository.findById(entity2.getId()).orElseThrow();
 
         // Проверяем, что роли изменились (в response и в реальной базе данных)
-        assertThat(ProtoUserRoleMapper.protoToDomain(responseProto1.getRole())).isEqualTo(UserRole.ROLE_USER);
-        assertThat(ProtoUserRoleMapper.protoToDomain(responseProto2.getRole())).isEqualTo(UserRole.ROLE_ADMIN);
+        assertThat(UserRoleProtoMapper.protoToDomain(responseProto1.getRole())).isEqualTo(UserRole.ROLE_USER);
+        assertThat(UserRoleProtoMapper.protoToDomain(responseProto2.getRole())).isEqualTo(UserRole.ROLE_ADMIN);
         assertThat(updatedEntity1.getRole()).isEqualTo(UserRole.ROLE_USER);
         assertThat(updatedEntity2.getRole()).isEqualTo(UserRole.ROLE_ADMIN);
     }
@@ -655,13 +655,13 @@ public class UserGrpcToDb {
 
         SetUserRoleRequest request = SetUserRoleRequest.newBuilder()
                 .setId(entity.getId())
-                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.ROLE_ADMIN))
+                .setRole(UserRoleProtoMapper.domainToProto(UserRole.ROLE_ADMIN))
                 .build();
         UserProto responseProto = blockingStub.setRole(request).getUser();
 
         User updatedEntity = userRepository.findById(entity.getId()).orElseThrow();
 
-        assertThat(ProtoUserRoleMapper.protoToDomain(responseProto.getRole())).isEqualTo(UserRole.ROLE_ADMIN);
+        assertThat(UserRoleProtoMapper.protoToDomain(responseProto.getRole())).isEqualTo(UserRole.ROLE_ADMIN);
         assertThat(updatedEntity.getRole()).isEqualTo(UserRole.ROLE_ADMIN);
     }
 
@@ -714,7 +714,7 @@ public class UserGrpcToDb {
 
         SetUserRoleRequest request = SetUserRoleRequest.newBuilder()
                 .setId(-1)
-                .setRole(ProtoUserRoleMapper.domainToProto(UserRole.ROLE_USER))
+                .setRole(UserRoleProtoMapper.domainToProto(UserRole.ROLE_USER))
                 .build();
 
         StatusRuntimeException ex = assertThrows(
@@ -910,7 +910,7 @@ public class UserGrpcToDb {
     ) {
         assertThat(actualProto.getName()).isEqualTo(expectedName);
         assertThat(PasswordEncryption.checkMatching(expectedPassword, actualProto.getPasswordHash())).isTrue();
-        assertThat(ProtoUserRoleMapper.protoToDomain(actualProto.getRole())).isEqualTo(expectedRole);
+        assertThat(UserRoleProtoMapper.protoToDomain(actualProto.getRole())).isEqualTo(expectedRole);
 
         assertThat(ProtoTimeMapper.timestampToInstant(actualProto.getCreatedAt()))
                 .isBetween(timeBefore.minusSeconds(2), timeAfter.plusSeconds(2));
@@ -945,7 +945,7 @@ public class UserGrpcToDb {
         assertThat(domain.getName()).isEqualTo(proto.getName());
         assertThat(PasswordEncryption.checkMatching(expectedPassword, domain.getPasswordHash())).isTrue();
         assertThat(PasswordEncryption.checkMatching(expectedPassword, proto.getPasswordHash())).isTrue();
-        assertThat(domain.getRole()).isEqualTo(ProtoUserRoleMapper.protoToDomain(proto.getRole()));
+        assertThat(domain.getRole()).isEqualTo(UserRoleProtoMapper.protoToDomain(proto.getRole()));
         assertThat(domain.getCreatedAt()).isCloseTo(
                 ProtoTimeMapper.timestampToInstant(proto.getCreatedAt()),
                 within(1, ChronoUnit.MILLIS));

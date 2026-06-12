@@ -1,13 +1,11 @@
 package io.github.maksim0840.apigateway.controller;
 
-import io.github.maksim0840.apigateway.dto.ExtractionResultDTO;
 import io.github.maksim0840.apigateway.dto.api.ResultResponse;
 import io.github.maksim0840.apigateway.dto.api.ResultSaveApiRequest;
 import io.github.maksim0840.apigateway.dto.api.ResultsWithFilteringResponse;
 import io.github.maksim0840.apigateway.mapper.ApiResultDTOMapper;
 import io.github.maksim0840.apigateway.security.JwtPrincipal;
 import io.github.maksim0840.apigateway.service.ExtractionResultRemoteService;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 

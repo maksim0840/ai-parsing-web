@@ -1,11 +1,9 @@
 package io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper;
 
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.LLMResponseDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.enums.TaskStatus;
-import io.github.maksim0840.parsing_task_orchestrator.v1.LLMResponseProto;
 import io.github.maksim0840.parsing_task_orchestrator.v1.TaskStatusProto;
 
-public class TaskStatusMapper {
+public class TaskStatusProtoMapper {
     public static TaskStatusProto enumToProto(TaskStatus status) {
         return switch (status) {
             case NOT_REGISTERED -> TaskStatusProto.NOT_REGISTERED;

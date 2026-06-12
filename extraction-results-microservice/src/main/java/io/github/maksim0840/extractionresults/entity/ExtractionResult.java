@@ -1,8 +1,6 @@
 package io.github.maksim0840.extractionresults.entity;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
@@ -27,6 +25,8 @@ import java.util.Map;
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ExtractionResult {
     @Id
     private String id;                      // по умолчанию в MongoDB поле _id имеет тип ObjectId, который удобнее хранить в строке
@@ -36,19 +36,9 @@ public class ExtractionResult {
     @CreatedDate                            // автозаполнение даты при сохранении
     private Instant createdAt;              // дата + часовой пояс
 
-    public ExtractionResult() {}
-
     public ExtractionResult(String url, String userId, Map<String, Object> jsonResult) {
         this.url = url;
         this.userId = userId;
         this.jsonResult = jsonResult;
-    }
-
-    public ExtractionResult(String id, String url, String userId, Map<String, Object> jsonResult, Instant createdAt) {
-        this.id = id;
-        this.url = url;
-        this.userId = userId;
-        this.jsonResult = jsonResult;
-        this.createdAt = createdAt;
     }
 }

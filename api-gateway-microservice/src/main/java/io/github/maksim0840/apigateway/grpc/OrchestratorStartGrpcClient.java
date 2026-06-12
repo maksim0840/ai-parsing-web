@@ -4,10 +4,10 @@ import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPar
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingRequestDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.LLMRequestDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRecognitionRequestDTO;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlParserRequestMapper;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlPreprocessingRequestMapper;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.LLMRequestMapper;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.TextRecognitionRequestMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlParserRequestProtoMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlPreprocessingRequestProtoMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.LLMRequestProtoMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.TextRecognitionRequestProtoMapper;
 import io.github.maksim0840.parsing_task_orchestrator.v1.*;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Service;
@@ -29,16 +29,16 @@ public class OrchestratorStartGrpcClient {
         StartParsingOrchestratorRequest.Builder requestBuilder = StartParsingOrchestratorRequest.newBuilder();
         requestBuilder.setTaskId(taskId);
         if (htmlParserRequestDTO != null) {
-            requestBuilder.setHtmlParserRequest(HtmlParserRequestMapper.dtoToProto(htmlParserRequestDTO));
+            requestBuilder.setHtmlParserRequest(HtmlParserRequestProtoMapper.dtoToProto(htmlParserRequestDTO));
         }
         if (htmlPreprocessingRequestDTO != null) {
-            requestBuilder.setHtmlPreprocessingRequest(HtmlPreprocessingRequestMapper.dtoToProto(htmlPreprocessingRequestDTO));
+            requestBuilder.setHtmlPreprocessingRequest(HtmlPreprocessingRequestProtoMapper.dtoToProto(htmlPreprocessingRequestDTO));
         }
         if (textRecognitionRequestDTO != null) {
-            requestBuilder.setTextRecognitionRequest(TextRecognitionRequestMapper.dtoToProto(textRecognitionRequestDTO));
+            requestBuilder.setTextRecognitionRequest(TextRecognitionRequestProtoMapper.dtoToProto(textRecognitionRequestDTO));
         }
         if (llmRequestDTO != null) {
-            requestBuilder.setLlmRequest(LLMRequestMapper.dtoToProto(llmRequestDTO));
+            requestBuilder.setLlmRequest(LLMRequestProtoMapper.dtoToProto(llmRequestDTO));
         }
 
         StartParsingOrchestratorResponse response = blockingStub.startParsing(requestBuilder.build());

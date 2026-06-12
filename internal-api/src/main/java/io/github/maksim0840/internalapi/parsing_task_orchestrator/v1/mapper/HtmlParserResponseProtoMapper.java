@@ -5,15 +5,15 @@ import io.github.maksim0840.parsing_task_orchestrator.v1.HtmlParserResponseProto
 
 import java.util.List;
 
-public class HtmlParserResponseMapper {
+public class HtmlParserResponseProtoMapper {
 
     public static HtmlParserResponseProto dtoToProto(HtmlParserResponseDTO dto) {
         return HtmlParserResponseProto.newBuilder()
                 .setTaskId(dto.taskId() != null ? dto.taskId() : "")
                 .setSuccess(dto.success())
                 .setMessage(dto.message() != null ? dto.message() : "")
-                .addAllHtmlDocs(dto.htmlDocs() != null ? FileInfoMapper.dtoToProtoList(dto.htmlDocs()) : List.of())
-                .addAllImages(dto.images() != null ? FileInfoMapper.dtoToProtoList(dto.images()) : List.of())
+                .addAllHtmlDocs(dto.htmlDocs() != null ? FileInfoProtoMapper.dtoToProtoList(dto.htmlDocs()) : List.of())
+                .addAllImages(dto.images() != null ? FileInfoProtoMapper.dtoToProtoList(dto.images()) : List.of())
                 .build();
     }
 
@@ -22,8 +22,8 @@ public class HtmlParserResponseMapper {
                 .taskId(proto.getTaskId())
                 .success(proto.getSuccess())
                 .message(proto.getMessage())
-                .htmlDocs(FileInfoMapper.protoToDtoList(proto.getHtmlDocsList()))
-                .images(FileInfoMapper.protoToDtoList(proto.getImagesList()))
+                .htmlDocs(FileInfoProtoMapper.protoToDtoList(proto.getHtmlDocsList()))
+                .images(FileInfoProtoMapper.protoToDtoList(proto.getImagesList()))
                 .build();
     }
 }

@@ -5,7 +5,7 @@ import io.github.maksim0840.parsing_task_orchestrator.v1.HtmlParserRequestProto;
 
 import java.util.Map;
 
-public class HtmlParserRequestMapper {
+public class HtmlParserRequestProtoMapper {
 
     public static HtmlParserRequestProto dtoToProto(HtmlParserRequestDTO dto) {
         HtmlParserRequestProto.Builder protoBuilder = HtmlParserRequestProto.newBuilder();

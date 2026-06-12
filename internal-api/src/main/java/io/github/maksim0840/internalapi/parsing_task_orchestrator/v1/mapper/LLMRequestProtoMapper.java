@@ -2,13 +2,11 @@ package io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper;
 
 
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.LLMRequestDTO;
-import io.github.maksim0840.parsing_task_orchestrator.v1.HtmlParserRequestProto;
 import io.github.maksim0840.parsing_task_orchestrator.v1.LLMRequestProto;
 
 import java.util.List;
-import java.util.Map;
 
-public class LLMRequestMapper {
+public class LLMRequestProtoMapper {
     public static LLMRequestProto dtoToProto(LLMRequestDTO dto) {
         LLMRequestProto.Builder protoBuilder = LLMRequestProto.newBuilder();
         protoBuilder.setTaskId(dto.taskId() != null ? dto.taskId() : "");
@@ -17,8 +15,8 @@ public class LLMRequestMapper {
         protoBuilder.setUserMessage(dto.userMessage() != null ? dto.userMessage() : "");
         if (dto.temperature() != null) protoBuilder.setTemperature(dto.temperature());
         if (dto.maxOutputTokens() != null) protoBuilder.setMaxOutputTokens(dto.maxOutputTokens());
-        protoBuilder.addAllHtmlDocs(dto.htmlDocs() != null ? FileInfoMapper.dtoToProtoList(dto.htmlDocs()) : List.of());
-        protoBuilder.addAllImages(dto.images() != null ? FileInfoMapper.dtoToProtoList(dto.images()) : List.of());
+        protoBuilder.addAllHtmlDocs(dto.htmlDocs() != null ? FileInfoProtoMapper.dtoToProtoList(dto.htmlDocs()) : List.of());
+        protoBuilder.addAllImages(dto.images() != null ? FileInfoProtoMapper.dtoToProtoList(dto.images()) : List.of());
         return protoBuilder.build();
     }
 
@@ -30,8 +28,8 @@ public class LLMRequestMapper {
                 .userMessage(proto.getUserMessage())
                 .temperature(proto.hasTemperature() ? proto.getTemperature() : null)
                 .maxOutputTokens(proto.hasMaxOutputTokens() ? proto.getMaxOutputTokens() : null)
-                .htmlDocs(FileInfoMapper.protoToDtoList(proto.getHtmlDocsList()))
-                .images(FileInfoMapper.protoToDtoList(proto.getImagesList()))
+                .htmlDocs(FileInfoProtoMapper.protoToDtoList(proto.getHtmlDocsList()))
+                .images(FileInfoProtoMapper.protoToDtoList(proto.getImagesList()))
                 .build();
     }
 }

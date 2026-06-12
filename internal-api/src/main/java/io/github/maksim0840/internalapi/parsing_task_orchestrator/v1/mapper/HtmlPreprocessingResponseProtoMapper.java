@@ -5,14 +5,14 @@ import io.github.maksim0840.parsing_task_orchestrator.v1.HtmlPreprocessingRespon
 
 import java.util.List;
 
-public class HtmlPreprocessingResponseMapper {
+public class HtmlPreprocessingResponseProtoMapper {
 
     public static HtmlPreprocessingResponseProto dtoToProto(HtmlPreprocessingResponseDTO dto) {
         return HtmlPreprocessingResponseProto.newBuilder()
                 .setTaskId(dto.taskId() != null ? dto.taskId() : "")
                 .setSuccess(dto.success())
                 .setMessage(dto.message() != null ? dto.message() : "")
-                .addAllHtmlDocs(dto.htmlDocs() != null ? FileInfoMapper.dtoToProtoList(dto.htmlDocs()) : List.of())
+                .addAllHtmlDocs(dto.htmlDocs() != null ? FileInfoProtoMapper.dtoToProtoList(dto.htmlDocs()) : List.of())
                 .build();
     }
 
@@ -21,7 +21,7 @@ public class HtmlPreprocessingResponseMapper {
                 .taskId(proto.getTaskId())
                 .success(proto.getSuccess())
                 .message(proto.getMessage())
-                .htmlDocs(FileInfoMapper.protoToDtoList(proto.getHtmlDocsList()))
+                .htmlDocs(FileInfoProtoMapper.protoToDtoList(proto.getHtmlDocsList()))
                 .build();
     }
 }

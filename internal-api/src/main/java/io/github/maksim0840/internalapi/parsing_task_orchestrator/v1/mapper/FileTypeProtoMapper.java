@@ -1,11 +1,9 @@
 package io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper;
 
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.enums.FileType;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.enums.TaskStatus;
 import io.github.maksim0840.parsing_task_orchestrator.v1.FileTypeProto;
-import io.github.maksim0840.parsing_task_orchestrator.v1.TaskStatusProto;
 
-public class FileTypeMapper {
+public class FileTypeProtoMapper {
 
     public static FileTypeProto enumToProto(FileType status) {
         return switch (status) {

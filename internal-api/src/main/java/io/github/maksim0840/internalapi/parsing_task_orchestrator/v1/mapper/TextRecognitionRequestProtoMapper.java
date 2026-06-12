@@ -5,19 +5,19 @@ import io.github.maksim0840.parsing_task_orchestrator.v1.TextRecognitionRequestP
 
 import java.util.List;
 
-public class TextRecognitionRequestMapper {
+public class TextRecognitionRequestProtoMapper {
 
     public static TextRecognitionRequestProto dtoToProto(TextRecognitionRequestDTO dto) {
         return TextRecognitionRequestProto.newBuilder()
                 .setTaskId(dto.taskId() != null ? dto.taskId() : "")
-                .addAllImages(dto.images() != null ? FileInfoMapper.dtoToProtoList(dto.images()) : List.of())
+                .addAllImages(dto.images() != null ? FileInfoProtoMapper.dtoToProtoList(dto.images()) : List.of())
                 .build();
     }
 
     public static TextRecognitionRequestDTO protoToDto(TextRecognitionRequestProto proto) {
         return TextRecognitionRequestDTO.builder()
                 .taskId(proto.getTaskId())
-                .images(FileInfoMapper.protoToDtoList(proto.getImagesList()))
+                .images(FileInfoProtoMapper.protoToDtoList(proto.getImagesList()))
                 .build();
     }
 }

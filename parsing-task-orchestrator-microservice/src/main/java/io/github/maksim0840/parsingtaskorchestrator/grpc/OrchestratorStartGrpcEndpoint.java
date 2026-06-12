@@ -5,17 +5,16 @@ import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPar
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingRequestDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.LLMRequestDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRecognitionRequestDTO;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlParserRequestMapper;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlPreprocessingRequestMapper;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.LLMRequestMapper;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.TextRecognitionRequestMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlParserRequestProtoMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlPreprocessingRequestProtoMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.LLMRequestProtoMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.TextRecognitionRequestProtoMapper;
 import io.github.maksim0840.parsing_task_orchestrator.v1.*;
 import io.github.maksim0840.parsingtaskorchestrator.dto.TaskDTO;
 import io.github.maksim0840.parsingtaskorchestrator.service.OrchestratorService;
 import io.github.maksim0840.parsingtaskorchestrator.service.TaskService;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
-import org.springframework.stereotype.Service;
 
 @GrpcService
 public class OrchestratorStartGrpcEndpoint extends OrchestratorStartServiceGrpc.OrchestratorStartServiceImplBase {
@@ -32,19 +31,19 @@ public class OrchestratorStartGrpcEndpoint extends OrchestratorStartServiceGrpc.
         String taskId = request.getTaskId();
         HtmlParserRequestDTO htmlParserRequest =
                 request.hasHtmlParserRequest()
-                    ? HtmlParserRequestMapper.protoToDto(request.getHtmlParserRequest())
+                    ? HtmlParserRequestProtoMapper.protoToDto(request.getHtmlParserRequest())
                     : null;
         HtmlPreprocessingRequestDTO htmlPreprocessingRequest =
                 request.hasHtmlPreprocessingRequest()
-                        ? HtmlPreprocessingRequestMapper.protoToDto(request.getHtmlPreprocessingRequest())
+                        ? HtmlPreprocessingRequestProtoMapper.protoToDto(request.getHtmlPreprocessingRequest())
                         : null;
         TextRecognitionRequestDTO textRecognitionRequest =
                 request.hasTextRecognitionRequest()
-                        ? TextRecognitionRequestMapper.protoToDto(request.getTextRecognitionRequest())
+                        ? TextRecognitionRequestProtoMapper.protoToDto(request.getTextRecognitionRequest())
                         : null;
         LLMRequestDTO llmRequestDTO =
                 request.hasLlmRequest()
-                        ? LLMRequestMapper.protoToDto(request.getLlmRequest())
+                        ? LLMRequestProtoMapper.protoToDto(request.getLlmRequest())
                         : null;
 
         TaskDTO task = taskService.addTask(taskId, htmlParserRequest, htmlPreprocessingRequest, textRecognitionRequest, llmRequestDTO);

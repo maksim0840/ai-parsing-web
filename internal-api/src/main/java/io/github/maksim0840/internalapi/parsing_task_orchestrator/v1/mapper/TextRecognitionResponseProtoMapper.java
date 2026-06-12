@@ -4,16 +4,15 @@ import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRec
 import io.github.maksim0840.parsing_task_orchestrator.v1.TextRecognitionResponseProto;
 
 import java.util.List;
-import java.util.Map;
 
-public class TextRecognitionResponseMapper {
+public class TextRecognitionResponseProtoMapper {
 
     public static TextRecognitionResponseProto dtoToProto(TextRecognitionResponseDTO dto) {
         return TextRecognitionResponseProto.newBuilder()
                 .setTaskId(dto.taskId() != null ? dto.taskId() : "")
                 .setSuccess(dto.success())
                 .setMessage(dto.message() != null ? dto.message() : "")
-                .addAllImages(dto.images() != null ? FileInfoMapper.dtoToProtoList(dto.images()) : List.of())
+                .addAllImages(dto.images() != null ? FileInfoProtoMapper.dtoToProtoList(dto.images()) : List.of())
                 .build();
     }
 
@@ -22,7 +21,7 @@ public class TextRecognitionResponseMapper {
                 .taskId(proto.getTaskId())
                 .success(proto.getSuccess())
                 .message(proto.getMessage())
-                .images(FileInfoMapper.protoToDtoList(proto.getImagesList()))
+                .images(FileInfoProtoMapper.protoToDtoList(proto.getImagesList()))
                 .build();
     }
 }

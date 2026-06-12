@@ -1,7 +1,7 @@
 package io.github.maksim0840.apigateway.service;
 
-import io.github.maksim0840.apigateway.dto.UserDTO;
 import io.github.maksim0840.apigateway.grpc.UserGrpcClient;
+import io.github.maksim0840.internalapi.user.v1.dto.UserDTO;
 import io.github.maksim0840.internalapi.user.v1.enums.UserRole;
 import org.springframework.stereotype.Service;
 

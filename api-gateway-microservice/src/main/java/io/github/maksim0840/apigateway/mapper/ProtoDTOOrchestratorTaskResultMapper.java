@@ -5,10 +5,10 @@ import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPar
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingResponseDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.LLMResponseDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TextRecognitionResponseDTO;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlParserResponseMapper;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlPreprocessingResponseMapper;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.LLMResponseMapper;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.TextRecognitionResponseMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlParserResponseProtoMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.HtmlPreprocessingResponseProtoMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.LLMResponseProtoMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.TextRecognitionResponseProtoMapper;
 import io.github.maksim0840.parsing_task_orchestrator.v1.GetTaskResultOrchestratorResponse;
 import io.github.maksim0840.parsing_task_orchestrator.v1.OrchestratorFinishRequest;
 
@@ -17,19 +17,19 @@ public class ProtoDTOOrchestratorTaskResultMapper {
         String taskId = proto.getTaskId();
         HtmlParserResponseDTO htmlParserResponse =
                 proto.hasHtmlParserResponse()
-                        ? HtmlParserResponseMapper.protoToDto(proto.getHtmlParserResponse())
+                        ? HtmlParserResponseProtoMapper.protoToDto(proto.getHtmlParserResponse())
                         : null;
         HtmlPreprocessingResponseDTO htmlPreprocessingResponse =
                 proto.hasHtmlPreprocessingResponse()
-                        ? HtmlPreprocessingResponseMapper.protoToDto(proto.getHtmlPreprocessingResponse())
+                        ? HtmlPreprocessingResponseProtoMapper.protoToDto(proto.getHtmlPreprocessingResponse())
                         : null;
         TextRecognitionResponseDTO textRecognitionResponseDTO =
                 proto.hasTextRecognitionResponse()
-                        ? TextRecognitionResponseMapper.protoToDto(proto.getTextRecognitionResponse())
+                        ? TextRecognitionResponseProtoMapper.protoToDto(proto.getTextRecognitionResponse())
                         : null;
         LLMResponseDTO llmResponseDTO =
                 proto.hasLlmResponse()
-                        ? LLMResponseMapper.protoToDto(proto.getLlmResponse())
+                        ? LLMResponseProtoMapper.protoToDto(proto.getLlmResponse())
                         : null;
         return OrchestratorTaskResultDTO.builder()
                 .taskId(proto.getTaskId())

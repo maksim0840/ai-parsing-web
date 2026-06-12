@@ -1,6 +1,5 @@
 package io.github.maksim0840.apigateway.mapper;
 
-import io.github.maksim0840.apigateway.dto.ExtractionResultDTO;
 import io.github.maksim0840.apigateway.dto.api.ResultResponse;
 
 import java.util.List;

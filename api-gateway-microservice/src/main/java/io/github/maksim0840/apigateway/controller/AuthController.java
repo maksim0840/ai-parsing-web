@@ -1,12 +1,12 @@
 package io.github.maksim0840.apigateway.controller;
 
-import io.github.maksim0840.apigateway.dto.UserDTO;
 import io.github.maksim0840.apigateway.dto.api.AuthApiRequest;
 import io.github.maksim0840.apigateway.dto.api.LoginResponse;
 import io.github.maksim0840.apigateway.dto.api.RegisterResponse;
 import io.github.maksim0840.apigateway.exception.DataUnavailableException;
 import io.github.maksim0840.apigateway.security.JwtService;
 import io.github.maksim0840.apigateway.service.UserRemoteService;
+import io.github.maksim0840.internalapi.user.v1.dto.UserDTO;
 import io.github.maksim0840.internalapi.user.v1.enums.UserRole;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.*;
