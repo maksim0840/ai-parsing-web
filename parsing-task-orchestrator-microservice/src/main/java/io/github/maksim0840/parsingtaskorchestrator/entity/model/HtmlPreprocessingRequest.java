@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 
 @Builder
@@ -15,7 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 public class HtmlPreprocessingRequest {
     private String taskId;
-    private List<FileInfo> htmlDocs;
+    private List<FileInfo> htmlDocs = new ArrayList<>(); // изначально список пустой, а не null
     private Boolean noscriptProcessing;
     private Boolean linkProcessing;
     private Boolean styleProcessing;

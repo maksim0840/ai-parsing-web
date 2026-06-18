@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 
 @Builder
@@ -17,5 +18,5 @@ public class TextRecognitionResponse {
     private String taskId;
     private boolean success;
     private String message;
-    private List<FileInfo> images;
+    private List<FileInfo> images = new ArrayList<>(); // изначально список пустой, а не null
 }

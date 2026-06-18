@@ -43,6 +43,9 @@ public class OrchestratorService {
 
     public void distributeRequestsAfterHtmlParser(HtmlParserResponseDTO response) throws JsonProcessingException {
         System.out.println("distributeRequestsAfterHtmlParser");
+        System.out.println(response);
+        System.out.println();
+
         if (!response.success()) {
             endPipelineFail(response.taskId(), response.message());
             return;
@@ -86,6 +89,9 @@ public class OrchestratorService {
 
     public void distributeRequestsAfterHtmlPreprocessing(HtmlPreprocessingResponseDTO response) throws JsonProcessingException {
         System.out.println("distributeRequestsAfterHtmlPreprocessing");
+        System.out.println(response);
+        System.out.println();
+
         if (!response.success()) {
             endPipelineFail(response.taskId(), response.message());
             return;
@@ -169,6 +175,8 @@ public class OrchestratorService {
     }
 
     private void startLlmProcessing(LLMRequestDTO request) {
+        System.out.println("startLlmProcessing htmlDocs");
+        System.out.println(request.htmlDocs());
         taskService.setStatusAndMessage(request.taskId(), TaskStatus.LLM_PROCESSING, "");
         LLMResponseDTO response = llmService.processLlmRequest(request);
         distributeRequestsAfterLLM(response);

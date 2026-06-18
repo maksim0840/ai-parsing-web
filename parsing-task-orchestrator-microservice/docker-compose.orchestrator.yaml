@@ -10,24 +10,22 @@ services:
       - s3_settings.env
     networks:
       - rabbitmq-net
-      - mongodb-orchestrator-net
+      - redis-orchestrator-net
       - grpc-orchestrator-api-net
       - garage-net
     depends_on:
-      - mongodb_orchestrator
+      - redis_orchestrator
       - rabbitmq
       
-  mongodb_orchestrator:
-    image: mongo:7
+  redis_orchestrator:
+    image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_DATABASE: tasks
+      - "6379:6379"
     networks:
-      - mongodb-orchestrator-net
+      - redis-orchestrator-net
     volumes:
-      - mongodb_orchestrator_data:/data/db
+      - redis_orchestrator_data:/data
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -46,12 +44,12 @@ services:
 
  
 volumes:
-  mongodb_orchestrator_data:
+  redis_orchestrator_data:
   rabbitmq_data:
   
   
 networks:
-  mongodb-orchestrator-net:
+  redis-orchestrator-net:
   rabbitmq-net:
     external: true
     name: rabbitmq-net

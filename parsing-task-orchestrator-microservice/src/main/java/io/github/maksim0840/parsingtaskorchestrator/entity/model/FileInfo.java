@@ -19,6 +19,6 @@ public class FileInfo {
     private FileType fileType;
     private Long sizeBytes;
     private String description;
-    private boolean isValid;
+    private boolean valid; // isValid -> valid, чтобы не было конфликтов с lombok (убирает повторный префикс is при создании getter-а)
     private String errorMessage;
 }

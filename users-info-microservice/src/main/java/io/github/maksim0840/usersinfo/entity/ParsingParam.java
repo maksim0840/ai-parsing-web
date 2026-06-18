@@ -5,9 +5,7 @@ import io.github.maksim0840.usersinfo.entity.model.HtmlParserParams;
 import io.github.maksim0840.usersinfo.entity.model.HtmlPreprocessingParams;
 import io.github.maksim0840.usersinfo.entity.model.LLMParams;
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
@@ -20,6 +18,10 @@ import java.time.Instant;
 @Entity
 @EntityListeners(AuditingEntityListener.class)  // добавляем слушателя жизненного цикла JPA-сущности (для автоматического проставления CreatedDate)
 @Table(name = "parsing_params",
+        uniqueConstraints = {
+                // составной уникальный индекс ("user_id, name")
+                @UniqueConstraint(name = "uq_parsing_params_user_name", columnNames = {"user_id", "name"})
+        },
         indexes = {
                 // составной индекс ("user_id, created_at")
                 @Index(name = "idx_parsing_params_user_created_at", columnList = "user_id, created_at"),
@@ -31,6 +33,8 @@ import java.time.Instant;
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ParsingParam {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)

@@ -326,7 +326,7 @@ class HTMLPreprocessing:
             new_html_docs = []
 
             for doc in html_docs:
-                if (not doc.isValid):
+                if (not doc.valid):
                     new_html_docs.append(doc)
                     continue
                 try:
@@ -340,8 +340,8 @@ class HTMLPreprocessing:
                     # Перезаписать новый html файл с обработанными тегами
                     # await asyncio.to_thread(HTMLPreprocessing.write_html_bytes, doc.filePath, processed_html_bytes)
                     await self.write_html_bytes_to_s3(doc.filePath, processed_html_bytes)
-                    new_html_docs.append(FileInfoDTO(filePath=doc.filePath, fileName=doc.fileName, fileType=doc.fileType, sizeBytes=len(processed_html_bytes), description=doc.description, isValid=True, errorMessage=""))
+                    new_html_docs.append(FileInfoDTO(filePath=doc.filePath, fileName=doc.fileName, fileType=doc.fileType, sizeBytes=len(processed_html_bytes), description=doc.description, valid=True, errorMessage=""))
                 except Exception as e:
-                    new_html_docs.append(FileInfoDTO(filePath=doc.filePath, fileName=doc.fileName, fileType=doc.fileType, description=doc.description, isValid=False, errorMessage=str(e)))
+                    new_html_docs.append(FileInfoDTO(filePath=doc.filePath, fileName=doc.fileName, fileType=doc.fileType, description=doc.description, valid=False, errorMessage=str(e)))
 
             return {"htmlDocs": new_html_docs}

@@ -1,16 +1,17 @@
-package io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper;
+package io.github.maksim0840.internalapi.user.v1.mapper;
+
 
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlPreprocessingRequestDTO;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.FileInfoProtoMapper;
+import io.github.maksim0840.internalapi.user.v1.dto.HtmlPreprocessingParamsDTO;
+import io.github.maksim0840.parsing_param.v1.HtmlPreprocessingParamsProto;
 import io.github.maksim0840.parsing_task_orchestrator.v1.HtmlPreprocessingRequestProto;
 
 import java.util.List;
 
-public class HtmlPreprocessingRequestProtoMapper {
-
-    public static HtmlPreprocessingRequestProto dtoToProto(HtmlPreprocessingRequestDTO dto) {
-        HtmlPreprocessingRequestProto.Builder protoBuilder = HtmlPreprocessingRequestProto.newBuilder();
-        protoBuilder.setTaskId(dto.taskId() != null ? dto.taskId() : "");
-        protoBuilder.addAllHtmlDocs(dto.htmlDocs() != null ? FileInfoProtoMapper.dtoToProtoList(dto.htmlDocs()) : List.of());
+public class HtmlPreprocessingParamsProtoMapper {
+    public static HtmlPreprocessingParamsProto dtoToProto(HtmlPreprocessingParamsDTO dto) {
+        HtmlPreprocessingParamsProto.Builder protoBuilder = HtmlPreprocessingParamsProto.newBuilder();
         if (dto.noscriptProcessing() != null) protoBuilder.setNoscriptProcessing(dto.noscriptProcessing());
         if (dto.linkProcessing() != null) protoBuilder.setLinkProcessing(dto.linkProcessing());
         if (dto.styleProcessing() != null) protoBuilder.setStyleProcessing(dto.styleProcessing());
@@ -30,10 +31,8 @@ public class HtmlPreprocessingRequestProtoMapper {
         return protoBuilder.build();
     }
 
-    public static HtmlPreprocessingRequestDTO protoToDto(HtmlPreprocessingRequestProto proto) {
-        return HtmlPreprocessingRequestDTO.builder()
-                .taskId(proto.getTaskId())
-                .htmlDocs(FileInfoProtoMapper.protoToDtoList(proto.getHtmlDocsList()))
+    public static HtmlPreprocessingParamsDTO protoToDto(HtmlPreprocessingParamsProto proto) {
+        return HtmlPreprocessingParamsDTO.builder()
                 .noscriptProcessing(proto.hasNoscriptProcessing() ? proto.getNoscriptProcessing() : null)
                 .linkProcessing(proto.hasLinkProcessing() ? proto.getLinkProcessing() : null)
                 .styleProcessing(proto.hasStyleProcessing() ? proto.getStyleProcessing() : null)

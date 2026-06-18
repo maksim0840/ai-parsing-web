@@ -13,7 +13,10 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface ParsingParamMapper {
+
+    @Mapping(source = "user.id", target = "userId")
     ParsingParamDTO toDto(ParsingParam entity);
+
     @Mapping(target = "user", ignore = true)
     ParsingParam toEntity(ParsingParamDTO dto);
 

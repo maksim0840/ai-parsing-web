@@ -170,9 +170,9 @@ class HTMLParser:
                 image_info = [x for x in future_task_results if isinstance(x, dict)]
                 await context.close()
             return {
-                "htmlDocs": [FileInfoDTO(filePath=html_path, fileName=html_name, fileType=FileType.HTML, sizeBytes=len(html_bytes), description="", isValid=True, errorMessage="")],
+                "htmlDocs": [FileInfoDTO(filePath=html_path, fileName=html_name, fileType=FileType.HTML, sizeBytes=len(html_bytes), description="", valid=True, errorMessage="")],
                 "images": [
-                    FileInfoDTO(filePath=info["path"], fileName=info["name"], fileType=FileType.IMG, sizeBytes=info["size"], description="", isValid=True, errorMessage="")
+                    FileInfoDTO(filePath=info["path"], fileName=info["name"], fileType=FileType.IMG, sizeBytes=info["size"], description="", valid=True, errorMessage="")
                     for info in image_info
                 ]
             }

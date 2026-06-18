@@ -39,7 +39,7 @@ public class LLMService {
         // Добавляем в контекст содержаение html-документов
         int curHtmlNum = 1;
         for (FileInfoDTO htmlDoc : htmlDocs) {
-            if (!htmlDoc.isValid()) {
+            if (!htmlDoc.valid()) {
                 continue;
             }
             String htmlFileContent = new String(s3StorageService.downloadFileBytes(htmlDoc.filePath()), StandardCharsets.UTF_8);
@@ -50,7 +50,7 @@ public class LLMService {
         // Добавляем в контекст текст с изображений
         int curImgNum = 1;
         for (FileInfoDTO img : images) {
-            if (!img.isValid() || img.description().isBlank()) {
+            if (!img.valid() || img.description().isBlank()) {
                 continue;
             }
             newUserMessage.append(String.format("\n\n=== Текст с картинки №%d ===\n\n%s", curImgNum, img.description()));

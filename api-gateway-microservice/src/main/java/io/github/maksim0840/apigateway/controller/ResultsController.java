@@ -6,6 +6,7 @@ import io.github.maksim0840.apigateway.dto.api.ResultsWithFilteringResponse;
 import io.github.maksim0840.apigateway.mapper.ApiResultDTOMapper;
 import io.github.maksim0840.apigateway.security.JwtPrincipal;
 import io.github.maksim0840.apigateway.service.ExtractionResultRemoteService;
+import io.github.maksim0840.internalapi.extraction_result.v1.dto.ExtractionResultDTO;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 

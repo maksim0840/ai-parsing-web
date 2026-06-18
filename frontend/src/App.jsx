@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { authFetch } from "./AuthGate.jsx";
+import ParamsPresets from "./ParamsPresets.jsx";
 import {
   Upload,
   Download,
@@ -19,6 +20,7 @@ import {
   Clock3,
   Pencil,
   X,
+  Bookmark,
 } from "lucide-react";
 
 const CLEANUP_TAGS = [
@@ -244,7 +246,7 @@ function StorageFileCard({
   deleting,
 }) {
   const isImage = variant === "image";
-  const isInvalid = item.isValid === false;
+  const isInvalid = item.valid === false;
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
   const fileDescription = isImage && !isInvalid ? String(item.description || "").trim() : "";
   const firstDescriptionLine = fileDescription
@@ -663,6 +665,20 @@ function buildMapFromRows(rows) {
     }, {});
 }
 
+function buildRowsFromMap(map) {
+  if (!map || typeof map !== "object") {
+    return [];
+  }
+
+  return Object.entries(map)
+    .filter(([key]) => String(key).trim())
+    .map(([key, value]) => ({
+      id: crypto.randomUUID(),
+      key: String(key),
+      value: String(value ?? ""),
+    }));
+}
+
 function buildProxyPayload(useProxy, proxyConfig) {
   if (!useProxy) return null;
 
@@ -819,7 +835,7 @@ function normalizeFileInfoDto(fileInfo, options = {}) {
     filePath,
     fileType: fileInfo.fileType || options.fileType || null,
     description: String(fileInfo.description || ""),
-    isValid: typeof fileInfo.isValid === "boolean" ? fileInfo.isValid : true,
+    valid: typeof fileInfo.valid === "boolean" ? fileInfo.valid : true,
     errorMessage: String(fileInfo.errorMessage || ""),
     previewUrl: options.previewUrl ?? (isImage && filePath ? buildStoredFileUrl(filePath) : ""),
     rawFileInfo: {
@@ -869,7 +885,7 @@ function serializeFileInfoDto(fileItem) {
     fileType: fileItem.fileType ?? null,
     sizeBytes: typeof fileItem.size === "number" ? fileItem.size : undefined,
     description: String(fileItem.description || ""),
-    isValid: typeof fileItem.isValid === "boolean" ? fileItem.isValid : true,
+    valid: typeof fileItem.valid === "boolean" ? fileItem.valid : true,
     errorMessage: String(fileItem.errorMessage || ""),
   };
 }
@@ -1672,6 +1688,143 @@ export default function ConferenceParserPage() {
     }
   }
 
+  function buildParamsPayload() {
+    return {
+      htmlParserParams: {
+        downloadImages: downloadImagesFromSite,
+        headers: useHeaders ? buildMapFromRows(headers) : {},
+        cookies: useCookies ? buildMapFromRows(cookies) : {},
+        proxy: buildProxyPayload(useProxy, proxyConfig) || {},
+        pageComplexity: parsingComplexity,
+        additionalPageLoadTimeoutS: Number(extraWaitSeconds) || 0,
+      },
+      htmlPreprocessingParams: {
+        noscriptProcessing: cleanupTags.includes("noscript"),
+        linkProcessing: cleanupTags.includes("link"),
+        styleProcessing: cleanupTags.includes("style"),
+        metaProcessing: cleanupTags.includes("meta"),
+        scriptProcessing: cleanupTags.includes("script"),
+        canvasProcessing: cleanupTags.includes("canvas"),
+        svgProcessing: cleanupTags.includes("svg"),
+        areaProcessing: cleanupTags.includes("area"),
+        imgProcessing: cleanupTags.includes("img"),
+        videoProcessing: cleanupTags.includes("video"),
+        audioProcessing: cleanupTags.includes("audio"),
+        iframeProcessing: cleanupTags.includes("iframe"),
+        portalProcessing: cleanupTags.includes("portal"),
+        embedProcessing: cleanupTags.includes("embed"),
+        objectProcessing: cleanupTags.includes("object"),
+        sourceProcessing: cleanupTags.includes("source"),
+      },
+      llmParams: {
+        modelName: model,
+        systemMessage: systemPrompt,
+        userMessage: userPrompt,
+        temperature,
+        maxOutputTokens,
+      },
+    };
+  }
+
+  function applyLoadedParams(param) {
+    if (!param || typeof param !== "object") {
+      return;
+    }
+
+    const parser = param.htmlParserParams && typeof param.htmlParserParams === "object" ? param.htmlParserParams : {};
+    const pre =
+      param.htmlPreprocessingParams && typeof param.htmlPreprocessingParams === "object"
+        ? param.htmlPreprocessingParams
+        : {};
+    const llm = param.llmParams && typeof param.llmParams === "object" ? param.llmParams : {};
+
+    if (typeof parser.downloadImages === "boolean") {
+      setDownloadImagesFromSite(parser.downloadImages);
+    }
+
+    const headerRows = buildRowsFromMap(parser.headers);
+    if (headerRows.length > 0) {
+      setUseHeaders(true);
+      setHeaders(headerRows);
+    } else {
+      setUseHeaders(false);
+      setHeaders([createKeyValueRow()]);
+    }
+
+    const cookieRows = buildRowsFromMap(parser.cookies);
+    if (cookieRows.length > 0) {
+      setUseCookies(true);
+      setCookies(cookieRows);
+    } else {
+      setUseCookies(false);
+      setCookies([createKeyValueRow()]);
+    }
+
+    const proxyObj = parser.proxy && typeof parser.proxy === "object" ? parser.proxy : null;
+    const hasProxy = proxyObj && Object.values(proxyObj).some((value) => String(value ?? "").trim());
+    if (hasProxy) {
+      setUseProxy(true);
+      setProxyConfig({
+        ip: String(proxyObj.ip ?? ""),
+        port: String(proxyObj.port ?? ""),
+        username: String(proxyObj.username ?? ""),
+        password: String(proxyObj.password ?? ""),
+      });
+    } else {
+      setUseProxy(false);
+      setProxyConfig({ ip: "", port: "", username: "", password: "" });
+    }
+
+    if (parser.pageComplexity && PARSING_COMPLEXITY.includes(parser.pageComplexity)) {
+      setParsingComplexity(parser.pageComplexity);
+    }
+
+    if (parser.additionalPageLoadTimeoutS != null && !Number.isNaN(Number(parser.additionalPageLoadTimeoutS))) {
+      setExtraWaitSeconds(clampNumber(Number(parser.additionalPageLoadTimeoutS), 0, 100));
+    }
+
+    const tagFieldMap = {
+      noscript: "noscriptProcessing",
+      link: "linkProcessing",
+      style: "styleProcessing",
+      meta: "metaProcessing",
+      script: "scriptProcessing",
+      canvas: "canvasProcessing",
+      svg: "svgProcessing",
+      area: "areaProcessing",
+      img: "imgProcessing",
+      video: "videoProcessing",
+      audio: "audioProcessing",
+      iframe: "iframeProcessing",
+      portal: "portalProcessing",
+      embed: "embedProcessing",
+      object: "objectProcessing",
+      source: "sourceProcessing",
+    };
+
+    const hasAnyPreField = Object.values(tagFieldMap).some((field) => pre[field] != null);
+    if (hasAnyPreField) {
+      const nextTags = CLEANUP_TAGS.filter((tag) => pre[tagFieldMap[tag]] === true);
+      setCleanupTags(nextTags);
+    }
+
+    if (typeof llm.modelName === "string" && llm.modelName.trim()) {
+      setModel(llm.modelName);
+    }
+    if (typeof llm.systemMessage === "string") {
+      setSystemPrompt(llm.systemMessage);
+    }
+    if (typeof llm.userMessage === "string") {
+      setUserPrompt(llm.userMessage);
+    }
+    if (llm.temperature != null && !Number.isNaN(Number(llm.temperature))) {
+      setTemperature(clampNumber(Number(llm.temperature), 0, 2));
+    }
+    if (llm.maxOutputTokens != null && !Number.isNaN(Number(llm.maxOutputTokens))) {
+      setMaxOutputTokens(clampNumber(Number(llm.maxOutputTokens), 128, 8192));
+    }
+  }
+
   const canStartParsing =
     Boolean(siteUrl.trim()) && Boolean(sessionId.trim()) && !isSessionLoading;
   const statusMeta = getStatusMeta(taskStatus);
@@ -1741,6 +1894,17 @@ export default function ConferenceParserPage() {
 
           <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-6">
+              <Section
+                icon={Bookmark}
+                title="Сохранённые параметры"
+                description="Выберите ранее сохранённый набор параметров, чтобы подставить его в форму, либо сохраните текущие настройки под новым названием. URL, загруженные файлы и изображения в набор не входят."
+              >
+                <ParamsPresets
+                  buildParams={buildParamsPayload}
+                  applyParams={applyLoadedParams}
+                />
+              </Section>
+
               <Section
                 icon={Globe}
                 title="Блок 1. Извлечение данных со страницы"

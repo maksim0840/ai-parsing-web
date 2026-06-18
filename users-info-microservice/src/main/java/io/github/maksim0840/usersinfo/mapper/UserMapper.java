@@ -9,6 +9,7 @@ import org.mapstruct.Mapping;
 public interface UserMapper {
 
     UserDTO toDto(User user);
+
     @Mapping(target = "parsingParams", ignore = true)
     User toEntity(UserDTO dto); // пропустит параметр parsingParams
 }

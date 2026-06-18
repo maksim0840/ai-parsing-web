@@ -13,7 +13,7 @@ public record FileInfoDTO(
     FileType fileType,
     Long sizeBytes,
     String description,
-    boolean isValid,
+    boolean valid,
     String errorMessage
 ) {
 }

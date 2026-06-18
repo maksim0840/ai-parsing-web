@@ -6,7 +6,6 @@ import io.github.maksim0840.internalapi.user.v1.enums.UserRole;
 import io.github.maksim0840.internalapi.user.v1.mapper.UserProtoMapper;
 import io.github.maksim0840.internalapi.user.v1.mapper.UserRoleProtoMapper;
 import io.github.maksim0840.user.v1.*;
-import io.github.maksim0840.usersinfo.entity.User;
 import io.github.maksim0840.usersinfo.exception.EncryptionException;
 import io.github.maksim0840.usersinfo.exception.EncryptionIllegalArgumentException;
 import io.github.maksim0840.usersinfo.exception.NotFoundException;

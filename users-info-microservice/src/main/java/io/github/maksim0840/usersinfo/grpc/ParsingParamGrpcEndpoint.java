@@ -1,16 +1,25 @@
 package io.github.maksim0840.usersinfo.grpc;
 
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
+import io.github.maksim0840.internalapi.user.v1.dto.HtmlParserParamsDTO;
+import io.github.maksim0840.internalapi.user.v1.dto.HtmlPreprocessingParamsDTO;
+import io.github.maksim0840.internalapi.user.v1.dto.LLMParamsDTO;
+import io.github.maksim0840.internalapi.user.v1.dto.ParsingParamDTO;
+import io.github.maksim0840.internalapi.user.v1.mapper.HtmlParserParamsProtoMapper;
+import io.github.maksim0840.internalapi.user.v1.mapper.HtmlPreprocessingParamsProtoMapper;
+import io.github.maksim0840.internalapi.user.v1.mapper.LLMParamsProtoMapper;
+import io.github.maksim0840.internalapi.user.v1.mapper.ParsingParamProtoMapper;
 import io.github.maksim0840.parsing_param.v1.*;
 import io.github.maksim0840.user.v1.DeleteUserResponse;
 import io.github.maksim0840.usersinfo.entity.ParsingParam;
+import io.github.maksim0840.usersinfo.entity.model.HtmlParserParams;
 import io.github.maksim0840.usersinfo.exception.NotFoundException;
-import io.github.maksim0840.usersinfo.mapper.ProtoDomainParsingParamMapper;
 import io.github.maksim0840.usersinfo.service.ParsingParamService;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
+import org.springframework.dao.DataAccessException;
 
 import java.time.Instant;
 import java.util.List;
@@ -28,18 +37,20 @@ public class ParsingParamGrpcEndpoint extends ParsingParamServiceGrpc.ParsingPar
     public void create(CreateParsingParamRequest request, StreamObserver<CreateParsingParamResponse> observerResponse) {
         Long userId = request.getUserId();
         String name = request.getName();
-        String description = request.getDescription();
+        HtmlParserParamsDTO htmlParserParams = HtmlParserParamsProtoMapper.protoToDto(request.getHtmlParserParams());
+        HtmlPreprocessingParamsDTO htmlPreprocessingParams = HtmlPreprocessingParamsProtoMapper.protoToDto(request.getHtmlPreprocessingParams());
+        LLMParamsDTO llmParams = LLMParamsProtoMapper.protoToDto(request.getLlmParams());
 
         try {
-            ParsingParam parsingParam = parsingParamService.createParsingParam(userId, name, description);
-            ParsingParamProto parsingParamProto = ProtoDomainParsingParamMapper.domainToProto(parsingParam);
+            ParsingParamDTO parsingParam = parsingParamService.createParsingParam(userId, name, htmlParserParams, htmlPreprocessingParams, llmParams);
+            ParsingParamProto parsingParamProto = ParsingParamProtoMapper.dtoToProto(parsingParam);
             CreateParsingParamResponse response = CreateParsingParamResponse.newBuilder()
                     .setParsingParam(parsingParamProto).build();
 
             observerResponse.onNext(response);
             observerResponse.onCompleted();
-        } catch (NotFoundException e) {
-            observerResponse.onError(error(Status.NOT_FOUND, e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            observerResponse.onError(error(Status.INVALID_ARGUMENT, e.getMessage()));
         } catch (RuntimeException e) {
             observerResponse.onError(error(Status.UNAVAILABLE, e.getMessage()));
         }
@@ -50,8 +61,8 @@ public class ParsingParamGrpcEndpoint extends ParsingParamServiceGrpc.ParsingPar
         Long id = request.getId();
 
         try {
-            ParsingParam parsingParam = parsingParamService.getParsingParamById(id);
-            ParsingParamProto parsingParamProto = ProtoDomainParsingParamMapper.domainToProto(parsingParam);
+            ParsingParamDTO parsingParam = parsingParamService.getParsingParamById(id);
+            ParsingParamProto parsingParamProto = ParsingParamProtoMapper.dtoToProto(parsingParam);
             GetParsingParamResponse response = GetParsingParamResponse.newBuilder()
                     .setParsingParam(parsingParamProto).build();
 
@@ -74,9 +85,9 @@ public class ParsingParamGrpcEndpoint extends ParsingParamServiceGrpc.ParsingPar
         Boolean isSortDesc = request.hasSortCreatedDesc() ? request.getSortCreatedDesc() : null;
 
         try {
-            List<ParsingParam> parsingParams = parsingParamService.getListParsingParamByPageWithFiltering(userId, createdFrom, createdTo, pageNum, pageSize, isSortDesc);
+            List<ParsingParamDTO> parsingParams = parsingParamService.getListParsingParamByPageWithFiltering(userId, createdFrom, createdTo, pageNum, pageSize, isSortDesc);
             List<ParsingParamProto> parsingParamsProto = parsingParams.stream()
-                            .map(ProtoDomainParsingParamMapper::domainToProto).toList();
+                            .map(ParsingParamProtoMapper::dtoToProto).toList();
             GetListParsingParamResponse response = GetListParsingParamResponse.newBuilder()
                     .addAllParsingParams(parsingParamsProto).build();
 
@@ -93,6 +104,75 @@ public class ParsingParamGrpcEndpoint extends ParsingParamServiceGrpc.ParsingPar
         try {
             parsingParamService.deleteParsingParamById(id);
             DeleteParsingParamResponse response = DeleteParsingParamResponse.newBuilder().build();
+
+            observerResponse.onNext(response);
+            observerResponse.onCompleted();
+        } catch (NotFoundException e) {
+            observerResponse.onError(error(Status.NOT_FOUND, e.getMessage()));
+        } catch (RuntimeException e) {
+            observerResponse.onError(error(Status.UNAVAILABLE, e.getMessage()));
+        }
+    }
+
+    @Override
+    public void getNamesByUserId(GetNamesParsingParamRequest request, StreamObserver<GetNamesParsingParamResponse> observerResponse) {
+        Long userId = request.getUserId();
+        try {
+            List<String> names = parsingParamService.getListParsingParamNameByUserId(userId);
+            GetNamesParsingParamResponse response = GetNamesParsingParamResponse.newBuilder()
+                    .addAllNames(names).build();
+
+            observerResponse.onNext(response);
+            observerResponse.onCompleted();
+        } catch (RuntimeException e) {
+            observerResponse.onError(error(Status.UNAVAILABLE, e.getMessage()));
+        }
+    }
+
+    @Override
+    public void getByUserIdAndName(GetParsingParamByUserIdAndNameRequest request, StreamObserver<GetParsingParamByUserIdAndNameResponse> observerResponse) {
+        Long userId = request.getUserId();
+        String name = request.getName();
+        try {
+            ParsingParamDTO parsingParam = parsingParamService.getParsingParamByUserIdAndName(userId, name);
+            ParsingParamProto parsingParamProto = ParsingParamProtoMapper.dtoToProto(parsingParam);
+            GetParsingParamByUserIdAndNameResponse response = GetParsingParamByUserIdAndNameResponse.newBuilder()
+                    .setParsingParam(parsingParamProto).build();
+
+            observerResponse.onNext(response);
+            observerResponse.onCompleted();
+        } catch (NotFoundException e) {
+            observerResponse.onError(error(Status.NOT_FOUND, e.getMessage()));
+        } catch (RuntimeException e) {
+            observerResponse.onError(error(Status.UNAVAILABLE, e.getMessage()));
+        }
+    }
+
+    @Override
+    public void renameByUserIdAndName(RenameParsingParamByUserIdAndNameRequest request, StreamObserver<RenameParsingParamByUserIdAndNameResponse> observerResponse) {
+        Long userId = request.getUserId();
+        String oldName = request.getOldName();
+        String newName = request.getNewName();
+        try {
+            parsingParamService.renameParsingParam(userId, oldName, newName);
+            RenameParsingParamByUserIdAndNameResponse response = RenameParsingParamByUserIdAndNameResponse.newBuilder().build();
+
+            observerResponse.onNext(response);
+            observerResponse.onCompleted();
+        } catch (IllegalArgumentException e) {
+            observerResponse.onError(error(Status.INVALID_ARGUMENT, e.getMessage()));
+        } catch (RuntimeException e) {
+            observerResponse.onError(error(Status.UNAVAILABLE, e.getMessage()));
+        }
+    }
+
+    @Override
+    public void deleteByUserIdAndName(DeleteParsingParamByUserIdAndNameRequest request, StreamObserver<DeleteParsingParamByUserIdAndNameResponse> observerResponse) {
+        Long userId = request.getUserId();
+        String name = request.getName();
+        try {
+            parsingParamService.deleteParsingParamByUserIdAndName(userId, name);
+            DeleteParsingParamByUserIdAndNameResponse response = DeleteParsingParamByUserIdAndNameResponse.newBuilder().build();
 
             observerResponse.onNext(response);
             observerResponse.onCompleted();

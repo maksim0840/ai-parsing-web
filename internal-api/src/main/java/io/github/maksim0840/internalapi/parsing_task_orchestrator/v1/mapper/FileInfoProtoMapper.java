@@ -13,7 +13,7 @@ public class FileInfoProtoMapper {
         protoBuilder.setFileType(FileTypeProtoMapper.enumToProto(dto.fileType()));
         protoBuilder.setSizeBytes(dto.sizeBytes() != null ? dto.sizeBytes() : 0L);
         protoBuilder.setDescription(dto.description() != null ? dto.description() : "");
-        protoBuilder.setIsValid(dto.isValid());
+        protoBuilder.setValid(dto.valid());
         protoBuilder.setErrorMessage(dto.errorMessage() != null ? dto.errorMessage() : "");
         return protoBuilder.build();
     }
@@ -25,7 +25,7 @@ public class FileInfoProtoMapper {
                 .fileType(FileTypeProtoMapper.protoToEnum(proto.getFileType()))
                 .sizeBytes(proto.getSizeBytes())
                 .description(proto.getDescription())
-                .isValid(proto.getIsValid())
+                .valid(proto.getValid())
                 .errorMessage(proto.getErrorMessage())
                 .build();
     }

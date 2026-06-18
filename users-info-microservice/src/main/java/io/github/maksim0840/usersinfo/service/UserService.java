@@ -62,7 +62,7 @@ public class UserService {
     }
 
     public UserDTO getUserById(Long id) {
-        User user = getUser(id);
+        User user = getUserRaw(id);
         return userMapper.toDto(user);
     }
 
@@ -104,7 +104,7 @@ public class UserService {
 
     @Transactional
     public UserDTO setUserRoleById(Long id, UserRole role) {
-        User user = getUser(id);
+        User user = getUserRaw(id);
         user.setRole(role);
         return userMapper.toDto(user);
     }
@@ -129,7 +129,7 @@ public class UserService {
         }
     }
 
-    private User getUser(Long id) {
+    private User getUserRaw(Long id) {
         try {
             return userRepository.findById(id).orElseThrow(() ->
                     new NotFoundException("PostgreSQL user not found (id: " + id + ")"));

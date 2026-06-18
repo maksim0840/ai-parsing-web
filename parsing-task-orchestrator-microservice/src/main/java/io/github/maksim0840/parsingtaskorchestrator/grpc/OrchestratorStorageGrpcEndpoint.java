@@ -1,5 +1,7 @@
 package io.github.maksim0840.parsingtaskorchestrator.grpc;
 
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TaskResultOrchestratorDTO;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TaskStatusOrchestratorDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.*;
 import io.github.maksim0840.parsing_task_orchestrator.v1.*;
 import io.github.maksim0840.parsingtaskorchestrator.dto.StatusDTO;
@@ -25,10 +27,13 @@ public class OrchestratorStorageGrpcEndpoint extends OrchestratorStorageServiceG
         StatusDTO statusDTO = orchestratorService.getStatusInfo(request.getTaskId());
         System.out.println(statusDTO);
 
+        TaskStatusOrchestratorDTO taskStatusOrchestratorDTO = TaskStatusOrchestratorDTO.builder()
+                .taskId(request.getTaskId())
+                .status(statusDTO.status())
+                .message(statusDTO.message())
+                .build();
         GetTaskStatusOrchestratorResponse response = GetTaskStatusOrchestratorResponse.newBuilder()
-                .setTaskId(request.getTaskId())
-                .setStatus(TaskStatusProtoMapper.enumToProto(statusDTO.status()))
-                .setMessage(statusDTO.message() == null ? "" : statusDTO.message())
+                .setTaskStatusOrchestrator(TaskStatusOrchestratorProtoMapper.dtoToProto(taskStatusOrchestratorDTO))
                 .build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
@@ -45,22 +50,17 @@ public class OrchestratorStorageGrpcEndpoint extends OrchestratorStorageServiceG
             return;
         }
 
-        GetTaskResultOrchestratorResponse.Builder responseBuilder = GetTaskResultOrchestratorResponse.newBuilder();
-        responseBuilder.setTaskId(request.getTaskId());
-        if (taskDTO.htmlParserResponse() != null) {
-            responseBuilder.setHtmlParserResponse(HtmlParserResponseProtoMapper.dtoToProto(taskDTO.htmlParserResponse()));
-        }
-        if (taskDTO.htmlPreprocessingResponse() != null) {
-            responseBuilder.setHtmlPreprocessingResponse(HtmlPreprocessingResponseProtoMapper.dtoToProto(taskDTO.htmlPreprocessingResponse()));
-        }
-        if (taskDTO.textRecognitionResponse() != null) {
-            responseBuilder.setTextRecognitionResponse(TextRecognitionResponseProtoMapper.dtoToProto(taskDTO.textRecognitionResponse()));
-        }
-        if (taskDTO.llmResponse() != null) {
-            responseBuilder.setLlmResponse(LLMResponseProtoMapper.dtoToProto(taskDTO.llmResponse()));
-        }
-
-        responseObserver.onNext(responseBuilder.build());
+        TaskResultOrchestratorDTO taskResultOrchestratorDTO = TaskResultOrchestratorDTO.builder()
+                .taskId(request.getTaskId())
+                .htmlParserResponse(taskDTO.htmlParserResponse())
+                .htmlPreprocessingResponse(taskDTO.htmlPreprocessingResponse())
+                .textRecognitionResponse(taskDTO.textRecognitionResponse())
+                .llmResponse(taskDTO.llmResponse())
+                .build();
+        GetTaskResultOrchestratorResponse response = GetTaskResultOrchestratorResponse.newBuilder()
+                .setTaskResultOrchestrator(TaskResultOrchestratorProtoMapper.dtoToProto(taskResultOrchestratorDTO))
+                .build();
+        responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
 

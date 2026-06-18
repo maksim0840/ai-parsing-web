@@ -49,6 +49,20 @@ message LLMResponseProto {
   string llm_output = 4;
 }
 
+message TaskStatusOrchestratorProto {
+    string task_id = 1;
+    TaskStatusProto status = 2;
+    string message = 3;
+}
+
+message TaskResultOrchestratorProto {
+    string task_id = 1;
+    optional HtmlParserResponseProto html_parser_response = 2;
+    optional HtmlPreprocessingResponseProto html_preprocessing_response = 3;
+    optional TextRecognitionResponseProto text_recognition_response = 4;
+    optional LLMResponseProto llm_response = 5;
+}
+
 
 // ===== Запросы к сервису parsing-task-orchestrator =====
 
@@ -64,17 +78,11 @@ message GetTaskResultOrchestratorRequest {
 // ===== Ответы от сервиса parsing-task-orchestrator =====
 
 message GetTaskStatusOrchestratorResponse {
-    string task_id = 1;
-    TaskStatusProto status = 2;
-    string message = 3;
+    TaskStatusOrchestratorProto task_status_orchestrator = 1;
 }
 
 message GetTaskResultOrchestratorResponse {
-    string task_id = 1;
-    optional HtmlParserResponseProto html_parser_response = 2;
-    optional HtmlPreprocessingResponseProto html_preprocessing_response = 3;
-    optional TextRecognitionResponseProto text_recognition_response = 4;
-    optional LLMResponseProto llm_response = 5;
+    TaskResultOrchestratorProto task_result_orchestrator = 1;
 }
 
 

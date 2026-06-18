@@ -7,6 +7,9 @@
 - docker compose
 - openssl
 - git
+- git-lfs
+- wget
+- tar
 
 Для успешной загрузки образов указать registry-mirrors и proxy для docker:
 
@@ -41,7 +44,20 @@ git clone https://github.com/maksim0840/ai-parsing-web
 cd ai-parsing-web
 ```
 
-## 2. Настройка Garage S3
+## 2. Создание docker-сетей
+
+Запустите скрипт создания docker-сетей для взаимодействия микросервисов между собой
+
+```bash
+docker network create garage-net
+docker network create rabbitmq-net
+docker network create grpc-orchestrator-api-net
+docker network create grpc-results-api-net
+docker network create grpc-users-api-net
+docker network create api-frontend-net
+```
+
+## 3. Настройка Garage S3
 
 Опционально можно изменить время автоматического удаления файлов из бакета `garage-custom-ttl-bucket`:
 
@@ -65,7 +81,7 @@ nano garage/custom-lifecycle.json
 - настройку TTL для бакета `garage-custom-ttl-bucket`;
 - подключение сервисов приложения к S3-хранилищу.
 
-## 3. Генерация рандомных значений
+## 4. Генерация рандомных значений
 
 Запустите скрипт генерации случайных значений для `.env`-файлов модулей:
 
@@ -75,7 +91,7 @@ nano garage/custom-lifecycle.json
 
 Скрипт генерирует внутренние секреты приложения, такие как секретный ключ для JWT.
 
-## 4. Установка секретов
+## 5. Установка секретов
 
 Запустите скрипт ручной настройки внешних секретов:
 
@@ -85,12 +101,23 @@ nano garage/custom-lifecycle.json
 
 Во время выполнения скрипт запросит значения следующих переменных:
 
+`YANDEXGPT_FOLDER_ID` — ID папки каталога YandexGPT;
 `YANDEXGPT_API_KEY` — API-ключ для доступа к YandexGPT;
 `GIGACHAT_AUTH_KEY` — API-ключ для доступа к GigaChat.
 
 После ввода значений скрипт создаст или обновит необходимые `.env`-файлы сервисов.
 
-## 5. Настройка сервиса-оркестратора
+## 6. Установка моделей распознования текста
+
+Запустите скрипт для скачивания моделей распознования текста
+
+```bash
+./scripts/models-download.sh
+```
+
+В папке `parsing/text_recognition/models` появятся две директории: `PP-OCRv5_mobile_det_infer` (модель детекции текста) и `eslav_PP-OCRv5_mobile_rec_infer` (модель распознавания кириллицы).
+
+## 7. Настройка сервиса-оркестратора
 
 Опционально можно изменить начальные параметры работы с LLM-моделями:
 
@@ -104,7 +131,7 @@ nano parsing-task-orchestrator-microservice/llm.env
 - количество выходных токенов;
 - таймауты запросов к LLM-моделям.
 
-## 6. Настройка сервисов парсинга и распознавания текста
+## 8. Настройка сервисов парсинга и распознавания текста
 
 Опционально можно изменить настройки парсинга и предобработки HTML:
 
@@ -122,39 +149,33 @@ nano parsing/text_recognition/recognition_settings.env
 
 В этом файле можно настроить количество запущенных моделей распознавания текста.
 
-## 7. Настройка сервиса-шлюза пользовательских запросов
+## 9. Настройка сервиса-шлюза пользовательских запросов
 
 Опционально можно изменить время действия JWT-токена без обновления:
 
 ```bash
-api-gateway-microservice/security.env
+nano api-gateway-microservice/security.env
 ```
+
 
 
 # Запуск
 
 ```bash
-cd garage
-docker compose -f docker-compose.garage.yaml -p garage up -d
+docker compose -f garage/docker-compose.garage.yaml -p garage --project-directory garage up
 
-cd ../parsing-task-orchestrator-microservice
-docker compose -f docker-compose.orchestrator.yaml -p orchestrator up -d
+docker compose -f parsing-task-orchestrator-microservice/docker-compose.orchestrator.yaml -p orchestrator --project-directory parsing-task-orchestrator-microservice up
 
-cd ../parsing
-docker compose -f docker-compose.parser.yaml -p parser up -d
-docker compose -f docker-compose.recognition.yaml -p recognition up -d
+docker compose -f parsing/docker-compose.parser.yaml -p parser --project-directory parsing up
+docker compose -f parsing/docker-compose.recognition.yaml -p recognition --project-directory parsing up
 
-cd ../extraction-results-microservice
-docker compose -f docker-compose.results.yaml -p results up -d
+docker compose -f extraction-results-microservice/docker-compose.results.yaml -p results --project-directory extraction-results-microservice up
 
-cd ../users-info-microservice
-docker compose -f docker-compose.users.yaml -p users up -d
+docker compose -f users-info-microservice/docker-compose.users.yaml -p users --project-directory users-info-microservice up
 
-cd ../api-gateway-microservice
-docker compose -f docker-compose.api.yaml -p api up -d
+docker compose -f api-gateway-microservice/docker-compose.api.yaml -p api --project-directory api-gateway-microservice up
 
-cd ../frontend
-docker compose -f docker-compose.frontend.yaml -p frontend up -d
+docker compose -f frontend/docker-compose.frontend.yaml -p frontend --project-directory frontend up
 ```
 
 

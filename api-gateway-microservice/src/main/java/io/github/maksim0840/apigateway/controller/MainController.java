@@ -1,9 +1,10 @@
 package io.github.maksim0840.apigateway.controller;
 
-import io.github.maksim0840.apigateway.dto.OrchestratorTaskStatusDTO;
 import io.github.maksim0840.apigateway.dto.api.*;
 import io.github.maksim0840.apigateway.service.OrchestratorStartService;
 import io.github.maksim0840.apigateway.service.TaskService;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TaskResultOrchestratorDTO;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TaskStatusOrchestratorDTO;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -36,13 +37,13 @@ public class MainController {
     }
 
     @GetMapping("/pipeline/{taskId}/status")
-    public OrchestratorTaskStatusDTO getPipelineStatus(@PathVariable String taskId) {
+    public TaskStatusOrchestratorDTO getPipelineStatus(@PathVariable String taskId) {
         System.out.println("getPipelineStatus: " + taskId);
         return taskService.getStatus(taskId);
     }
 
     @GetMapping("/pipeline/{taskId}/result")
-    public OrchestratorFinishDTO getPipelineResult(@PathVariable String taskId) {
+    public TaskResultOrchestratorDTO getPipelineResult(@PathVariable String taskId) {
         System.out.println("getPipelineResult: " + taskId);
         return taskService.getResult(taskId);
     }

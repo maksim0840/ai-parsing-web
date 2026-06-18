@@ -95,7 +95,7 @@ class TextRecognition:
 
             # Для каждого изображения получаем его байты и прогоняем через модель для получения текста
             for img in images:
-                if (not img.isValid):
+                if (not img.valid):
                     new_images.append(img)
                     continue
                 try:
@@ -106,8 +106,8 @@ class TextRecognition:
                     # Распознать текст
                     text = await asyncio.to_thread(TextRecognition.predict_ocr, self, img.filePath, bytes)
 
-                    new_images.append(FileInfoDTO(filePath=img.filePath, fileName=img.fileName, fileType=img.fileType, sizeBytes=img.sizeBytes, description=text, isValid=True, errorMessage=""))
+                    new_images.append(FileInfoDTO(filePath=img.filePath, fileName=img.fileName, fileType=img.fileType, sizeBytes=img.sizeBytes, description=text, valid=True, errorMessage=""))
                 except Exception as e:
-                    new_images.append(FileInfoDTO(filePath=img.filePath, fileName=img.fileName, fileType=img.fileType, sizeBytes=img.sizeBytes, description=img.description, isValid=False, errorMessage=str(e)))
+                    new_images.append(FileInfoDTO(filePath=img.filePath, fileName=img.fileName, fileType=img.fileType, sizeBytes=img.sizeBytes, description=img.description, valid=False, errorMessage=str(e)))
 
             return {"images": new_images}

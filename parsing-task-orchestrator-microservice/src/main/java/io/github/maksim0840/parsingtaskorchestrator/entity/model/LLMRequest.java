@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 
 @Builder
@@ -20,6 +21,6 @@ public class LLMRequest {
     private String userMessage;
     private Double temperature;
     private Integer maxOutputTokens;
-    private List<FileInfo> htmlDocs;
-    private List<FileInfo> images;
+    private List<FileInfo> htmlDocs = new ArrayList<>(); // изначально список пустой, а не null
+    private List<FileInfo> images = new ArrayList<>(); // изначально список пустой, а не null
 }

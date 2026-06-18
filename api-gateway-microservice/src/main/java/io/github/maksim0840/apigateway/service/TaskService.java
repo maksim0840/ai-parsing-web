@@ -1,8 +1,8 @@
 package io.github.maksim0840.apigateway.service;
 
-import io.github.maksim0840.apigateway.dto.OrchestratorTaskResultDTO;
-import io.github.maksim0840.apigateway.dto.OrchestratorTaskStatusDTO;
 import io.github.maksim0840.apigateway.grpc.OrchestratorStorageGrpcClient;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TaskResultOrchestratorDTO;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TaskStatusOrchestratorDTO;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -13,11 +13,11 @@ public class TaskService {
         this.storageGrpcClient = storageGrpcClient;
     }
 
-    public OrchestratorTaskStatusDTO getStatus(String taskId) {
+    public TaskStatusOrchestratorDTO getStatus(String taskId) {
         return storageGrpcClient.getTaskStatus(taskId);
     }
 
-    public OrchestratorTaskResultDTO getResult(String taskId) {
+    public TaskResultOrchestratorDTO getResult(String taskId) {
         return storageGrpcClient.getTaskResult(taskId);
     }
 }

@@ -1,7 +1,10 @@
 package io.github.maksim0840.apigateway.service;
 
-import io.github.maksim0840.apigateway.dto.ParsingParamDTO;
 import io.github.maksim0840.apigateway.grpc.ParsingParamGrpcClient;
+import io.github.maksim0840.internalapi.user.v1.dto.HtmlParserParamsDTO;
+import io.github.maksim0840.internalapi.user.v1.dto.HtmlPreprocessingParamsDTO;
+import io.github.maksim0840.internalapi.user.v1.dto.LLMParamsDTO;
+import io.github.maksim0840.internalapi.user.v1.dto.ParsingParamDTO;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -16,8 +19,8 @@ public class ParsingParamRemoteService {
         this.grpcClient = grpcClient;
     }
 
-    public ParsingParamDTO createParsingParam(Long userId, String name, String description) {
-        return grpcClient.create(userId, name, description);
+    public ParsingParamDTO createParsingParam(Long userId, String name, HtmlParserParamsDTO htmlParserParams, HtmlPreprocessingParamsDTO htmlPreprocessingParams, LLMParamsDTO llmParams) {
+        return grpcClient.create(userId, name, htmlParserParams, htmlPreprocessingParams, llmParams);
     }
 
     public ParsingParamDTO getParsingParamById(Long id) {
@@ -30,5 +33,21 @@ public class ParsingParamRemoteService {
 
     public void deleteParsingParamById(Long id) {
         grpcClient.delete(id);
+    }
+
+    public List<String> getNamesByUserId(Long userId) {
+        return grpcClient.getNamesByUserId(userId);
+    }
+
+    public ParsingParamDTO getByUserIdAndName(Long userId, String name) {
+        return grpcClient.getByUserIdAndName(userId, name);
+    }
+
+    public void renameByUserIdAndName(Long userId, String oldName, String newName) {
+        grpcClient.renameByUserIdAndName(userId, oldName, newName);
+    }
+
+    public void deleteByUserIdAndName(Long userId, String name) {
+        grpcClient.deleteByUserIdAndName(userId, name);
     }
 }

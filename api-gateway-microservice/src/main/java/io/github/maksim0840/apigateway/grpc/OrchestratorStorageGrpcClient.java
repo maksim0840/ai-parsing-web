@@ -1,9 +1,9 @@
 package io.github.maksim0840.apigateway.grpc;
 
-import io.github.maksim0840.apigateway.dto.OrchestratorTaskResultDTO;
-import io.github.maksim0840.apigateway.dto.OrchestratorTaskStatusDTO;
-import io.github.maksim0840.apigateway.mapper.ProtoDTOOrchestratorTaskResultMapper;
-import io.github.maksim0840.apigateway.mapper.ProtoDTOOrchestratorTaskStatusMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TaskResultOrchestratorDTO;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TaskStatusOrchestratorDTO;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.TaskResultOrchestratorProtoMapper;
+import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.TaskStatusOrchestratorProtoMapper;
 import io.github.maksim0840.parsing_task_orchestrator.v1.*;
 import io.grpc.StatusRuntimeException;
 import net.devh.boot.grpc.client.inject.GrpcClient;
@@ -15,7 +15,7 @@ public class OrchestratorStorageGrpcClient {
     @GrpcClient("parsing_orchestrator")
     OrchestratorStorageServiceGrpc.OrchestratorStorageServiceBlockingStub blockingStub;
 
-    public OrchestratorTaskStatusDTO getTaskStatus(String taskId) {
+    public TaskStatusOrchestratorDTO getTaskStatus(String taskId) {
         System.out.println("send getStatus");
         GetTaskStatusOrchestratorRequest request = GetTaskStatusOrchestratorRequest.newBuilder()
                 .setTaskId(taskId)
@@ -23,10 +23,10 @@ public class OrchestratorStorageGrpcClient {
 
         GetTaskStatusOrchestratorResponse response = blockingStub.getTaskStatus(request);
         System.out.println("receive getStatus");
-        return ProtoDTOOrchestratorTaskStatusMapper.protoToDto(response);
+        return TaskStatusOrchestratorProtoMapper.protoToDto(response.getTaskStatusOrchestrator());
     }
 
-    public OrchestratorTaskResultDTO getTaskResult(String taskId) {
+    public TaskResultOrchestratorDTO getTaskResult(String taskId) {
         System.out.println("send getResult");
         GetTaskResultOrchestratorRequest request = GetTaskResultOrchestratorRequest.newBuilder()
                 .setTaskId(taskId)
@@ -35,7 +35,7 @@ public class OrchestratorStorageGrpcClient {
         try {
             GetTaskResultOrchestratorResponse response = blockingStub.getTaskResult(request);
             System.out.println("receive getResult");
-            return ProtoDTOOrchestratorTaskResultMapper.protoToDto(response);
+            return TaskResultOrchestratorProtoMapper.protoToDto(response.getTaskResultOrchestrator());
         } catch (StatusRuntimeException e) {
             throw GrpcExceptionMapper.map(e);
         }
