@@ -31,6 +31,11 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok:1.18.30")
     annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
 
+    // Mapping
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-csv")
+
     // MongoDB
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
 

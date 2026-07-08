@@ -5,6 +5,7 @@ import io.github.maksim0840.extractionresults.exception.NotFoundException;
 import io.github.maksim0840.extractionresults.mapper.ExtractionResultMapper;
 import io.github.maksim0840.extractionresults.repository.ExtractionResultRepository;
 import io.github.maksim0840.internalapi.extraction_result.v1.dto.ExtractionResultDTO;
+import io.github.maksim0840.internalapi.extraction_result.v1.enums.ResultFormat;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,49 +23,40 @@ import java.util.Map;
 public class ExtractionResultService {
 
     private final ExtractionResultRepository extractionResultsRepository;
-    private final ExtractionResultMapper extractionResultMapper;
 
-    public ExtractionResultService(ExtractionResultRepository extractionResultsRepository, ExtractionResultMapper extractionResultMapper) {
+    public ExtractionResultService(ExtractionResultRepository extractionResultsRepository) {
         this.extractionResultsRepository = extractionResultsRepository;
-        this.extractionResultMapper = extractionResultMapper;
     }
 
     public ExtractionResultDTO createExtractionResult(String url, String userId, Map<String, Object> jsonResult) {
         ExtractionResult extractionResult = new ExtractionResult(url, userId, jsonResult);
         try {
             extractionResult = extractionResultsRepository.save(extractionResult);
-            return extractionResultMapper.toDto(extractionResult);
+            return ExtractionResultMapper.entityToDto(extractionResult, ResultFormat.JSON);
         } catch (DataAccessException e) {
             throw new RuntimeException("MongoDB extractionResult write failed", e);
         }
     }
 
-    public ExtractionResultDTO getExtractionResultById(String id) {
+    public ExtractionResultDTO getExtractionResultById(String id, ResultFormat resultFormat) {
         try {
             ExtractionResult extractionResult = extractionResultsRepository.findById(id).orElseThrow(() ->
                     new NotFoundException("MongoDB extractionResult not found (id: " + id + ")"));
-            return extractionResultMapper.toDto(extractionResult);
+            return ExtractionResultMapper.entityToDto(extractionResult, resultFormat);
         } catch (DataAccessException e) {
             throw new RuntimeException("MongoDB extractionResult read failed", e);
         }
     }
 
-    public List<ExtractionResultDTO> getListExtractionResultByPageWithFiltering(String userId, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc) {
-        // Настраиваем сортировку
-        Sort.Direction sortDir = Sort.Direction.DESC;
-        if (isSortDesc != null) sortDir = isSortDesc ? Sort.Direction.DESC : Sort.Direction.ASC;
-        Sort sort = Sort.by(sortDir, "createdAt");
+    public List<ExtractionResultDTO> getListExtractionResultByPageWithFiltering(String userId, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc, ResultFormat resultFormat) {
+        List<ExtractionResult> extractionResults = getListEntities(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc);
+        return extractionResults.stream().map(res -> ExtractionResultMapper.entityToDto(res, resultFormat)).toList();
+    }
 
-        // Настраиваем пагинацию
-        Pageable pageable = PageRequest.of(pageNum, pageSize, sort);
+    public String getMergedListExtractionResultByPageWithFiltering(String userId, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc, ResultFormat resultFormat) {
+        List<ExtractionResult> extractionResults = getListEntities(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc);
+        return ExtractionResultMapper.mergeEntitiesToStr(extractionResults, resultFormat);
 
-        // Выполняем запрос
-        try {
-            List<ExtractionResult> extractionResults = extractionResultsRepository.searchWithFilteringAndPaging(userId, dateFrom, dateTo, pageable);
-            return extractionResults.stream().map(extractionResultMapper::toDto).toList();
-        } catch (DataAccessException e) {
-            throw new RuntimeException("MongoDB extractionResult read failed", e);
-        }
     }
 
     public long getExtractionResultsNumberByFiltering(String userId, Instant dateFrom, Instant dateTo) {
@@ -92,6 +84,23 @@ public class ExtractionResultService {
             return extractionResultsRepository.existsById(id);
         } catch (DataAccessException e) {
             throw new RuntimeException("MongoDB extractionResult check existence failed", e);
+        }
+    }
+
+    private List<ExtractionResult> getListEntities(String userId, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc) {
+        // Настраиваем сортировку
+        Sort.Direction sortDir = Sort.Direction.DESC;
+        if (isSortDesc != null) sortDir = isSortDesc ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Sort sort = Sort.by(sortDir, "createdAt");
+
+        // Настраиваем пагинацию
+        Pageable pageable = PageRequest.of(pageNum, pageSize, sort);
+
+        // Выполняем запрос
+        try {
+            return extractionResultsRepository.searchWithFilteringAndPaging(userId, dateFrom, dateTo, pageable);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("MongoDB extractionResult read failed", e);
         }
     }
 }

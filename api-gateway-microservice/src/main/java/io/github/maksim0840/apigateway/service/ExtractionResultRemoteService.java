@@ -3,6 +3,7 @@ package io.github.maksim0840.apigateway.service;
 import io.github.maksim0840.apigateway.grpc.ExtractionResultGrpcClient;
 import io.github.maksim0840.apigateway.mapper.JsonStringMapper;
 import io.github.maksim0840.internalapi.extraction_result.v1.dto.ExtractionResultDTO;
+import io.github.maksim0840.internalapi.extraction_result.v1.enums.ResultFormat;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -24,16 +25,20 @@ public class ExtractionResultRemoteService {
         return grpcClient.create(url, userId, jsonResult);
     }
 
-    public ExtractionResultDTO getExtractionResultById(String id) {
-        return grpcClient.get(id);
+    public ExtractionResultDTO getExtractionResultById(String id, ResultFormat resultFormat) {
+        return grpcClient.get(id, resultFormat);
     }
 
-    public List<ExtractionResultDTO> getListExtractionResultByPageWithFiltering(String userId, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc) {
-        return grpcClient.getList(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc);
+    public List<ExtractionResultDTO> getListExtractionResultByPageWithFiltering(String userId, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc, ResultFormat resultFormat) {
+        return grpcClient.getList(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc, resultFormat);
     }
 
     public long getExtractionResultsNumberByFiltering(String userId, Instant dateFrom, Instant dateTo) {
         return grpcClient.count(userId, dateFrom, dateTo);
+    }
+
+    public String getMergedListExtractionResultWithFormatMapping(String userId, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc, ResultFormat resultFormat) {
+        return grpcClient.getMergedList(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc, resultFormat);
     }
 
     public void deleteExtractionResultById(String id) {

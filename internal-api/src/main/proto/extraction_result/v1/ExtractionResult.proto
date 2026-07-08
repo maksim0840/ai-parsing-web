@@ -10,12 +10,20 @@ import "google/protobuf/timestamp.proto";   // timestamp
 
 // ===== Модель =====
 
+enum ResultFormatProto {
+    RESULT_FORMAT_UNSPECIFIED = 0;
+    JSON = 1;
+    XML = 2;
+    CSV = 3;
+}
+
 message ExtractionResultProto {
   string id = 1;
   string url = 2;
   string user_id = 3;
-  google.protobuf.Struct json_result = 4;
-  google.protobuf.Timestamp created_at = 5;
+  ResultFormatProto result_format = 4;
+  string result = 5;
+  google.protobuf.Timestamp created_at = 6;
 }
 
 
@@ -31,6 +39,7 @@ message CreateExtractionResultRequest {
 // Запросы на получение записи по id
 message GetExtractionResultRequest {
     string id = 1;
+    ResultFormatProto result_format = 2;
 }
 
 // Запрос на получение списка записей по фильтрам
@@ -41,6 +50,18 @@ message GetListExtractionResultRequest {
     int32 page_num = 4;
     int32 page_size = 5;
     optional bool sort_created_desc = 6;
+    ResultFormatProto result_format = 7;
+}
+
+// Запрос на получение нескольких результатов, смёрдженных в 1 файл по формату
+message GetMergedListExtractionResultRequest {
+    optional string user_id = 1;
+    optional google.protobuf.Timestamp created_from = 2;
+    optional google.protobuf.Timestamp created_to = 3;
+    int32 page_num = 4;
+    int32 page_size = 5;
+    optional bool sort_created_desc = 6;
+    ResultFormatProto result_format = 7;
 }
 
 message CountExtractionResultRequest {
@@ -69,6 +90,10 @@ message GetListExtractionResultResponse {
     repeated ExtractionResultProto extraction_results = 1;
 }
 
+message GetMergedListExtractionResultResponse {
+    string merged_extraction_results_str = 1;
+}
+
 message CountExtractionResultResponse {
     int64 number_of_records = 1;
 }
@@ -83,6 +108,7 @@ service ExtractionResultService {
   rpc Create(CreateExtractionResultRequest) returns (CreateExtractionResultResponse);
   rpc Get(GetExtractionResultRequest) returns (GetExtractionResultResponse);
   rpc GetList(GetListExtractionResultRequest) returns (GetListExtractionResultResponse);
+  rpc GetMergedList(GetMergedListExtractionResultRequest) returns (GetMergedListExtractionResultResponse);
   rpc Count(CountExtractionResultRequest) returns (CountExtractionResultResponse);
   rpc Delete(DeleteExtractionResultRequest) returns (DeleteExtractionResultResponse);
 }

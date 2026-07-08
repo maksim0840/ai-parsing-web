@@ -13,7 +13,8 @@ public class ExtractionResultProtoMapper {
                 .setId(dto.id() != null ? dto.id() : "")
                 .setUrl(dto.url() != null ? dto.url() : "")
                 .setUserId(dto.userId() != null ? dto.userId() : "")
-                .setJsonResult(ProtoJsonMapper.mapToStruct(dto.jsonResult() != null ? dto.jsonResult() : Map.of()))
+                .setResultFormat(ResultFormatProtoMapper.enumToProto(dto.resultFormat()))
+                .setResult(dto.result() != null ? dto.result() : "")
                 .setCreatedAt(ProtoTimeMapper.instantToTimestamp(dto.createdAt()))
                 .build();
     }
@@ -23,7 +24,8 @@ public class ExtractionResultProtoMapper {
                 .id(proto.getId())
                 .url(proto.getUrl())
                 .userId(proto.getUserId())
-                .jsonResult(ProtoJsonMapper.structToMap(proto.getJsonResult()))
+                .resultFormat(ResultFormatProtoMapper.protoToEnum(proto.getResultFormat()))
+                .result(proto.getResult())
                 .createdAt(ProtoTimeMapper.timestampToInstant(proto.getCreatedAt()))
                 .build();
     }

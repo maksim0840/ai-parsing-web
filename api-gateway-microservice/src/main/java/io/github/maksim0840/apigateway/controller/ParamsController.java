@@ -1,6 +1,7 @@
 package io.github.maksim0840.apigateway.controller;
 
 import io.github.maksim0840.apigateway.dto.api.ParamsCreateApiRequest;
+import io.github.maksim0840.apigateway.dto.api.ParamsEditApiRequest;
 import io.github.maksim0840.apigateway.dto.api.ParamsRenameApiRequest;
 import io.github.maksim0840.apigateway.security.JwtPrincipal;
 import io.github.maksim0840.apigateway.service.ParsingParamRemoteService;
@@ -24,6 +25,18 @@ public class ParamsController {
     @PostMapping("/create")
     public void createParam(@RequestBody ParamsCreateApiRequest request, @AuthenticationPrincipal JwtPrincipal principal) {
         parsingParamRemoteService.createParsingParam(
+                principal.userId(),
+                request.name(),
+                request.htmlParserParams(),
+                request.htmlPreprocessingParams(),
+                request.llmParams()
+        );
+    }
+
+    @PostMapping("/edit")
+    public void editParam(@RequestBody ParamsEditApiRequest request, @AuthenticationPrincipal JwtPrincipal principal) {
+        parsingParamRemoteService.editParsingParam(
+                request.id(),
                 principal.userId(),
                 request.name(),
                 request.htmlParserParams(),

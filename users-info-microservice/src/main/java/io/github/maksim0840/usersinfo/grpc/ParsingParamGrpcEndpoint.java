@@ -57,6 +57,30 @@ public class ParsingParamGrpcEndpoint extends ParsingParamServiceGrpc.ParsingPar
     }
 
     @Override
+    public void edit(EditParsingParamRequest request, StreamObserver<EditParsingParamResponse> observerResponse) {
+        Long id = request.getId();
+        Long userId = request.getUserId();
+        String name = request.getName();
+        HtmlParserParamsDTO htmlParserParams = HtmlParserParamsProtoMapper.protoToDto(request.getHtmlParserParams());
+        HtmlPreprocessingParamsDTO htmlPreprocessingParams = HtmlPreprocessingParamsProtoMapper.protoToDto(request.getHtmlPreprocessingParams());
+        LLMParamsDTO llmParams = LLMParamsProtoMapper.protoToDto(request.getLlmParams());
+
+        try {
+            ParsingParamDTO parsingParam = parsingParamService.editParsingParam(id, userId, name, htmlParserParams, htmlPreprocessingParams, llmParams);
+            ParsingParamProto parsingParamProto = ParsingParamProtoMapper.dtoToProto(parsingParam);
+            EditParsingParamResponse response = EditParsingParamResponse.newBuilder()
+                    .setParsingParam(parsingParamProto).build();
+
+            observerResponse.onNext(response);
+            observerResponse.onCompleted();
+        } catch (IllegalArgumentException e) {
+            observerResponse.onError(error(Status.INVALID_ARGUMENT, e.getMessage()));
+        } catch (RuntimeException e) {
+            observerResponse.onError(error(Status.UNAVAILABLE, e.getMessage()));
+        }
+    }
+
+    @Override
     public void get(GetParsingParamRequest request, StreamObserver<GetParsingParamResponse> observerResponse) {
         Long id = request.getId();
 

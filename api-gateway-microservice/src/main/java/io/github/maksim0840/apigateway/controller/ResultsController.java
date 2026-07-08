@@ -7,9 +7,14 @@ import io.github.maksim0840.apigateway.mapper.ApiResultDTOMapper;
 import io.github.maksim0840.apigateway.security.JwtPrincipal;
 import io.github.maksim0840.apigateway.service.ExtractionResultRemoteService;
 import io.github.maksim0840.internalapi.extraction_result.v1.dto.ExtractionResultDTO;
+import io.github.maksim0840.internalapi.extraction_result.v1.enums.ResultFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 
@@ -31,8 +36,11 @@ public class ResultsController {
     }
 
     @GetMapping("/{id}")
-    public ResultResponse getResultById(@PathVariable String id) {
-        ExtractionResultDTO resultDTO = extractionResultRemoteService.getExtractionResultById(id);
+    public ResultResponse getResultById(
+            @PathVariable String id,
+            @RequestParam(defaultValue = "JSON") ResultFormat format
+    ) {
+        ExtractionResultDTO resultDTO = extractionResultRemoteService.getExtractionResultById(id, format);
         return ApiResultDTOMapper.dtoToApi(resultDTO);
     }
 
@@ -43,11 +51,12 @@ public class ResultsController {
             @RequestParam(defaultValue = "0") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) Boolean isSortDesc,
-            @AuthenticationPrincipal JwtPrincipal principal
+            @AuthenticationPrincipal JwtPrincipal principal,
+            @RequestParam(defaultValue = "JSON") ResultFormat format
     ) {
         String userId = String.valueOf(principal.userId());
 
-        List<ExtractionResultDTO> resultsDTO = extractionResultRemoteService.getListExtractionResultByPageWithFiltering(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc);
+        List<ExtractionResultDTO> resultsDTO = extractionResultRemoteService.getListExtractionResultByPageWithFiltering(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc, format);
         long numberOfRecords = extractionResultRemoteService.getExtractionResultsNumberByFiltering(userId, dateFrom, dateTo);
 
         return new ResultsWithFilteringResponse(ApiResultDTOMapper.dtoToApiList(resultsDTO), numberOfRecords);
@@ -56,5 +65,45 @@ public class ResultsController {
     @DeleteMapping("/{id}")
     public void deleteResultById(@PathVariable String id) {
         extractionResultRemoteService.deleteExtractionResultById(id);
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> downloadMergedResultsByFilter(
+            @RequestParam(required = false) Instant dateFrom,
+            @RequestParam(required = false) Instant dateTo,
+            @RequestParam(defaultValue = "0") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) Boolean isSortDesc,
+            @AuthenticationPrincipal JwtPrincipal principal,
+            @RequestParam(defaultValue = "JSON") ResultFormat format
+    ) {
+        String userId = String.valueOf(principal.userId());
+
+        String mergedResults = extractionResultRemoteService.getMergedListExtractionResultWithFormatMapping(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc, format);
+        String extension = resolveFileExtension(format);
+        MediaType mediaType = resolveMediaType(format);
+
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"result." + extension + "\"")
+                .body(mergedResults.getBytes(StandardCharsets.UTF_8));
+
+    }
+
+    private String resolveFileExtension(ResultFormat format) {
+        return switch (format) {
+            case JSON -> "json";
+            case XML -> "xml";
+            case CSV -> "csv";
+        };
+    }
+
+    private MediaType resolveMediaType(ResultFormat format) {
+        return switch (format) {
+            case JSON -> MediaType.APPLICATION_JSON;
+            case XML -> MediaType.APPLICATION_XML;
+            case CSV -> MediaType.parseMediaType("text/csv");
+        };
     }
 }

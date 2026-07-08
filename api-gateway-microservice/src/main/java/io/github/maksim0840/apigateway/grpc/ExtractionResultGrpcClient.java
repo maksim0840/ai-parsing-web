@@ -2,9 +2,11 @@ package io.github.maksim0840.apigateway.grpc;
 
 import io.github.maksim0840.extraction_result.v1.*;
 import io.github.maksim0840.internalapi.extraction_result.v1.dto.ExtractionResultDTO;
+import io.github.maksim0840.internalapi.extraction_result.v1.enums.ResultFormat;
 import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ExtractionResultProtoMapper;
 import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ProtoJsonMapper;
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
+import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ResultFormatProtoMapper;
 import io.grpc.StatusRuntimeException;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Service;
@@ -35,9 +37,10 @@ public class ExtractionResultGrpcClient {
         }
     }
 
-    public ExtractionResultDTO get(String id) {
+    public ExtractionResultDTO get(String id, ResultFormat resultFormat) {
         GetExtractionResultRequest request = GetExtractionResultRequest.newBuilder()
                 .setId(id)
+                .setResultFormat(ResultFormatProtoMapper.enumToProto(resultFormat))
                 .build();
 
         try {
@@ -49,7 +52,7 @@ public class ExtractionResultGrpcClient {
         }
     }
 
-    public List<ExtractionResultDTO> getList(String userId, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc) {
+    public List<ExtractionResultDTO> getList(String userId, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc, ResultFormat resultFormat) {
         GetListExtractionResultRequest.Builder requestBuilder = GetListExtractionResultRequest.newBuilder()
                 .setPageNum(pageNum)
                 .setPageSize(pageSize);
@@ -57,6 +60,7 @@ public class ExtractionResultGrpcClient {
         if (dateFrom != null) requestBuilder.setCreatedFrom(ProtoTimeMapper.instantToTimestamp(dateFrom));
         if (dateTo != null) requestBuilder.setCreatedTo(ProtoTimeMapper.instantToTimestamp(dateTo));
         if (isSortDesc != null) requestBuilder.setSortCreatedDesc(isSortDesc);
+        requestBuilder.setResultFormat(ResultFormatProtoMapper.enumToProto(resultFormat));
         GetListExtractionResultRequest request = requestBuilder.build();
 
         try {
@@ -65,6 +69,25 @@ public class ExtractionResultGrpcClient {
             return extractionResultsProto.stream()
                     .map(ExtractionResultProtoMapper::protoToDto)
                     .toList();
+        } catch (StatusRuntimeException e) {
+            throw GrpcExceptionMapper.map(e);
+        }
+    }
+
+    public String getMergedList(String userId, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc, ResultFormat resultFormat) {
+        GetMergedListExtractionResultRequest.Builder requestBuilder = GetMergedListExtractionResultRequest.newBuilder()
+                .setPageNum(pageNum)
+                .setPageSize(pageSize);
+        if (userId != null) requestBuilder.setUserId(userId);
+        if (dateFrom != null) requestBuilder.setCreatedFrom(ProtoTimeMapper.instantToTimestamp(dateFrom));
+        if (dateTo != null) requestBuilder.setCreatedTo(ProtoTimeMapper.instantToTimestamp(dateTo));
+        if (isSortDesc != null) requestBuilder.setSortCreatedDesc(isSortDesc);
+        requestBuilder.setResultFormat(ResultFormatProtoMapper.enumToProto(resultFormat));
+        GetMergedListExtractionResultRequest request = requestBuilder.build();
+
+        try {
+            GetMergedListExtractionResultResponse response = blockingStub.getMergedList(request);
+            return response.getMergedExtractionResultsStr();
         } catch (StatusRuntimeException e) {
             throw GrpcExceptionMapper.map(e);
         }

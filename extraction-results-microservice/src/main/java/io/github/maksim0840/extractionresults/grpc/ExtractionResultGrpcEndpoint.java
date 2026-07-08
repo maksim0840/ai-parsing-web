@@ -5,9 +5,11 @@ import io.github.maksim0840.extractionresults.entity.ExtractionResult;
 import io.github.maksim0840.extractionresults.exception.NotFoundException;
 import io.github.maksim0840.extractionresults.service.ExtractionResultService;
 import io.github.maksim0840.internalapi.extraction_result.v1.dto.ExtractionResultDTO;
+import io.github.maksim0840.internalapi.extraction_result.v1.enums.ResultFormat;
 import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ExtractionResultProtoMapper;
 import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ProtoJsonMapper;
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
+import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ResultFormatProtoMapper;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -59,13 +61,15 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
     public void get(GetExtractionResultRequest request,
                     StreamObserver<GetExtractionResultResponse> observerResponse) {
         String id = request.getId();
+        ResultFormat resultFormat = ResultFormatProtoMapper.protoToEnum(request.getResultFormat());
+
         if (id.isBlank()) {
             observerResponse.onError(error(Status.INVALID_ARGUMENT, "id must not be blank"));
             return;
         }
 
         try {
-            ExtractionResultDTO extractionResult = extractionResultService.getExtractionResultById(id);
+            ExtractionResultDTO extractionResult = extractionResultService.getExtractionResultById(id, resultFormat);
             ExtractionResultProto extractionResultProto = ExtractionResultProtoMapper.dtoToProto(extractionResult);
             GetExtractionResultResponse response = GetExtractionResultResponse.newBuilder()
                     .setExtractionResult(extractionResultProto).build();
@@ -88,14 +92,38 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
         int pageNum = request.getPageNum();
         int pageSize = request.getPageSize();
         Boolean isSortDesc = request.hasSortCreatedDesc() ? request.getSortCreatedDesc() : null;
+        ResultFormat resultFormat = ResultFormatProtoMapper.protoToEnum(request.getResultFormat());
 
         try {
-            List<ExtractionResultDTO> extractionResults = extractionResultService.getListExtractionResultByPageWithFiltering(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc);
+            List<ExtractionResultDTO> extractionResults = extractionResultService.getListExtractionResultByPageWithFiltering(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc, resultFormat);
             List<ExtractionResultProto> extractionResultsProto = extractionResults.stream()
                     .map(ExtractionResultProtoMapper::dtoToProto)
                     .toList();
             GetListExtractionResultResponse response = GetListExtractionResultResponse.newBuilder()
                     .addAllExtractionResults(extractionResultsProto).build();
+
+            observerResponse.onNext(response);
+            observerResponse.onCompleted();
+        } catch (RuntimeException e) {
+            observerResponse.onError(error(Status.UNAVAILABLE, e.getMessage()));
+        }
+    }
+
+    @Override
+    public void getMergedList(GetMergedListExtractionResultRequest request,
+                              StreamObserver<GetMergedListExtractionResultResponse> observerResponse) {
+        String userId = request.hasUserId() ? request.getUserId() : null;
+        Instant dateFrom = request.hasCreatedFrom() ? ProtoTimeMapper.timestampToInstant(request.getCreatedFrom()) : null;
+        Instant dateTo = request.hasCreatedTo() ? ProtoTimeMapper.timestampToInstant(request.getCreatedTo()) : null;
+        int pageNum = request.getPageNum();
+        int pageSize = request.getPageSize();
+        Boolean isSortDesc = request.hasSortCreatedDesc() ? request.getSortCreatedDesc() : null;
+        ResultFormat resultFormat = ResultFormatProtoMapper.protoToEnum(request.getResultFormat());
+
+        try {
+            String mergedResults = extractionResultService.getMergedListExtractionResultByPageWithFiltering(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc, resultFormat);
+            GetMergedListExtractionResultResponse response = GetMergedListExtractionResultResponse.newBuilder()
+                    .setMergedExtractionResultsStr(mergedResults).build();
 
             observerResponse.onNext(response);
             observerResponse.onCompleted();

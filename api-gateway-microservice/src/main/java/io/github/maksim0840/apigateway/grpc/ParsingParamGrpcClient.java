@@ -41,6 +41,25 @@ public class ParsingParamGrpcClient {
         }
     }
 
+    public ParsingParamDTO edit(Long id, Long userId, String name, HtmlParserParamsDTO htmlParserParams, HtmlPreprocessingParamsDTO htmlPreprocessingParams, LLMParamsDTO llmParams) {
+        EditParsingParamRequest request = EditParsingParamRequest.newBuilder()
+                .setId(id)
+                .setUserId(userId)
+                .setName(name)
+                .setHtmlParserParams(HtmlParserParamsProtoMapper.dtoToProto(htmlParserParams))
+                .setHtmlPreprocessingParams(HtmlPreprocessingParamsProtoMapper.dtoToProto(htmlPreprocessingParams))
+                .setLlmParams(LLMParamsProtoMapper.dtoToProto(llmParams))
+                .build();
+
+        try {
+            EditParsingParamResponse response = blockingStub.edit(request);
+            ParsingParamProto parsingParamProto = response.getParsingParam();
+            return ParsingParamProtoMapper.protoToDto(parsingParamProto);
+        } catch (StatusRuntimeException e) {
+            throw GrpcExceptionMapper.map(e);
+        }
+    }
+
     public ParsingParamDTO get(Long id) {
         GetParsingParamRequest request = GetParsingParamRequest.newBuilder()
                 .setId(id)

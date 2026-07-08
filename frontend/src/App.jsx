@@ -20,7 +20,6 @@ import {
   Clock3,
   Pencil,
   X,
-  Bookmark,
 } from "lucide-react";
 
 const CLEANUP_TAGS = [
@@ -1892,19 +1891,13 @@ export default function ConferenceParserPage() {
             </div>
           </motion.header>
 
+          <ParamsPresets
+            buildParams={buildParamsPayload}
+            applyParams={applyLoadedParams}
+          />
+
           <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-6">
-              <Section
-                icon={Bookmark}
-                title="Сохранённые параметры"
-                description="Выберите ранее сохранённый набор параметров, чтобы подставить его в форму, либо сохраните текущие настройки под новым названием. URL, загруженные файлы и изображения в набор не входят."
-              >
-                <ParamsPresets
-                  buildParams={buildParamsPayload}
-                  applyParams={applyLoadedParams}
-                />
-              </Section>
-
               <Section
                 icon={Globe}
                 title="Блок 1. Извлечение данных со страницы"

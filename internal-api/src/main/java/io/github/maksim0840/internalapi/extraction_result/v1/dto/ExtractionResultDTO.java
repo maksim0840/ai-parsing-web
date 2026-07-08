@@ -1,10 +1,10 @@
 package io.github.maksim0840.internalapi.extraction_result.v1.dto;
 
+import io.github.maksim0840.internalapi.extraction_result.v1.enums.ResultFormat;
 import lombok.Builder;
 
 import javax.annotation.Nullable;
 import java.time.Instant;
-import java.util.Map;
 
 @Builder
 @Nullable
@@ -12,7 +12,8 @@ public record ExtractionResultDTO(
         String id,
         String url,
         String userId,
-        Map<String, Object> jsonResult,
+        ResultFormat resultFormat,
+        String result,
         Instant createdAt
 ) {
 }

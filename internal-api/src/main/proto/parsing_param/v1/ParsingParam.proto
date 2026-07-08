@@ -67,6 +67,16 @@ message CreateParsingParamRequest {
   LLMParamsProto llm_params = 5;
 }
 
+// Запрос на редактирование записи по параметрам
+message EditParsingParamRequest {
+  int64 id = 1;
+  int64 user_id = 2;
+  string name = 3;
+  HtmlParserParamsProto html_parser_params = 4;
+  HtmlPreprocessingParamsProto html_preprocessing_params = 5;
+  LLMParamsProto llm_params = 6;
+}
+
 // Запросы на получение записи по id
 message GetParsingParamRequest {
   int64 id = 1;
@@ -118,6 +128,10 @@ message CreateParsingParamResponse {
   ParsingParamProto parsing_param = 1;
 }
 
+message EditParsingParamResponse {
+  ParsingParamProto parsing_param = 1;
+}
+
 message GetParsingParamResponse {
   ParsingParamProto parsing_param = 1;
 }
@@ -148,6 +162,7 @@ message DeleteParsingParamByUserIdAndNameResponse {
 
 service ParsingParamService {
   rpc Create(CreateParsingParamRequest) returns (CreateParsingParamResponse);
+  rpc Edit(EditParsingParamRequest) returns (EditParsingParamResponse);
   rpc Get(GetParsingParamRequest) returns (GetParsingParamResponse);
   rpc GetList(GetListParsingParamRequest) returns (GetListParsingParamResponse);
   rpc Delete(DeleteParsingParamRequest) returns (DeleteParsingParamResponse);

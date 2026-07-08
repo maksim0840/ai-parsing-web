@@ -23,6 +23,10 @@ public class ParsingParamRemoteService {
         return grpcClient.create(userId, name, htmlParserParams, htmlPreprocessingParams, llmParams);
     }
 
+    public ParsingParamDTO editParsingParam(Long id, Long userId, String name, HtmlParserParamsDTO htmlParserParams, HtmlPreprocessingParamsDTO htmlPreprocessingParams, LLMParamsDTO llmParams) {
+        return grpcClient.edit(id, userId, name, htmlParserParams, htmlPreprocessingParams, llmParams);
+    }
+
     public ParsingParamDTO getParsingParamById(Long id) {
         return grpcClient.get(id);
     }

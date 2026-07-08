@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
   CalendarDays,
+  Download,
   Eye,
   FileText,
   Loader2,
@@ -15,6 +16,68 @@ import {
 import { authFetch, getStoredAuth } from "./AuthGate.jsx";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
+const EXPORT_FORMATS = [
+  { value: "JSON", label: "JSON", extension: "json" },
+  { value: "XML", label: "XML", extension: "xml" },
+  { value: "CSV", label: "CSV", extension: "csv" },
+];
+
+function resolveExportExtension(format) {
+  const found = EXPORT_FORMATS.find((item) => item.value === format);
+  return found ? found.extension : "txt";
+}
+
+// Бэкенд присылает имя файла в Content-Disposition; если заголовок недоступен,
+// собираем имя сами из выбранного формата.
+function resolveExportFilename(contentDisposition, format) {
+  const fallback = `result.${resolveExportExtension(format)}`;
+  const raw = String(contentDisposition || "");
+  if (!raw) return fallback;
+
+  const encodedMatch = raw.match(/filename\*=(?:UTF-8'')?([^;]+)/i);
+  if (encodedMatch?.[1]) {
+    try {
+      return decodeURIComponent(encodedMatch[1].trim().replace(/^"|"$/g, "")) || fallback;
+    } catch {
+      // падаем в обычный filename
+    }
+  }
+
+  const plainMatch = raw.match(/filename="?([^";]+)"?/i);
+  if (plainMatch?.[1]) {
+    return plainMatch[1].trim() || fallback;
+  }
+
+  return fallback;
+}
+
+function triggerBlobDownload(blob, filename) {
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = objectUrl;
+  link.download = filename;
+  link.style.display = "none";
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(objectUrl);
+}
+
+function extractErrorMessage(text, status) {
+  const raw = String(text || "").trim();
+  if (!raw) return `Не удалось экспортировать историю: ${status}`;
+
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed?.message || parsed?.error || parsed?.details || raw;
+  } catch {
+    return raw;
+  }
+}
 
 function formatDateTime(value) {
   if (!value) return "—";
@@ -130,6 +193,8 @@ function normalizeDateRange(dateFromValue, dateToValue) {
 
 function stringifyResult(value) {
   if (value == null) return "";
+  // Бэкенд теперь отдаёт result уже строкой (JSON/XML/CSV) — показываем как есть.
+  if (typeof value === "string") return value;
   try {
     return JSON.stringify(value, null, 2);
   } catch {
@@ -231,7 +296,7 @@ function DatePickerField({ label, value, onChange }) {
 function ResultModal({ item, onClose }) {
   if (!item) return null;
 
-  const prettyJson = stringifyResult(item.jsonResult);
+  const prettyJson = stringifyResult(item.result);
 
   return (
     <AnimatePresence>
@@ -313,6 +378,11 @@ export default function ProfilePage({ onBack }) {
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState("");
   const [error, setError] = useState("");
+
+  const [exportFormat, setExportFormat] = useState("JSON");
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
+
   const initialLoadDoneRef = useRef(false);
 
   function buildQueryString(nextState = {}) {
@@ -384,6 +454,46 @@ export default function ProfilePage({ onBack }) {
       setError(e.message || "Ошибка при загрузке истории.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleExport() {
+    if (isExporting) {
+      return;
+    }
+
+    setIsExporting(true);
+    setExportError("");
+
+    try {
+      // Берём ровно те же параметры фильтрации, что применены к таблице сейчас.
+      const params = new URLSearchParams(buildQueryString());
+      params.set("format", exportFormat);
+
+      const response = await authFetch(`/api/results/export?${params.toString()}`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json, application/xml, text/csv, */*",
+        },
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(extractErrorMessage(text, response.status));
+      }
+
+      const blob = await response.blob();
+      const filename = resolveExportFilename(
+        response.headers.get("Content-Disposition"),
+        exportFormat
+      );
+
+      triggerBlobDownload(blob, filename);
+    } catch (e) {
+      setExportError(e.message || "Ошибка при экспорте истории.");
+    } finally {
+      setIsExporting(false);
     }
   }
 
@@ -478,7 +588,7 @@ export default function ProfilePage({ onBack }) {
     () =>
       results.map((item) => ({
         ...item,
-        preview: buildPreviewText(item.jsonResult, 4),
+        preview: buildPreviewText(item.result, 4),
       })),
     [results]
   );
@@ -665,41 +775,9 @@ export default function ProfilePage({ onBack }) {
                   </div>
                 </div>
 
-                <div className="mt-6 flex flex-col gap-4 bg-white p-4 lg:flex-row lg:items-center lg:justify-between rounded-3xl">
-                  <div className="flex flex-wrap items-center gap-2 lg:justify-start">
-                    {visiblePages.map((page, index) =>
-                      page === "ellipsis" ? (
-                        <span key={`ellipsis-${index}`} className="px-2 text-sm text-slate-400">
-                          …
-                        </span>
-                      ) : (
-                        <button
-                          key={page}
-                          type="button"
-                          onClick={() => handlePageChange(page - 1)}
-                          className={`inline-flex h-10 min-w-10 items-center justify-center rounded-2xl border px-3 text-sm transition ${
-                            pageNum + 1 === page
-                              ? "border-slate-900 bg-slate-900 text-white"
-                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      )
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => handlePageChange(pageNum + 1)}
-                      disabled={pageNum + 1 >= totalPages}
-                      className="inline-flex h-10 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      Следующая
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-start lg:justify-end">
-                    <label className="inline-flex items-center gap-3 text-sm text-slate-700">
+                <div className="mt-6 rounded-3xl bg-white p-4">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+                    <label className="inline-flex shrink-0 items-center gap-3 text-sm text-slate-700">
                       <span>Записей на странице</span>
                       <select
                         value={pageSize}
@@ -713,7 +791,88 @@ export default function ProfilePage({ onBack }) {
                         ))}
                       </select>
                     </label>
+
+                    <div className="flex flex-wrap items-center gap-2 lg:ml-8">
+                      {visiblePages.map((page, index) =>
+                        page === "ellipsis" ? (
+                          <span key={`ellipsis-${index}`} className="px-2 text-sm text-slate-400">
+                            …
+                          </span>
+                        ) : (
+                          <button
+                            key={page}
+                            type="button"
+                            onClick={() => handlePageChange(page - 1)}
+                            className={`inline-flex h-10 min-w-10 items-center justify-center rounded-2xl border px-3 text-sm transition ${
+                              pageNum + 1 === page
+                                ? "border-slate-900 bg-slate-900 text-white"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        )
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => handlePageChange(pageNum + 1)}
+                        disabled={pageNum + 1 >= totalPages}
+                        className="inline-flex h-10 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Следующая
+                      </button>
+                    </div>
+
+                    <div className="inline-flex items-stretch overflow-hidden rounded-2xl border border-slate-200 bg-white transition focus-within:border-slate-400 lg:ml-auto">
+                      <select
+                        value={exportFormat}
+                        onChange={(e) => {
+                          setExportFormat(e.target.value);
+                          setExportError("");
+                        }}
+                        disabled={isExporting}
+                        aria-label="Формат экспорта"
+                        className="border-r border-slate-200 bg-transparent px-4 py-2.5 text-sm text-slate-700 outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {EXPORT_FORMATS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={handleExport}
+                        disabled={isExporting || totalRecords === 0}
+                        title="Экспортировать по текущим фильтрам"
+                        className="inline-flex items-center gap-2 bg-slate-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isExporting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
+                        Экспортировать
+                      </button>
+                    </div>
                   </div>
+
+                  <AnimatePresence>
+                    {exportError ? (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700 whitespace-pre-wrap break-words">
+                          {exportError}
+                        </div>
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
                 </div>
               </>
             )}

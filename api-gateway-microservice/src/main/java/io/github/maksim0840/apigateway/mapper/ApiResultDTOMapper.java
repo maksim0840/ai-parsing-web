@@ -11,7 +11,8 @@ public class ApiResultDTOMapper {
         return new ResultResponse(
                 dto.id(),
                 dto.url(),
-                dto.jsonResult(),
+                dto.resultFormat(),
+                dto.result(),
                 dto.createdAt()
         );
     }

@@ -8,13 +8,18 @@ import io.github.maksim0840.usersinfo.entity.ParsingParam;
 import io.github.maksim0840.usersinfo.entity.User;
 import io.github.maksim0840.usersinfo.entity.model.HtmlParserParams;
 import io.github.maksim0840.usersinfo.entity.model.HtmlPreprocessingParams;
+import io.github.maksim0840.usersinfo.entity.model.LLMParams;
 import io.github.maksim0840.usersinfo.exception.NotFoundException;
 import io.github.maksim0840.usersinfo.mapper.ParsingParamMapper;
 import io.github.maksim0840.usersinfo.mapper.UserMapper;
 import io.github.maksim0840.usersinfo.repository.ParsingParamRepository;
 import io.github.maksim0840.usersinfo.repository.ParsingParamSpecification;
 import io.github.maksim0840.usersinfo.repository.UserRepository;
+import jakarta.persistence.Column;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.springframework.dao.DataAccessException;
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -56,6 +61,23 @@ public class ParsingParamService {
         } catch (DataAccessException e) {
             throw new RuntimeException("PostgreSQL parsingParam write failed", e);
         }
+    }
+
+    public ParsingParamDTO editParsingParam(Long id, Long userId, String name, HtmlParserParamsDTO htmlParserParams, HtmlPreprocessingParamsDTO htmlPreprocessingParams, LLMParamsDTO llmParams) {
+        ParsingParam parsingParam = parsingParamRepository.findById(id).orElseThrow(() ->
+                new NotFoundException("PostgreSQL parsingParam not found (id: " + id + ")"));
+        parsingParam.setName(name);
+        parsingParam.setHtmlParserParams(parsingParamMapper.toEntity(htmlParserParams));
+        parsingParam.setHtmlPreprocessingParams(parsingParamMapper.toEntity(htmlPreprocessingParams));
+        parsingParam.setLlmParams(parsingParamMapper.toEntity(llmParams));
+
+        try {
+            parsingParam = parsingParamRepository.save(parsingParam);
+            return parsingParamMapper.toDto(parsingParam);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("PostgreSQL parsingParam write failed", e);
+        }
+
     }
 
     public ParsingParamDTO getParsingParamById(Long id) {

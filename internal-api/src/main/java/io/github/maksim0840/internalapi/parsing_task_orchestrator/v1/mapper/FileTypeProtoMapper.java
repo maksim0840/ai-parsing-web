@@ -5,8 +5,8 @@ import io.github.maksim0840.parsing_task_orchestrator.v1.FileTypeProto;
 
 public class FileTypeProtoMapper {
 
-    public static FileTypeProto enumToProto(FileType status) {
-        return switch (status) {
+    public static FileTypeProto enumToProto(FileType fileType) {
+        return switch (fileType) {
             case HTML -> FileTypeProto.HTML;
             case IMG -> FileTypeProto.IMG;
             default -> FileTypeProto.FILE_TYPE_UNSPECIFIED;
