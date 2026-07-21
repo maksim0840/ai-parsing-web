@@ -1,3 +1,22 @@
+# UML Sequence Diagram основного пайплайна работы программы
+
+<img width="3865" height="2915" alt="uml sequence ai-parsing-web drawio (2)" src="https://github.com/user-attachments/assets/83072707-3cde-49b9-b58e-2c450e9e09f7" />
+
+# Микросервисы, их связи и используемые технологии
+
+<img width="3020" height="1425" alt="ai-parsing-web drawio (1)" src="https://github.com/user-attachments/assets/1946da8e-233c-421d-8653-ec8274a4da6e" />
+
+# Экран авторизации
+
+<img width="2560" height="1694" alt="Screenshot 2026-07-20 at 00-25-07 AI parse" src="https://github.com/user-attachments/assets/63f8d36c-4844-4f87-95d3-09ee9d6f9728" />
+
+# Выполнение задачи
+
+<img width="3292" height="1694" alt="Screenshot 2026-07-20 at 00-27-12 AI parse" src="https://github.com/user-attachments/assets/89efe88f-abcc-44e6-ae84-39057d05838f" />
+
+# История предыдущих результатов анализа веб-страниц
+
+<img width="2021" height="1526" alt="Screenshot 2026-07-22 at 00-19-18 AI parse" src="https://github.com/user-attachments/assets/34a79408-38cd-4e83-b170-b51ae7eb7b83" />
 
 # Установка зависимостей
 
