@@ -3,6 +3,7 @@ package io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto;
 import lombok.Builder;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 
 @Builder
@@ -53,7 +54,8 @@ public record HtmlPreprocessingRequestDTO(
 
     // Добавить несколько элементов в htmlDocs
     public HtmlPreprocessingRequestDTO addAllToHtmlDocs(List<FileInfoDTO> extraHtmlDocs) {
-        List<FileInfoDTO> newHtmlDocs = this.htmlDocs;
+        List<FileInfoDTO> newHtmlDocs = new ArrayList<>(
+                this.htmlDocs != null ? this.htmlDocs : List.of());
         newHtmlDocs.addAll(extraHtmlDocs);
         return withHtmlDocs(newHtmlDocs);
     }

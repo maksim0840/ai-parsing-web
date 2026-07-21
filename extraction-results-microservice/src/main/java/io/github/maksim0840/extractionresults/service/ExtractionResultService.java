@@ -38,10 +38,13 @@ public class ExtractionResultService {
         }
     }
 
-    public ExtractionResultDTO getExtractionResultById(String id, ResultFormat resultFormat) {
+    public ExtractionResultDTO getExtractionResultById(String id, String userId, ResultFormat resultFormat) {
         try {
             ExtractionResult extractionResult = extractionResultsRepository.findById(id).orElseThrow(() ->
                     new NotFoundException("MongoDB extractionResult not found (id: " + id + ")"));
+            if (!extractionResult.getUserId().equals(userId)) {
+                throw new RuntimeException("MongoDB extractionResult's userId does not match (id: " + id + ", userId: " + userId + ")");
+            }
             return ExtractionResultMapper.entityToDto(extractionResult, resultFormat);
         } catch (DataAccessException e) {
             throw new RuntimeException("MongoDB extractionResult read failed", e);
@@ -67,9 +70,9 @@ public class ExtractionResultService {
         }
     }
 
-    public void deleteExtractionResultById(String id) {
-        if (!checkExistenceExtractionResultById(id)) {
-            throw new NotFoundException("MongoDB extractionResult didn't exist (id: " + id + ")");
+    public void deleteExtractionResultById(String id, String userId) {
+        if (!checkExistenceExtractionResult(id, userId)) {
+            throw new NotFoundException("MongoDB extractionResult didn't exist (id: " + id + ", userId: " + userId + ")");
         }
 
         try {
@@ -79,9 +82,24 @@ public class ExtractionResultService {
         }
     }
 
-    private boolean checkExistenceExtractionResultById(String id) {
+    public ExtractionResultDTO updateExtractionResultById(String id, String userId, Map<String, Object> jsonResult) {
         try {
-            return extractionResultsRepository.existsById(id);
+            ExtractionResult extractionResult = extractionResultsRepository.findById(id).orElseThrow(() ->
+                    new NotFoundException("MongoDB extractionResult not found (id: " + id + ")"));
+            if (!extractionResult.getUserId().equals(userId)) {
+                throw new RuntimeException("MongoDB extractionResult's userId does not match (id: " + id + ", userId: " + userId + ")");
+            }
+            extractionResult.setJsonResult(jsonResult);
+            extractionResult = extractionResultsRepository.save(extractionResult);
+            return ExtractionResultMapper.entityToDto(extractionResult, ResultFormat.JSON);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("MongoDB extractionResult update failed", e);
+        }
+    }
+
+    private boolean checkExistenceExtractionResult(String id, String userId) {
+        try {
+            return extractionResultsRepository.existsByIdAndUserId(id, userId);
         } catch (DataAccessException e) {
             throw new RuntimeException("MongoDB extractionResult check existence failed", e);
         }

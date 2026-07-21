@@ -25,6 +25,7 @@ public class TaskService {
     }
 
     public TaskDTO addTask(String taskId,
+                           String userId,
                            HtmlParserRequestDTO htmlParserRequest,
                            HtmlPreprocessingRequestDTO htmlPreprocessingRequest,
                            TextRecognitionRequestDTO textRecognitionRequest,
@@ -37,6 +38,7 @@ public class TaskService {
 
         Task task = new Task(
                 taskId,
+                userId,
                 htmlParserRequired,
                 htmlParserRequired ? taskMapper.toEntity(htmlParserRequest) : new HtmlParserRequest(),
                 htmlPreprocessingRequired,

@@ -63,10 +63,11 @@ message LLMRequestProto {
 
 message StartParsingOrchestratorRequest {
     string task_id = 1;
-    optional HtmlParserRequestProto html_parser_request = 2;
-    optional HtmlPreprocessingRequestProto html_preprocessing_request = 3;
-    optional TextRecognitionRequestProto text_recognition_request = 4;
-    optional LLMRequestProto llm_request = 5;
+    string user_id = 2;
+    optional HtmlParserRequestProto html_parser_request = 3;
+    optional HtmlPreprocessingRequestProto html_preprocessing_request = 4;
+    optional TextRecognitionRequestProto text_recognition_request = 5;
+    optional LLMRequestProto llm_request = 6;
 }
 
 

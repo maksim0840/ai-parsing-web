@@ -22,7 +22,7 @@ public class OrchestratorStartService {
         this.fileService = fileService;
     }
 
-    public String sendPipelineRequest(String sessionId, PipelineApiRequest pipeline) {
+    public String sendPipelineRequest(String sessionId, String userId, PipelineApiRequest pipeline) {
         String htmlOutDir = fileService.getHtmlOutDir(sessionId);
         String imagesOutDir = fileService.getImagesOutDir(sessionId);
 
@@ -41,6 +41,7 @@ public class OrchestratorStartService {
 
         return grpcClient.startParsing(
                 sessionId,
+                userId,
                 htmlParserRequestDTO,
                 htmlPreprocessingRequestDTO,
                 textRecognitionRequestDTO,
@@ -48,13 +49,14 @@ public class OrchestratorStartService {
         );
     }
 
-    public String sendParsingRequest(String sessionId, ParsingApiRequest parsingRequest) {
+    public String sendParsingRequest(String sessionId, String userId, ParsingApiRequest parsingRequest) {
         String htmlOutDir = fileService.getHtmlOutDir(sessionId);
         String imagesOutDir = fileService.getImagesOutDir(sessionId);
         HtmlParserRequestDTO htmlParserRequestDTO = ApiRequestsDTOMapper.parsingApiToDto(parsingRequest, sessionId, htmlOutDir, imagesOutDir);
 
         return grpcClient.startParsing(
                 sessionId,
+                userId,
                 htmlParserRequestDTO,
                 null,
                 null,
@@ -62,11 +64,12 @@ public class OrchestratorStartService {
         );
     }
 
-    public String sendPreprocessingRequest(String sessionId, PreprocessingApiRequest preprocessingRequest) {
+    public String sendPreprocessingRequest(String sessionId, String userId, PreprocessingApiRequest preprocessingRequest) {
         HtmlPreprocessingRequestDTO htmlPreprocessingRequestDTO = ApiRequestsDTOMapper.preprocessingApiToDto(preprocessingRequest, sessionId);
 
         return grpcClient.startParsing(
                 sessionId,
+                userId,
                 null,
                 htmlPreprocessingRequestDTO,
                 null,
@@ -74,11 +77,12 @@ public class OrchestratorStartService {
         );
     }
 
-    public String sendRecognitionRequest(String sessionId, RecognitionApiRequest recognitionRequest) {
+    public String sendRecognitionRequest(String sessionId, String userId, RecognitionApiRequest recognitionRequest) {
         TextRecognitionRequestDTO textRecognitionRequestDTO = ApiRequestsDTOMapper.recognitionApiToDto(recognitionRequest, sessionId);
 
         return grpcClient.startParsing(
                 sessionId,
+                userId,
                 null,
                 null,
                 textRecognitionRequestDTO,
@@ -86,11 +90,12 @@ public class OrchestratorStartService {
         );
     }
 
-    public String sendLLMRequest(String sessionId, LLMApiRequest llmRequest) {
+    public String sendLLMRequest(String sessionId, String userId, LLMApiRequest llmRequest) {
         LLMRequestDTO llmRequestDTO = ApiRequestsDTOMapper.llmApiToDto(llmRequest, sessionId);
 
         return grpcClient.startParsing(
                 sessionId,
+                userId,
                 null,
                 null,
                 null,

@@ -68,10 +68,12 @@ message TaskResultOrchestratorProto {
 
 message GetTaskStatusOrchestratorRequest {
     string task_id = 1;
+    string user_id = 2;
 }
 
 message GetTaskResultOrchestratorRequest {
     string task_id = 1;
+    string user_id = 2;
 }
 
 

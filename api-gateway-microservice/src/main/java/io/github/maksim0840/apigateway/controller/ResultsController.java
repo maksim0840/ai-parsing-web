@@ -4,6 +4,7 @@ import io.github.maksim0840.apigateway.dto.api.ResultResponse;
 import io.github.maksim0840.apigateway.dto.api.ResultSaveApiRequest;
 import io.github.maksim0840.apigateway.dto.api.ResultsWithFilteringResponse;
 import io.github.maksim0840.apigateway.mapper.ApiResultDTOMapper;
+import io.github.maksim0840.apigateway.mapper.JsonStringMapper;
 import io.github.maksim0840.apigateway.security.JwtPrincipal;
 import io.github.maksim0840.apigateway.service.ExtractionResultRemoteService;
 import io.github.maksim0840.internalapi.extraction_result.v1.dto.ExtractionResultDTO;
@@ -11,12 +12,14 @@ import io.github.maksim0840.internalapi.extraction_result.v1.enums.ResultFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/results")
@@ -29,18 +32,35 @@ public class ResultsController {
     }
 
     @PostMapping("/save")
-    public ResultResponse saveResult(@RequestBody ResultSaveApiRequest request, @AuthenticationPrincipal JwtPrincipal principal) {
+    public ResultResponse saveResult(
+            @RequestBody ResultSaveApiRequest request,
+            @AuthenticationPrincipal JwtPrincipal principal
+    ) {
         String userId = String.valueOf(principal.userId());
         ExtractionResultDTO resultDTO = extractionResultRemoteService.createExtractionResult(request.url(), userId, request.result());
+        return ApiResultDTOMapper.dtoToApi(resultDTO);
+    }
+
+    @PostMapping("/update/{id}")
+    public ResultResponse updateResult(
+            @PathVariable String id,
+            @RequestBody String jsonResult,
+            @AuthenticationPrincipal JwtPrincipal principal
+    ) {
+        String userId = String.valueOf(principal.userId());
+        ExtractionResultDTO resultDTO = extractionResultRemoteService.updateExtractionResultById(id, userId, jsonResult);
         return ApiResultDTOMapper.dtoToApi(resultDTO);
     }
 
     @GetMapping("/{id}")
     public ResultResponse getResultById(
             @PathVariable String id,
-            @RequestParam(defaultValue = "JSON") ResultFormat format
+            @RequestParam(defaultValue = "JSON") ResultFormat format,
+            @AuthenticationPrincipal JwtPrincipal principal
     ) {
-        ExtractionResultDTO resultDTO = extractionResultRemoteService.getExtractionResultById(id, format);
+        String userId = String.valueOf(principal.userId());
+
+        ExtractionResultDTO resultDTO = extractionResultRemoteService.getExtractionResultById(id, userId, format);
         return ApiResultDTOMapper.dtoToApi(resultDTO);
     }
 
@@ -63,8 +83,12 @@ public class ResultsController {
     }
 
     @DeleteMapping("/{id}")
-    public void deleteResultById(@PathVariable String id) {
-        extractionResultRemoteService.deleteExtractionResultById(id);
+    public void deleteResultById(
+            @PathVariable String id,
+            @AuthenticationPrincipal JwtPrincipal principal
+    ) {
+        String userId = String.valueOf(principal.userId());
+        extractionResultRemoteService.deleteExtractionResultById(id, userId);
     }
 
     @GetMapping("/export")

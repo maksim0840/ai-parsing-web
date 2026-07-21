@@ -1,11 +1,12 @@
 package io.github.maksim0840.extractionresults.integration;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.maksim0840.extraction_result.v1.*;
 import io.github.maksim0840.extractionresults.entity.ExtractionResult;
 import io.github.maksim0840.extractionresults.repository.ExtractionResultRepository;
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
 import io.github.maksim0840.internalapi.extraction_result.v1.mapper.ProtoJsonMapper;
-import io.github.maksim0840.parsing_param.v1.GetListParsingParamRequest;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import net.devh.boot.grpc.client.inject.GrpcClient;
@@ -35,7 +36,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * Тесты для проверки корректности работы grpc сервера extraction-results.
  * Проверяется подключение, отправка запросов через blockingStub, получение запроса,
- * выполнение действий в базе данных и результат запроса
+ * выполнение действий в базе данных и результат запроса.
+ * <p>
+ * Актуализировано под текущий контракт: ExtractionResultProto содержит не Struct jsonResult,
+ * а пару resultFormat + result (строка в запрошенном формате). Запросы get/delete/update
+ * дополнительно принимают userId, добавлены методы getMergedList, count, update.
  */
 @Testcontainers // включаем работу test-контейнеров (docker)
 @SpringBootTest(properties = {
@@ -67,6 +72,9 @@ public class ExtractionResultGrpcToDb {
     @Autowired
     private MongoTemplate mongoTemplate;
 
+    // Для разбора поля result обратно в Map при формате JSON
+    private static final ObjectMapper OM = new ObjectMapper();
+
     // Очищаем базу перед каждым новым тестом
     @BeforeEach
     void cleanDb() {
@@ -74,15 +82,19 @@ public class ExtractionResultGrpcToDb {
     }
 
 
+    // ==================================================================
+    // ============================= CREATE =============================
+    // ==================================================================
+
     /*
     Проверяет happy-path для create:
-    - gRPC create корректно возвращает заполненный ExtractionResult (id, url, userId, jsonResult, createdAt)
+    - gRPC create корректно возвращает заполненный ExtractionResult (id, url, userId, result, createdAt)
+    - формат ответа всегда JSON (create не принимает resultFormat)
     - создаются две независимые записи (id разные)
     - обе записи действительно сохраняются в MongoDB и содержимое совпадает с запросом
     */
     @Test
     void createSeveral() {
-        // Создаём запросы
         Map<String, Object> map1 = Map.of(
                 "age", 40.0);
         CreateExtractionResultRequest request1 = CreateExtractionResultRequest.newBuilder()
@@ -100,33 +112,49 @@ public class ExtractionResultGrpcToDb {
                 .setJsonResult(ProtoJsonMapper.mapToStruct(map2))
                 .build();
 
-        // Отправляем запросы на сервер и получаем ответы
         Instant timeBefore = Instant.now();
         ExtractionResultProto responseProto1 = blockingStub.create(request1).getExtractionResult();
         ExtractionResultProto responseProto2 = blockingStub.create(request2).getExtractionResult();
         Instant timeAfter = Instant.now();
 
-        // Проверяем валидность полей ответа от gRPC сервера
-        assertExtractionResultProtoFieldsValidity(request1.getUrl(), request1.getUserId(), map1, responseProto1, timeBefore, timeAfter);
-        assertExtractionResultProtoFieldsValidity(request2.getUrl(), request2.getUserId(), map2, responseProto2, timeBefore, timeAfter);
+        assertProtoFieldsValidity(request1.getUrl(), request1.getUserId(), map1, responseProto1, timeBefore, timeAfter);
+        assertProtoFieldsValidity(request2.getUrl(), request2.getUserId(), map2, responseProto2, timeBefore, timeAfter);
         assertThat(responseProto1.getId()).isNotEqualTo(responseProto2.getId());
 
-        // Получаем результаты записи в бд
         ExtractionResult responseRepo1 = repository.findById(responseProto1.getId()).orElseThrow();
         ExtractionResult responseRepo2 = repository.findById(responseProto2.getId()).orElseThrow();
 
-        // Проверяем валидность записанной в базу данных информации
-        assertExtractionResultDomainFieldsValidity(request1.getUrl(), request1.getUserId(), map1, responseRepo1, timeBefore, timeAfter);
-        assertExtractionResultDomainFieldsValidity(request2.getUrl(), request2.getUserId(), map2, responseRepo2, timeBefore, timeAfter);
+        assertDomainFieldsValidity(request1.getUrl(), request1.getUserId(), map1, responseRepo1, timeBefore, timeAfter);
+        assertDomainFieldsValidity(request2.getUrl(), request2.getUserId(), map2, responseRepo2, timeBefore, timeAfter);
         assertThat(responseRepo1.getId()).isNotEqualTo(responseRepo2.getId());
         assertThat(repository.count()).isEqualTo(2);
+    }
+
+    /*
+    Проверяет, что create всегда отдаёт результат в формате JSON:
+    - в ответе resultFormat = JSON
+    - поле result является валидным JSON-документом, разбираемым обратно в исходную Map
+    */
+    @Test
+    void createAlwaysReturnsJsonFormat() {
+        Map<String, Object> map = Map.of("key", "value");
+        CreateExtractionResultRequest request = CreateExtractionResultRequest.newBuilder()
+                .setUrl("url")
+                .setUserId("user-1")
+                .setJsonResult(ProtoJsonMapper.mapToStruct(map))
+                .build();
+
+        ExtractionResultProto responseProto = blockingStub.create(request).getExtractionResult();
+
+        assertThat(responseProto.getResultFormat()).isEqualTo(ResultFormatProto.JSON);
+        assertThat(parseJson(responseProto.getResult())).isEqualTo(map);
     }
 
     /*
     Проверяет поведение create при отсутствии url в запросе:
     - сервер принимает запрос без url (в protobuf это становится пустой строкой)
     - в ответе и в базе url сохраняется как ""
-    - запись успешно создаётся, поля (id/createdAt/userId/jsonResult) заполнены корректно
+    - запись успешно создаётся, поля (id/createdAt/userId/result) заполнены корректно
     */
     @Test
     void createWithEmptyUrl() {
@@ -141,11 +169,11 @@ public class ExtractionResultGrpcToDb {
         ExtractionResultProto responseProto = blockingStub.create(request).getExtractionResult();
         Instant timeAfter = Instant.now();
 
-        assertExtractionResultProtoFieldsValidity("", request.getUserId(), map, responseProto, timeBefore, timeAfter);
+        assertProtoFieldsValidity("", request.getUserId(), map, responseProto, timeBefore, timeAfter);
 
         ExtractionResult responseRepo = repository.findById(responseProto.getId()).orElseThrow();
 
-        assertExtractionResultDomainFieldsValidity("", request.getUserId(), map, responseRepo, timeBefore, timeAfter);
+        assertDomainFieldsValidity("", request.getUserId(), map, responseRepo, timeBefore, timeAfter);
         assertThat(repository.count()).isEqualTo(1);
     }
 
@@ -168,11 +196,11 @@ public class ExtractionResultGrpcToDb {
         ExtractionResultProto responseProto = blockingStub.create(request).getExtractionResult();
         Instant timeAfter = Instant.now();
 
-        assertExtractionResultProtoFieldsValidity(request.getUrl(), "", map, responseProto, timeBefore, timeAfter);
+        assertProtoFieldsValidity(request.getUrl(), "", map, responseProto, timeBefore, timeAfter);
 
         ExtractionResult responseRepo = repository.findById(responseProto.getId()).orElseThrow();
 
-        assertExtractionResultDomainFieldsValidity(request.getUrl(), "", map, responseRepo, timeBefore, timeAfter);
+        assertDomainFieldsValidity(request.getUrl(), "", map, responseRepo, timeBefore, timeAfter);
         assertThat(repository.count()).isEqualTo(1);
     }
 
@@ -195,11 +223,11 @@ public class ExtractionResultGrpcToDb {
         ExtractionResultProto responseProto = blockingStub.create(request).getExtractionResult();
         Instant timeAfter = Instant.now();
 
-        assertExtractionResultProtoFieldsValidity(request.getUrl(), request.getUserId(), map, responseProto, timeBefore, timeAfter);
+        assertProtoFieldsValidity(request.getUrl(), request.getUserId(), map, responseProto, timeBefore, timeAfter);
 
         ExtractionResult responseRepo = repository.findById(responseProto.getId()).orElseThrow();
 
-        assertExtractionResultDomainFieldsValidity(request.getUrl(), request.getUserId(),  map, responseRepo, timeBefore, timeAfter);
+        assertDomainFieldsValidity(request.getUrl(), request.getUserId(), map, responseRepo, timeBefore, timeAfter);
         assertThat(repository.count()).isEqualTo(1);
     }
 
@@ -230,21 +258,25 @@ public class ExtractionResultGrpcToDb {
         ExtractionResultProto responseProto = blockingStub.create(request).getExtractionResult();
         Instant timeAfter = Instant.now();
 
-        assertExtractionResultProtoFieldsValidity(request.getUrl(), request.getUserId(), map, responseProto, timeBefore, timeAfter);
+        assertProtoFieldsValidity(request.getUrl(), request.getUserId(), map, responseProto, timeBefore, timeAfter);
 
         ExtractionResult responseRepo = repository.findById(responseProto.getId()).orElseThrow();
 
-        assertExtractionResultDomainFieldsValidity(request.getUrl(), request.getUserId(), map, responseRepo, timeBefore, timeAfter);
+        assertDomainFieldsValidity(request.getUrl(), request.getUserId(), map, responseRepo, timeBefore, timeAfter);
         assertThat(repository.count()).isEqualTo(1);
     }
 
 
+    // ==================================================================
+    // ============================== GET ===============================
+    // ==================================================================
+
     /*
     Проверяет happy-path для get по существующим данным:
     - заранее сохраняет две сущности ExtractionResult в Mongo (через репозиторий)
-    - отправляет два gRPC get-запроса по их id
-    - проверяет, что сервер возвращает корректные данные (id/url/userId/jsonResult/createdAt)
-      и что два ответа соответствуют двум разным записям
+    - отправляет два gRPC get-запроса по их id с корректным userId и форматом JSON
+    - проверяет, что сервер возвращает корректные данные и что два ответа
+      соответствуют двум разным записям
     */
     @Test
     void getSeveralExistingData() {
@@ -266,14 +298,97 @@ public class ExtractionResultGrpcToDb {
         repository.save(entity2);
         Instant timeAfter = Instant.now();
 
-        GetExtractionResultRequest request1 = GetExtractionResultRequest.newBuilder().setId(entity1.getId()).build();
-        GetExtractionResultRequest request2 = GetExtractionResultRequest.newBuilder().setId(entity2.getId()).build();
+        GetExtractionResultRequest request1 = GetExtractionResultRequest.newBuilder()
+                .setId(entity1.getId())
+                .setUserId(entity1.getUserId())
+                .setResultFormat(ResultFormatProto.JSON)
+                .build();
+        GetExtractionResultRequest request2 = GetExtractionResultRequest.newBuilder()
+                .setId(entity2.getId())
+                .setUserId(entity2.getUserId())
+                .setResultFormat(ResultFormatProto.JSON)
+                .build();
+
         ExtractionResultProto responseProto1 = blockingStub.get(request1).getExtractionResult();
         ExtractionResultProto responseProto2 = blockingStub.get(request2).getExtractionResult();
 
-        assertExtractionResultDomainProtoValidity(entity1, responseProto1, timeBefore, timeAfter);
-        assertExtractionResultDomainProtoValidity(entity2, responseProto2, timeBefore, timeAfter);
+        assertDomainProtoValidity(entity1, responseProto1, timeBefore, timeAfter);
+        assertDomainProtoValidity(entity2, responseProto2, timeBefore, timeAfter);
         assertThat(responseProto1.getId()).isNotEqualTo(responseProto2.getId());
+    }
+
+    /*
+    Проверяет запрос get с форматом XML:
+    - в ответе resultFormat = XML
+    - поле result содержит XML-документ с корневым элементом result
+    - данные записи присутствуют в выводе
+    */
+    @Test
+    void getXmlFormat() {
+        ExtractionResult entity = new ExtractionResult("url", "user-1", Map.of("city", "London"));
+        repository.save(entity);
+
+        GetExtractionResultRequest request = GetExtractionResultRequest.newBuilder()
+                .setId(entity.getId())
+                .setUserId("user-1")
+                .setResultFormat(ResultFormatProto.XML)
+                .build();
+
+        ExtractionResultProto responseProto = blockingStub.get(request).getExtractionResult();
+
+        assertThat(responseProto.getResultFormat()).isEqualTo(ResultFormatProto.XML);
+        assertThat(responseProto.getResult()).contains("<result").contains("<city>London</city>");
+    }
+
+    /*
+    Проверяет запрос get с форматом XML для ключей с пробелами:
+    - ключ "Нижний Новгород" не может быть именем XML-тега напрямую
+    - сервер должен вернуть валидный XML с заменой пробелов на подчёркивания
+    (регрессия на ошибку "XML Parsing Error: not well-formed")
+    */
+    @Test
+    void getXmlFormatSanitizesKeysWithSpaces() {
+        ExtractionResult entity = new ExtractionResult("url", "user-1",
+                Map.of("Нижний Новгород", "22 сентября 2025"));
+        repository.save(entity);
+
+        GetExtractionResultRequest request = GetExtractionResultRequest.newBuilder()
+                .setId(entity.getId())
+                .setUserId("user-1")
+                .setResultFormat(ResultFormatProto.XML)
+                .build();
+
+        String xml = blockingStub.get(request).getExtractionResult().getResult();
+
+        assertThat(xml).contains("<Нижний_Новгород>22 сентября 2025</Нижний_Новгород>");
+        assertThat(xml).doesNotContain("<Нижний Новгород>");
+    }
+
+    /*
+    Проверяет запрос get с форматом CSV:
+    - в ответе resultFormat = CSV
+    - поле result содержит строку заголовков и строку значений
+    - вложенные структуры уплощаются в колонки вида "parent.child"
+    */
+    @Test
+    void getCsvFormat() {
+        ExtractionResult entity = new ExtractionResult("url", "user-1",
+                Map.of("profile", Map.of("city", "London")));
+        repository.save(entity);
+
+        GetExtractionResultRequest request = GetExtractionResultRequest.newBuilder()
+                .setId(entity.getId())
+                .setUserId("user-1")
+                .setResultFormat(ResultFormatProto.CSV)
+                .build();
+
+        ExtractionResultProto responseProto = blockingStub.get(request).getExtractionResult();
+        String[] lines = responseProto.getResult().trim().split("\\R");
+
+        assertThat(responseProto.getResultFormat()).isEqualTo(ResultFormatProto.CSV);
+        assertThat(lines).hasSize(2);
+        assertThat(lines[0]).isEqualTo("profile.city");
+        assertThat(lines[1]).isEqualTo("London");
     }
 
     /*
@@ -285,22 +400,102 @@ public class ExtractionResultGrpcToDb {
     @Test
     void getWrongIdNotFoundException() {
         ExtractionResult entity = new ExtractionResult("url", "userid", Map.of("age", 40));
-
         repository.save(entity);
 
-        GetExtractionResultRequest request = GetExtractionResultRequest.newBuilder().setId("*@$").build();
+        GetExtractionResultRequest request = GetExtractionResultRequest.newBuilder()
+                .setId("*@$")
+                .setUserId("userid")
+                .setResultFormat(ResultFormatProto.JSON)
+                .build();
 
-        // Ожидаем, что при запросе произошла ошибка
         StatusRuntimeException ex = assertThrows(
                 StatusRuntimeException.class,
                 () -> blockingStub.get(request)
         );
 
-        // Проверяем подробности ошибки
         assertThat(ex.getStatus().getCode()).isEqualTo(Status.Code.NOT_FOUND);
         assertThat(ex.getStatus().getDescription()).contains("not found").contains("*@$");
     }
 
+    /*
+    Проверяет обработку get с пустым id:
+    - эндпоинт валидирует id до обращения к сервису
+    - ожидает INVALID_ARGUMENT с сообщением "id must not be blank"
+    */
+    @Test
+    void getBlankIdInvalidArgumentException() {
+        GetExtractionResultRequest request = GetExtractionResultRequest.newBuilder()
+                .setId("")
+                .setUserId("user-1")
+                .setResultFormat(ResultFormatProto.JSON)
+                .build();
+
+        StatusRuntimeException ex = assertThrows(
+                StatusRuntimeException.class,
+                () -> blockingStub.get(request)
+        );
+
+        assertThat(ex.getStatus().getCode()).isEqualTo(Status.Code.INVALID_ARGUMENT);
+        assertThat(ex.getStatus().getDescription()).contains("id must not be blank");
+    }
+
+    /*
+    Проверяет разграничение доступа в get:
+    - запись принадлежит одному пользователю, запрос приходит от другого
+    - сервер не должен отдавать чужие данные
+    ВНИМАНИЕ: текущая реализация бросает голый RuntimeException, который эндпоинт
+    превращает в UNAVAILABLE. Ожидаемым по смыслу является NOT_FOUND — тест фиксирует
+    текущее поведение, при изменении сервиса его нужно поправить.
+    */
+    @Test
+    void getForeignUserIdException() {
+        ExtractionResult entity = new ExtractionResult("url", "owner", Map.of("age", 40));
+        repository.save(entity);
+
+        GetExtractionResultRequest request = GetExtractionResultRequest.newBuilder()
+                .setId(entity.getId())
+                .setUserId("intruder")
+                .setResultFormat(ResultFormatProto.JSON)
+                .build();
+
+        StatusRuntimeException ex = assertThrows(
+                StatusRuntimeException.class,
+                () -> blockingStub.get(request)
+        );
+
+        assertThat(ex.getStatus().getCode()).isEqualTo(Status.Code.UNAVAILABLE);
+        assertThat(ex.getStatus().getDescription()).contains("userId does not match");
+    }
+
+    /*
+    Проверяет поведение get при неуказанном resultFormat:
+    - RESULT_FORMAT_UNSPECIFIED маппится в null, из-за чего switch в ExtractionResultMapper
+      бросает NullPointerException, а эндпоинт отдаёт UNAVAILABLE
+    ВНИМАНИЕ: по смыслу это INVALID_ARGUMENT (или дефолт в JSON) — тест фиксирует
+    текущее поведение и должен быть обновлён после исправления сервиса.
+    */
+    @Test
+    void getUnspecifiedFormatException() {
+        ExtractionResult entity = new ExtractionResult("url", "user-1", Map.of("age", 40));
+        repository.save(entity);
+
+        GetExtractionResultRequest request = GetExtractionResultRequest.newBuilder()
+                .setId(entity.getId())
+                .setUserId("user-1")
+                .build();
+
+        StatusRuntimeException ex = assertThrows(
+                StatusRuntimeException.class,
+                () -> blockingStub.get(request)
+        );
+
+        assertThat(ex.getStatus().getCode()).isEqualTo(Status.Code.UNAVAILABLE);
+    }
+
+
+    // ==================================================================
+    // ============================ GET LIST ============================
+    // ==================================================================
 
     /*
     Проверяет getList при указании всех параметров:
@@ -312,7 +507,7 @@ public class ExtractionResultGrpcToDb {
     */
     @Test
     void getListAllParams() {
-        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
+        GetListExtractionResultRequest request = getListBuilder()
                 .setUserId("4")
                 .setCreatedFrom(ProtoTimeMapper.instantToTimestamp(Instant.parse("2026-01-08T00:00:00.000Z")))
                 .setCreatedTo(ProtoTimeMapper.instantToTimestamp(Instant.parse("2026-01-09T00:00:00.000Z")))
@@ -321,144 +516,123 @@ public class ExtractionResultGrpcToDb {
                 .setSortCreatedDesc(true)
                 .build();
 
-        List<String> expectedResultIds = List.of(expand24("9"), expand24("8"));
-
-        checkGetListRequest(request, expectedResultIds);
+        checkGetListRequest(request, List.of(expand24("9"), expand24("8")));
     }
 
     /*
     Проверяет getList без опциональных фильтров:
-    - передаёт только pageNum/pageSize
+    - передаёт только pageNum/pageSize и обязательный resultFormat
     - ожидает, что сервер вернёт все записи (в пределах размера страницы)
-    - проверяет порядок результатов согласно дефолтной сортировке сервера (в тесте ожидается убывание)
+    - проверяет порядок результатов согласно дефолтной сортировке сервера (убывание)
     */
     @Test
     void getListNoOptionalParams() {
-        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
+        GetListExtractionResultRequest request = getListBuilder()
                 .setPageNum(0)
                 .setPageSize(100)
                 .build();
 
-        List<String> expectedResultIds = List.of(expand24("10"), expand24("9"), expand24("8"), expand24("7"), expand24("6"), expand24("5"), expand24("4"), expand24("3"), expand24("2"), expand24("1"));
-
-        checkGetListRequest(request, expectedResultIds);
+        checkGetListRequest(request, allIdsDesc());
     }
 
     /*
     Проверяет сортировку в getList по возрастанию createdAt:
     - передаёт sortCreatedDesc=false
     - ожидает, что записи вернутся от самых ранних к самым поздним
-    - дополнительно проверяет корректность содержимого каждого элемента
     */
     @Test
     void getListAscSorting() {
-        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
+        GetListExtractionResultRequest request = getListBuilder()
                 .setPageNum(0)
                 .setPageSize(100)
                 .setSortCreatedDesc(false)
                 .build();
 
-        List<String> expectedResultIds = List.of(expand24("1"), expand24("2"), expand24("3"), expand24("4"), expand24("5"), expand24("6"), expand24("7"), expand24("8"), expand24("9"), expand24("10"));
-
-        checkGetListRequest(request, expectedResultIds);
+        checkGetListRequest(request, allIdsDesc().reversed());
     }
 
     /*
     Проверяет фильтрацию getList по userId:
     - задаёт userId="3"
     - ожидает, что вернутся только записи данного пользователя
-    - проверяет порядок результатов согласно сортировке сервера
     */
     @Test
     void getListByUserId() {
-        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
+        GetListExtractionResultRequest request = getListBuilder()
                 .setUserId("3")
                 .setPageNum(0)
                 .setPageSize(100)
                 .build();
 
-        List<String> expectedResultIds = List.of(expand24("6"), expand24("5"), expand24("4"));
-
-        checkGetListRequest(request, expectedResultIds);
+        checkGetListRequest(request, List.of(expand24("6"), expand24("5"), expand24("4")));
     }
 
     /*
     Проверяет фильтрацию getList по нижней границе createdFrom:
     - задаёт createdFrom (начиная с 2026-01-05)
     - ожидает, что вернутся записи с createdAt >= createdFrom
-    - проверяет порядок и корректность данных
     */
     @Test
     void getListByCreatedFrom() {
-        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
+        GetListExtractionResultRequest request = getListBuilder()
                 .setCreatedFrom(ProtoTimeMapper.instantToTimestamp(Instant.parse("2026-01-05T00:00:00.000Z")))
                 .setPageNum(0)
                 .setPageSize(100)
                 .build();
 
-        List<String> expectedResultIds = List.of(expand24("10"), expand24("9"), expand24("8"), expand24("7"), expand24("6"), expand24("5"));
-
-        checkGetListRequest(request, expectedResultIds);
+        checkGetListRequest(request, List.of(
+                expand24("10"), expand24("9"), expand24("8"), expand24("7"), expand24("6"), expand24("5")));
     }
 
     /*
     Проверяет фильтрацию getList по верхней границе createdTo:
     - задаёт createdTo (до 2026-01-05)
-    - ожидает, что вернутся записи с createdAt <= createdTo (или согласно правилам сервера для границы)
-    - проверяет порядок и корректность данных
+    - ожидает, что вернутся записи с createdAt <= createdTo
     */
     @Test
     void getListByCreatedTo() {
-        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
+        GetListExtractionResultRequest request = getListBuilder()
                 .setCreatedTo(ProtoTimeMapper.instantToTimestamp(Instant.parse("2026-01-05T00:00:00.000Z")))
                 .setPageNum(0)
                 .setPageSize(100)
                 .build();
 
-        List<String> expectedResultIds = List.of(expand24("5"), expand24("4"), expand24("3"), expand24("2"), expand24("1"));
-
-        checkGetListRequest(request, expectedResultIds);
+        checkGetListRequest(request, List.of(
+                expand24("5"), expand24("4"), expand24("3"), expand24("2"), expand24("1")));
     }
 
     /*
     Проверяет фильтрацию getList по диапазону createdAt:
     - задаёт createdFrom и createdTo
     - ожидает, что вернутся записи внутри указанного интервала
-    - проверяет порядок и корректность данных
     */
     @Test
     void getListDatesBetween() {
-        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
+        GetListExtractionResultRequest request = getListBuilder()
                 .setCreatedFrom(ProtoTimeMapper.instantToTimestamp(Instant.parse("2026-01-01T00:00:00.000Z")))
                 .setCreatedTo(ProtoTimeMapper.instantToTimestamp(Instant.parse("2026-01-03T00:00:00.000Z")))
                 .setPageNum(0)
                 .setPageSize(100)
                 .build();
 
-        List<String> expectedResultIds = List.of(expand24("3"), expand24("2"), expand24("1"));
-
-        checkGetListRequest(request, expectedResultIds);
-
+        checkGetListRequest(request, List.of(expand24("3"), expand24("2"), expand24("1")));
     }
 
     /*
-    Проверяет фильтрацию getList по диапазону дат createdFrom/createdTo, который “не совпадает” с точными датами в базе, но включает все записи
-    - отправляет запрос с createdFrom="2025-01-01" и createdTo="2027-01-01" (границы шире дат в тестовой БД), pageNum=0, pageSize=100
-    - ожидает, что фильтрация выполнится без исключений и вернёт все записи, попадающие в диапазон (в данном наборе — все 10)
-    - проверяет, что возвращённые результаты идут в ожидаемом порядке и соответствуют ожидаемым id (через checkGetListRequest)
+    Проверяет фильтрацию getList по диапазону дат, который шире всех дат в базе:
+    - границы 2025-01-01 .. 2027-01-01 включают все записи
+    - ожидает, что фильтрация выполнится без исключений и вернёт все 10 записей
     */
     @Test
     void getListNotFromDbDatesBetween() {
-        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
+        GetListExtractionResultRequest request = getListBuilder()
                 .setCreatedFrom(ProtoTimeMapper.instantToTimestamp(Instant.parse("2025-01-01T00:00:00.000Z")))
                 .setCreatedTo(ProtoTimeMapper.instantToTimestamp(Instant.parse("2027-01-01T00:00:00.000Z")))
                 .setPageNum(0)
                 .setPageSize(100)
                 .build();
 
-        List<String> expectedResultIds = List.of(expand24("10"), expand24("9"), expand24("8"), expand24("7"), expand24("6"), expand24("5"), expand24("4"), expand24("3"), expand24("2"), expand24("1"));
-
-        checkGetListRequest(request, expectedResultIds);
+        checkGetListRequest(request, allIdsDesc());
     }
 
     /*
@@ -468,34 +642,29 @@ public class ExtractionResultGrpcToDb {
     */
     @Test
     void getListConflictDatesNoData() {
-        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
+        GetListExtractionResultRequest request = getListBuilder()
                 .setCreatedFrom(ProtoTimeMapper.instantToTimestamp(Instant.parse("2026-01-08T00:00:00.000Z")))
                 .setCreatedTo(ProtoTimeMapper.instantToTimestamp(Instant.parse("2026-01-05T00:00:00.000Z")))
                 .setPageNum(0)
                 .setPageSize(100)
                 .build();
 
-        List<String> expectedResultIds = List.of();
-
-        checkGetListRequest(request, expectedResultIds);
+        checkGetListRequest(request, List.of());
     }
 
     /*
-    Проверяет пагинацию getList на “средней” странице:
+    Проверяет пагинацию getList на "средней" странице:
     - задаёт pageNum=2 и pageSize=3
     - ожидает конкретный срез данных (строго определённые id в ответе)
-    - проверяет порядок и корректность каждого элемента
     */
     @Test
     void getListMidPage() {
-        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
+        GetListExtractionResultRequest request = getListBuilder()
                 .setPageNum(2)
                 .setPageSize(3)
                 .build();
 
-        List<String> expectedResultIds = List.of(expand24("4"), expand24("3"), expand24("2"));
-
-        checkGetListRequest(request, expectedResultIds);
+        checkGetListRequest(request, List.of(expand24("4"), expand24("3"), expand24("2")));
     }
 
     /*
@@ -505,36 +674,33 @@ public class ExtractionResultGrpcToDb {
     */
     @Test
     void getListExceedingPageNum() {
-        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
+        GetListExtractionResultRequest request = getListBuilder()
                 .setPageNum(5)
                 .setPageSize(2)
                 .build();
 
-        List<String> expectedResultIds = List.of();
-
-        checkGetListRequest(request, expectedResultIds);
+        checkGetListRequest(request, List.of());
     }
 
     /*
-     Проверяет валидацию параметров getList: pageSize = 0
-     - отправляет запрос с pageSize=0
-     - ожидает StatusRuntimeException со статусом UNAVAILABLE
-     - проверяет, что описание ошибки содержит упоминание некорректного размера (less than one)
-     */
+    Проверяет валидацию параметров getList: pageSize = 0
+    - отправляет запрос с pageSize=0
+    - ожидает StatusRuntimeException со статусом UNAVAILABLE
+    - проверяет, что описание ошибки содержит упоминание некорректного размера
+    ВНИМАНИЕ: по смыслу это INVALID_ARGUMENT — тест фиксирует текущее поведение.
+    */
     @Test
     void getListZeroPageSizeUnavailableException() {
-        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
+        GetListExtractionResultRequest request = getListBuilder()
                 .setPageNum(0)
                 .setPageSize(0)
                 .build();
 
-        // Ожидаем, что при запросе произошла ошибка
         StatusRuntimeException ex = assertThrows(
                 StatusRuntimeException.class,
                 () -> blockingStub.getList(request)
         );
 
-        // Проверяем подробности ошибки
         assertThat(ex.getStatus().getCode()).isEqualTo(Status.Code.UNAVAILABLE);
         assertThat(ex.getStatus().getDescription()).contains("size").contains("less than one");
     }
@@ -543,51 +709,415 @@ public class ExtractionResultGrpcToDb {
     Проверяет валидацию параметров getList: отрицательный pageNum
     - отправляет запрос с pageNum=-1
     - ожидает StatusRuntimeException со статусом UNAVAILABLE
-    - проверяет, что описание ошибки содержит упоминание некорректного индекса (less than zero)
+    ВНИМАНИЕ: по смыслу это INVALID_ARGUMENT — тест фиксирует текущее поведение.
     */
     @Test
     void getListNegativePageNumUnavailableException() {
-        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
+        GetListExtractionResultRequest request = getListBuilder()
                 .setPageNum(-1)
                 .setPageSize(37)
                 .build();
 
-        // Ожидаем, что при запросе произошла ошибка
         StatusRuntimeException ex = assertThrows(
                 StatusRuntimeException.class,
                 () -> blockingStub.getList(request)
         );
 
-        // Проверяем подробности ошибки
         assertThat(ex.getStatus().getCode()).isEqualTo(Status.Code.UNAVAILABLE);
         assertThat(ex.getStatus().getDescription()).contains("index").contains("less than zero");
     }
 
     /*
-    Проверяет фильтрацию getList по userId, которого нет в базе
-    - отправляет запрос с userId="1919" (такого пользователя/записей нет), pageNum=0, pageSize=100
-    - ожидает, что сервер вернёт пустой список результатов (без исключений)
-    - дополнительно (внутри checkGetListRequest) проверяет, что размер списка равен 0 и порядок/поля совпадают (тривиально для пустого результата)
+    Проверяет фильтрацию getList по userId, которого нет в базе:
+    - ожидает пустой список результатов без исключений
     */
     @Test
     void getListNotFromDbUserId() {
-        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
+        GetListExtractionResultRequest request = getListBuilder()
                 .setUserId("1919")
                 .setPageNum(0)
                 .setPageSize(100)
                 .build();
 
-        List<String> expectedResultIds = List.of();
-
-        checkGetListRequest(request, expectedResultIds);
+        checkGetListRequest(request, List.of());
     }
 
+    /*
+    Проверяет, что getList отдаёт записи в запрошенном формате:
+    - формат XML применяется к каждому элементу списка
+    - каждый элемент содержит корневой тег result
+    */
+    @Test
+    void getListXmlFormat() {
+        seedTenEntities();
+
+        GetListExtractionResultRequest request = GetListExtractionResultRequest.newBuilder()
+                .setPageNum(0)
+                .setPageSize(3)
+                .setResultFormat(ResultFormatProto.XML)
+                .build();
+
+        List<ExtractionResultProto> results = blockingStub.getList(request).getExtractionResultsList();
+
+        assertThat(results).hasSize(3);
+        assertThat(results).allSatisfy(proto -> {
+            assertThat(proto.getResultFormat()).isEqualTo(ResultFormatProto.XML);
+            assertThat(proto.getResult()).contains("<result").contains("<age>");
+        });
+    }
+
+
+    // ==================================================================
+    // ========================= GET MERGED LIST ========================
+    // ==================================================================
+
+    /*
+    Проверяет happy-path для getMergedList в формате JSON:
+    - результат является единым JSON-массивом из всех выбранных записей
+    - количество элементов соответствует размеру страницы
+    */
+    @Test
+    void getMergedListJsonFormat() {
+        seedTenEntities();
+
+        GetMergedListExtractionResultRequest request = GetMergedListExtractionResultRequest.newBuilder()
+                .setPageNum(0)
+                .setPageSize(3)
+                .setResultFormat(ResultFormatProto.JSON)
+                .build();
+
+        String merged = blockingStub.getMergedList(request).getMergedExtractionResultsStr();
+        List<Map<String, Object>> parsed = parseJsonList(merged);
+
+        assertThat(parsed).hasSize(3);
+        // дефолтная сортировка — по убыванию createdAt, значит первыми идут age 100, 90, 80
+        assertThat(parsed.get(0)).containsEntry("age", 100.0);
+        assertThat(parsed.get(1)).containsEntry("age", 90.0);
+        assertThat(parsed.get(2)).containsEntry("age", 80.0);
+    }
+
+    /*
+    Проверяет getMergedList в формате XML:
+    - результат имеет корневой элемент results
+    - каждая запись обёрнута в отдельный тег result
+    */
+    @Test
+    void getMergedListXmlFormat() {
+        seedTenEntities();
+
+        GetMergedListExtractionResultRequest request = GetMergedListExtractionResultRequest.newBuilder()
+                .setPageNum(0)
+                .setPageSize(2)
+                .setResultFormat(ResultFormatProto.XML)
+                .build();
+
+        String merged = blockingStub.getMergedList(request).getMergedExtractionResultsStr();
+
+        assertThat(merged).contains("<results").contains("</results>");
+        assertThat(merged.split("<result>", -1).length - 1).isEqualTo(2);
+    }
+
+    /*
+    Проверяет getMergedList в формате CSV:
+    - первая строка содержит заголовки колонок
+    - далее идёт по одной строке на каждую запись
+    */
+    @Test
+    void getMergedListCsvFormat() {
+        seedTenEntities();
+
+        GetMergedListExtractionResultRequest request = GetMergedListExtractionResultRequest.newBuilder()
+                .setPageNum(0)
+                .setPageSize(3)
+                .setResultFormat(ResultFormatProto.CSV)
+                .build();
+
+        String merged = blockingStub.getMergedList(request).getMergedExtractionResultsStr();
+        String[] lines = merged.trim().split("\\R");
+
+        assertThat(lines).hasSize(4); // заголовок + 3 записи
+        assertThat(lines[0]).isEqualTo("age");
+    }
+
+    /*
+    Проверяет фильтрацию в getMergedList:
+    - фильтр по userId применяется так же, как в getList
+    - в объединённый результат попадают только записи данного пользователя
+    */
+    @Test
+    void getMergedListFiltersByUserId() {
+        seedTenEntities();
+
+        GetMergedListExtractionResultRequest request = GetMergedListExtractionResultRequest.newBuilder()
+                .setUserId("3")
+                .setPageNum(0)
+                .setPageSize(100)
+                .setResultFormat(ResultFormatProto.JSON)
+                .build();
+
+        String merged = blockingStub.getMergedList(request).getMergedExtractionResultsStr();
+
+        assertThat(parseJsonList(merged)).hasSize(3);
+    }
+
+    /*
+    Проверяет getMergedList при отсутствии подходящих записей:
+    - в формате CSV пустая выборка даёт пустую строку
+    */
+    @Test
+    void getMergedListEmptyResultCsv() {
+        seedTenEntities();
+
+        GetMergedListExtractionResultRequest request = GetMergedListExtractionResultRequest.newBuilder()
+                .setUserId("no-such-user")
+                .setPageNum(0)
+                .setPageSize(100)
+                .setResultFormat(ResultFormatProto.CSV)
+                .build();
+
+        String merged = blockingStub.getMergedList(request).getMergedExtractionResultsStr();
+
+        assertThat(merged).isEmpty();
+    }
+
+
+    // ==================================================================
+    // ============================= COUNT ==============================
+    // ==================================================================
+
+    /*
+    Проверяет count без фильтров:
+    - возвращает общее количество записей в базе
+    */
+    @Test
+    void countAllRecords() {
+        seedTenEntities();
+
+        CountExtractionResultRequest request = CountExtractionResultRequest.newBuilder().build();
+
+        assertThat(blockingStub.count(request).getNumberOfRecords()).isEqualTo(10);
+    }
+
+    /*
+    Проверяет count с фильтром по userId:
+    - учитываются только записи указанного пользователя
+    */
+    @Test
+    void countByUserId() {
+        seedTenEntities();
+
+        CountExtractionResultRequest request = CountExtractionResultRequest.newBuilder()
+                .setUserId("3")
+                .build();
+
+        assertThat(blockingStub.count(request).getNumberOfRecords()).isEqualTo(3);
+    }
+
+    /*
+    Проверяет count с фильтром по диапазону дат:
+    - учитываются только записи внутри интервала [createdFrom; createdTo]
+    */
+    @Test
+    void countByDateRange() {
+        seedTenEntities();
+
+        CountExtractionResultRequest request = CountExtractionResultRequest.newBuilder()
+                .setCreatedFrom(ProtoTimeMapper.instantToTimestamp(Instant.parse("2026-01-01T00:00:00.000Z")))
+                .setCreatedTo(ProtoTimeMapper.instantToTimestamp(Instant.parse("2026-01-03T00:00:00.000Z")))
+                .build();
+
+        assertThat(blockingStub.count(request).getNumberOfRecords()).isEqualTo(3);
+    }
+
+    /*
+    Проверяет count при отсутствии подходящих записей:
+    - возвращает 0 без исключений
+    */
+    @Test
+    void countNoMatchingRecords() {
+        seedTenEntities();
+
+        CountExtractionResultRequest request = CountExtractionResultRequest.newBuilder()
+                .setUserId("no-such-user")
+                .build();
+
+        assertThat(blockingStub.count(request).getNumberOfRecords()).isZero();
+    }
+
+    /*
+    Проверяет count на пустой базе:
+    - возвращает 0
+    */
+    @Test
+    void countOnEmptyDatabase() {
+        CountExtractionResultRequest request = CountExtractionResultRequest.newBuilder().build();
+
+        assertThat(blockingStub.count(request).getNumberOfRecords()).isZero();
+    }
+
+
+    // ==================================================================
+    // ============================= UPDATE =============================
+    // ==================================================================
+
+    /*
+    Проверяет happy-path для update:
+    - jsonResult записи заменяется на переданный
+    - ответ отдаётся в формате JSON и содержит новые данные
+    - изменения действительно попадают в MongoDB
+    - id, url и userId остаются прежними
+    */
+    @Test
+    void updateExistingData() {
+        ExtractionResult entity = new ExtractionResult("url", "user-1", Map.of("age", 40.0));
+        repository.save(entity);
+
+        Map<String, Object> newJson = Map.of("age", 41.0, "name", "Boris");
+        UpdateExtractionResultRequest request = UpdateExtractionResultRequest.newBuilder()
+                .setId(entity.getId())
+                .setUserId("user-1")
+                .setJsonResult(ProtoJsonMapper.mapToStruct(newJson))
+                .build();
+
+        ExtractionResultProto responseProto = blockingStub.update(request).getExtractionResult();
+
+        assertThat(responseProto.getId()).isEqualTo(entity.getId());
+        assertThat(responseProto.getUrl()).isEqualTo("url");
+        assertThat(responseProto.getUserId()).isEqualTo("user-1");
+        assertThat(responseProto.getResultFormat()).isEqualTo(ResultFormatProto.JSON);
+        assertThat(parseJson(responseProto.getResult())).isEqualTo(newJson);
+
+        ExtractionResult updated = repository.findById(entity.getId()).orElseThrow();
+        assertThat(updated.getJsonResult()).isEqualTo(newJson);
+        assertThat(repository.count()).isEqualTo(1);
+    }
+
+    /*
+    Проверяет, что update не меняет дату создания записи:
+    - createdAt после обновления совпадает с исходным значением
+    (@CreatedDate проставляется только для новых сущностей)
+    */
+    @Test
+    void updateKeepsCreatedAt() {
+        ExtractionResult entity = new ExtractionResult("url", "user-1", Map.of("age", 40.0));
+        repository.save(entity);
+        Instant createdAtBefore = repository.findById(entity.getId()).orElseThrow().getCreatedAt();
+
+        UpdateExtractionResultRequest request = UpdateExtractionResultRequest.newBuilder()
+                .setId(entity.getId())
+                .setUserId("user-1")
+                .setJsonResult(ProtoJsonMapper.mapToStruct(Map.of("age", 41.0)))
+                .build();
+
+        blockingStub.update(request);
+
+        Instant createdAtAfter = repository.findById(entity.getId()).orElseThrow().getCreatedAt();
+        assertThat(createdAtAfter).isCloseTo(createdAtBefore, within(1, ChronoUnit.MILLIS));
+    }
+
+    /*
+    Проверяет update с пустым jsonResult:
+    - существующие данные полностью затираются пустой Map
+    */
+    @Test
+    void updateWithEmptyJson() {
+        ExtractionResult entity = new ExtractionResult("url", "user-1", Map.of("age", 40.0));
+        repository.save(entity);
+
+        UpdateExtractionResultRequest request = UpdateExtractionResultRequest.newBuilder()
+                .setId(entity.getId())
+                .setUserId("user-1")
+                .setJsonResult(ProtoJsonMapper.mapToStruct(Map.of()))
+                .build();
+
+        blockingStub.update(request);
+
+        assertThat(repository.findById(entity.getId()).orElseThrow().getJsonResult()).isEmpty();
+    }
+
+    /*
+    Проверяет обработку update для несуществующего id:
+    - ожидает NOT_FOUND с упоминанием запрошенного id
+    */
+    @Test
+    void updateWrongIdNotFoundException() {
+        ExtractionResult entity = new ExtractionResult("url", "user-1", Map.of("age", 40.0));
+        repository.save(entity);
+
+        UpdateExtractionResultRequest request = UpdateExtractionResultRequest.newBuilder()
+                .setId("*@$")
+                .setUserId("user-1")
+                .setJsonResult(ProtoJsonMapper.mapToStruct(Map.of("age", 41.0)))
+                .build();
+
+        StatusRuntimeException ex = assertThrows(
+                StatusRuntimeException.class,
+                () -> blockingStub.update(request)
+        );
+
+        assertThat(ex.getStatus().getCode()).isEqualTo(Status.Code.NOT_FOUND);
+        assertThat(ex.getStatus().getDescription()).contains("not found").contains("*@$");
+    }
+
+    /*
+    Проверяет обработку update с пустым id:
+    - ожидает INVALID_ARGUMENT с сообщением "id must not be blank"
+    */
+    @Test
+    void updateBlankIdInvalidArgumentException() {
+        UpdateExtractionResultRequest request = UpdateExtractionResultRequest.newBuilder()
+                .setId("")
+                .setUserId("user-1")
+                .setJsonResult(ProtoJsonMapper.mapToStruct(Map.of("age", 41.0)))
+                .build();
+
+        StatusRuntimeException ex = assertThrows(
+                StatusRuntimeException.class,
+                () -> blockingStub.update(request)
+        );
+
+        assertThat(ex.getStatus().getCode()).isEqualTo(Status.Code.INVALID_ARGUMENT);
+        assertThat(ex.getStatus().getDescription()).contains("id must not be blank");
+    }
+
+    /*
+    Проверяет разграничение доступа в update:
+    - чужой пользователь не должен изменить запись
+    - данные в базе остаются нетронутыми
+    ВНИМАНИЕ: текущая реализация отдаёт UNAVAILABLE вместо ожидаемого NOT_FOUND.
+    */
+    @Test
+    void updateForeignUserIdException() {
+        ExtractionResult entity = new ExtractionResult("url", "owner", Map.of("age", 40.0));
+        repository.save(entity);
+
+        UpdateExtractionResultRequest request = UpdateExtractionResultRequest.newBuilder()
+                .setId(entity.getId())
+                .setUserId("intruder")
+                .setJsonResult(ProtoJsonMapper.mapToStruct(Map.of("age", 999.0)))
+                .build();
+
+        StatusRuntimeException ex = assertThrows(
+                StatusRuntimeException.class,
+                () -> blockingStub.update(request)
+        );
+
+        assertThat(ex.getStatus().getCode()).isEqualTo(Status.Code.UNAVAILABLE);
+        assertThat(ex.getStatus().getDescription()).contains("userId does not match");
+        assertThat(repository.findById(entity.getId()).orElseThrow().getJsonResult())
+                .isEqualTo(Map.of("age", 40.0));
+    }
+
+
+    // ==================================================================
+    // ============================= DELETE =============================
+    // ==================================================================
 
     /*
     Проверяет happy-path для delete по существующим данным:
     - сохраняет две сущности в базе
-    - удаляет их по очереди через gRPC delete
-    - проверяет, что количество записей в репозитории уменьшается 2 -> 1 -> 0
+    - удаляет их по очереди через gRPC delete с корректным userId
+    - проверяет, что количество записей уменьшается 2 -> 1 -> 0
     */
     @Test
     void deleteSeveralExistingData() {
@@ -607,8 +1137,14 @@ public class ExtractionResultGrpcToDb {
         repository.save(entity1);
         repository.save(entity2);
 
-        DeleteExtractionResultRequest request1 = DeleteExtractionResultRequest.newBuilder().setId(entity1.getId()).build();
-        DeleteExtractionResultRequest request2 = DeleteExtractionResultRequest.newBuilder().setId(entity2.getId()).build();
+        DeleteExtractionResultRequest request1 = DeleteExtractionResultRequest.newBuilder()
+                .setId(entity1.getId())
+                .setUserId(entity1.getUserId())
+                .build();
+        DeleteExtractionResultRequest request2 = DeleteExtractionResultRequest.newBuilder()
+                .setId(entity2.getId())
+                .setUserId(entity2.getUserId())
+                .build();
 
         assertThat(repository.count()).isEqualTo(2);
         blockingStub.delete(request1);
@@ -619,32 +1155,107 @@ public class ExtractionResultGrpcToDb {
 
     /*
     Проверяет обработку delete для несуществующего/невалидного id:
-    - создаёт одну запись в базе, затем пытается удалить другую ("*@$")
-    - ожидает StatusRuntimeException со статусом NOT_FOUND
-    - проверяет, что описание ошибки содержит текст "didn't exist" и запрошенный id
+    - ожидает NOT_FOUND с текстом "didn't exist" и запрошенным id
     */
     @Test
     void deleteWrongIdNotFoundException() {
         ExtractionResult entity = new ExtractionResult("url", "userid", Map.of("age", 40));
-
         repository.save(entity);
 
-        DeleteExtractionResultRequest request = DeleteExtractionResultRequest.newBuilder().setId("*@$").build();
+        DeleteExtractionResultRequest request = DeleteExtractionResultRequest.newBuilder()
+                .setId("*@$")
+                .setUserId("userid")
+                .build();
 
-        // Ожидаем, что при запросе произошла ошибка
         StatusRuntimeException ex = assertThrows(
                 StatusRuntimeException.class,
                 () -> blockingStub.delete(request)
         );
 
-        // Проверяем подробности ошибки
         assertThat(ex.getStatus().getCode()).isEqualTo(Status.Code.NOT_FOUND);
         assertThat(ex.getStatus().getDescription()).contains("didn't exist").contains("*@$");
     }
 
+    /*
+    Проверяет обработку delete с пустым id:
+    - ожидает INVALID_ARGUMENT с сообщением "id must not be blank"
+    */
+    @Test
+    void deleteBlankIdInvalidArgumentException() {
+        DeleteExtractionResultRequest request = DeleteExtractionResultRequest.newBuilder()
+                .setId("")
+                .setUserId("user-1")
+                .build();
 
-    // Вспомогательный метод для тестов getList
-    void checkGetListRequest(GetListExtractionResultRequest request, List<String> expectedResultIds) {
+        StatusRuntimeException ex = assertThrows(
+                StatusRuntimeException.class,
+                () -> blockingStub.delete(request)
+        );
+
+        assertThat(ex.getStatus().getCode()).isEqualTo(Status.Code.INVALID_ARGUMENT);
+        assertThat(ex.getStatus().getDescription()).contains("id must not be blank");
+    }
+
+    /*
+    Проверяет разграничение доступа в delete:
+    - чужой пользователь не должен удалить запись
+    - ожидает NOT_FOUND (проверка идёт через existsByIdAndUserId)
+    - запись остаётся в базе
+    */
+    @Test
+    void deleteForeignUserIdNotFoundException() {
+        ExtractionResult entity = new ExtractionResult("url", "owner", Map.of("age", 40));
+        repository.save(entity);
+
+        DeleteExtractionResultRequest request = DeleteExtractionResultRequest.newBuilder()
+                .setId(entity.getId())
+                .setUserId("intruder")
+                .build();
+
+        StatusRuntimeException ex = assertThrows(
+                StatusRuntimeException.class,
+                () -> blockingStub.delete(request)
+        );
+
+        assertThat(ex.getStatus().getCode()).isEqualTo(Status.Code.NOT_FOUND);
+        assertThat(ex.getStatus().getDescription()).contains("didn't exist");
+        assertThat(repository.count()).isEqualTo(1);
+    }
+
+
+    // ==================================================================
+    // =========================== HELPERS ==============================
+    // ==================================================================
+
+    // Заготовка запроса getList с обязательным форматом JSON
+    private GetListExtractionResultRequest.Builder getListBuilder() {
+        return GetListExtractionResultRequest.newBuilder()
+                .setResultFormat(ResultFormatProto.JSON);
+    }
+
+    // Все id тестового набора в порядке убывания createdAt
+    private List<String> allIdsDesc() {
+        return List.of(
+                expand24("10"), expand24("9"), expand24("8"), expand24("7"), expand24("6"),
+                expand24("5"), expand24("4"), expand24("3"), expand24("2"), expand24("1"));
+    }
+
+    // Вспомогательный метод для тестов getList: наполняет базу и сверяет ответ сервера
+    private void checkGetListRequest(GetListExtractionResultRequest request, List<String> expectedResultIds) {
+        seedTenEntities();
+
+        List<ExtractionResultProto> actualResultsProto = blockingStub.getList(request).getExtractionResultsList();
+        assertThat(actualResultsProto.size()).isEqualTo(expectedResultIds.size());
+
+        for (int i = 0; i < expectedResultIds.size(); i++) {
+            ExtractionResult domain = repository.findById(expectedResultIds.get(i)).orElseThrow();
+            ExtractionResultProto proto = actualResultsProto.get(i);
+            assertDomainProtoValidity(domain, proto, null, null);
+        }
+    }
+
+    // Наполняет базу фиксированным набором из 10 записей с предсказуемыми id и датами
+    private void seedTenEntities() {
         List<ExtractionResult> entities = List.of(
                 ExtractionResult.builder().id(expand24("1")).url("url1").userId("1").jsonResult(Map.of("age", 10.0)).createdAt(Instant.parse("2026-01-01T00:00:00.000Z")).build(),
                 ExtractionResult.builder().id(expand24("2")).url("url2").userId("2").jsonResult(Map.of("age", 20.0)).createdAt(Instant.parse("2026-01-02T00:00:00.000Z")).build(),
@@ -658,45 +1269,51 @@ public class ExtractionResultGrpcToDb {
                 ExtractionResult.builder().id(expand24("10")).url("url10").userId("4").jsonResult(Map.of("age", 100.0)).createdAt(Instant.parse("2026-01-10T00:00:00.000Z")).build()
         );
 
-        // Вставляем данные в базу данных
         rawDbInsert(entities);
         assertThat(repository.count()).isEqualTo(entities.size());
-
-        // Отправляем gRPC серверу запрос
-        List<ExtractionResultProto> actualResultsProto = blockingStub.getList(request).getExtractionResultsList();
-        assertThat(actualResultsProto.size()).isEqualTo(expectedResultIds.size());
-
-        // Проверяем порядок и соответствие полей
-        for (int i = 0; i < expectedResultIds.size(); i++) {
-            ExtractionResult extractionResultDomain = repository.findById(expectedResultIds.get(i)).orElseThrow();
-            ExtractionResultProto extractionResultProto = actualResultsProto.get(i);
-            assertExtractionResultDomainProtoValidity(extractionResultDomain, extractionResultProto, null, null);
-        }
     }
 
     // Расширить переданный id нулями до 24 символов "8" -> "000000000000000000000008"
-    String expand24(String id) {
+    private String expand24(String id) {
         return "0".repeat(24 - id.length()) + id;
     }
 
     // Низкоуровневая вставка тестовых данных напрямую в MongoDB
-    void rawDbInsert(List<ExtractionResult> entities) {
+    private void rawDbInsert(List<ExtractionResult> entities) {
         String collection = mongoTemplate.getCollectionName(ExtractionResult.class);
 
         List<Document> docs = entities.stream()
                 .map(e ->
                         new Document("_id", new ObjectId(e.getId())) // в домене поле id имеет тип String, но _id в MongoDb имеет тип ObjectId
-                        .append("url", e.getUrl())
-                        .append("userId", e.getUserId())
-                        .append("jsonResult", e.getJsonResult()) // Map/List/примитивы ок
-                        .append("createdAt", java.util.Date.from(e.getCreatedAt()))
+                                .append("url", e.getUrl())
+                                .append("userId", e.getUserId())
+                                .append("jsonResult", e.getJsonResult()) // Map/List/примитивы ок
+                                .append("createdAt", java.util.Date.from(e.getCreatedAt()))
                 ).toList();
 
         mongoTemplate.getCollection(collection).insertMany(docs);
     }
 
-    // Проверяет валидность полей ExtractionResultProto (ответ gRPC, обычно после create)
-    private void assertExtractionResultProtoFieldsValidity(
+    // Разбирает JSON-строку из поля result обратно в Map
+    private Map<String, Object> parseJson(String json) {
+        try {
+            return OM.readValue(json, new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            throw new AssertionError("Поле result не является валидным JSON: " + json, e);
+        }
+    }
+
+    // Разбирает JSON-массив (результат getMergedList) в список Map
+    private List<Map<String, Object>> parseJsonList(String json) {
+        try {
+            return OM.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
+        } catch (Exception e) {
+            throw new AssertionError("Объединённый результат не является валидным JSON-массивом: " + json, e);
+        }
+    }
+
+    // Проверяет валидность полей ExtractionResultProto (ответ gRPC после create, формат JSON)
+    private void assertProtoFieldsValidity(
             String expectedUrl,
             String expectedUserId,
             Map<String, Object> expectedMap,
@@ -709,14 +1326,15 @@ public class ExtractionResultGrpcToDb {
 
         assertThat(actualProto.getUrl()).isEqualTo(expectedUrl);
         assertThat(actualProto.getUserId()).isEqualTo(expectedUserId);
-        assertThat(ProtoJsonMapper.structToMap(actualProto.getJsonResult())).isEqualTo(expectedMap);
+        assertThat(actualProto.getResultFormat()).isEqualTo(ResultFormatProto.JSON);
+        assertThat(parseJson(actualProto.getResult())).isEqualTo(expectedMap);
 
         assertThat(ProtoTimeMapper.timestampToInstant(actualProto.getCreatedAt()))
                 .isBetween(timeBefore.minusSeconds(2), timeAfter.plusSeconds(2));
     }
 
     // Проверяет валидность полей доменной сущности ExtractionResult, прочитанной из БД
-    private void assertExtractionResultDomainFieldsValidity(
+    private void assertDomainFieldsValidity(
             String expectedUrl,
             String expectedUserId,
             Map<String, Object> expectedMap,
@@ -735,8 +1353,8 @@ public class ExtractionResultGrpcToDb {
                 .isBetween(timeBefore.minusSeconds(2), timeAfter.plusSeconds(2));
     }
 
-    // Проверяет соответствие одной и той же сущности в двух представлениях (domain vs proto)
-    private void assertExtractionResultDomainProtoValidity(
+    // Проверяет соответствие одной и той же сущности в двух представлениях (domain vs proto, формат JSON)
+    private void assertDomainProtoValidity(
             ExtractionResult domain,
             ExtractionResultProto proto,
             Instant timeBefore,
@@ -745,7 +1363,8 @@ public class ExtractionResultGrpcToDb {
         assertThat(domain.getId()).isEqualTo(proto.getId());
         assertThat(domain.getUrl()).isEqualTo(proto.getUrl());
         assertThat(domain.getUserId()).isEqualTo(proto.getUserId());
-        assertThat(domain.getJsonResult()).isEqualTo(ProtoJsonMapper.structToMap(proto.getJsonResult()));
+        assertThat(proto.getResultFormat()).isEqualTo(ResultFormatProto.JSON);
+        assertThat(domain.getJsonResult()).isEqualTo(parseJson(proto.getResult()));
         assertThat(domain.getCreatedAt()).isCloseTo(
                 ProtoTimeMapper.timestampToInstant(proto.getCreatedAt()),
                 within(1, ChronoUnit.MILLIS));

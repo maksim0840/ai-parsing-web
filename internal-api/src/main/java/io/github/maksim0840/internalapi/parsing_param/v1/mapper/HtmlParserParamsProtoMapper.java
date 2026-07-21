@@ -1,12 +1,7 @@
-package io.github.maksim0840.internalapi.user.v1.mapper;
+package io.github.maksim0840.internalapi.parsing_param.v1.mapper;
 
-import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.HtmlParserRequestDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.HtmlParserParamsDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.UserDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.HtmlParserParamsDTO;
 import io.github.maksim0840.parsing_param.v1.HtmlParserParamsProto;
-import io.github.maksim0840.parsing_task_orchestrator.v1.HtmlParserRequestProto;
-import io.github.maksim0840.user.v1.UserProto;
 
 import java.util.Map;
 

@@ -1,13 +1,8 @@
-package io.github.maksim0840.internalapi.user.v1.mapper;
+package io.github.maksim0840.internalapi.parsing_param.v1.mapper;
 
 
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.LLMRequestDTO;
-import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.FileInfoProtoMapper;
-import io.github.maksim0840.internalapi.user.v1.dto.LLMParamsDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.LLMParamsDTO;
 import io.github.maksim0840.parsing_param.v1.LLMParamsProto;
-import io.github.maksim0840.parsing_task_orchestrator.v1.LLMRequestProto;
-
-import java.util.List;
 
 public class LLMParamsProtoMapper {
     public static LLMParamsProto dtoToProto(LLMParamsDTO dto) {

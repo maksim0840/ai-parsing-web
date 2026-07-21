@@ -15,26 +15,28 @@ public class OrchestratorStorageGrpcClient {
     @GrpcClient("parsing_orchestrator")
     OrchestratorStorageServiceGrpc.OrchestratorStorageServiceBlockingStub blockingStub;
 
-    public TaskStatusOrchestratorDTO getTaskStatus(String taskId) {
-        System.out.println("send getStatus");
+    public TaskStatusOrchestratorDTO getTaskStatus(String taskId, String userId) {
         GetTaskStatusOrchestratorRequest request = GetTaskStatusOrchestratorRequest.newBuilder()
                 .setTaskId(taskId)
+                .setUserId(userId)
                 .build();
 
-        GetTaskStatusOrchestratorResponse response = blockingStub.getTaskStatus(request);
-        System.out.println("receive getStatus");
-        return TaskStatusOrchestratorProtoMapper.protoToDto(response.getTaskStatusOrchestrator());
+        try {
+            GetTaskStatusOrchestratorResponse response = blockingStub.getTaskStatus(request);
+            return TaskStatusOrchestratorProtoMapper.protoToDto(response.getTaskStatusOrchestrator());
+        } catch (StatusRuntimeException e) {
+            throw GrpcExceptionMapper.map(e);
+        }
     }
 
-    public TaskResultOrchestratorDTO getTaskResult(String taskId) {
-        System.out.println("send getResult");
+    public TaskResultOrchestratorDTO getTaskResult(String taskId, String userId) {
         GetTaskResultOrchestratorRequest request = GetTaskResultOrchestratorRequest.newBuilder()
                 .setTaskId(taskId)
+                .setUserId(userId)
                 .build();
 
         try {
             GetTaskResultOrchestratorResponse response = blockingStub.getTaskResult(request);
-            System.out.println("receive getResult");
             return TaskResultOrchestratorProtoMapper.protoToDto(response.getTaskResultOrchestrator());
         } catch (StatusRuntimeException e) {
             throw GrpcExceptionMapper.map(e);

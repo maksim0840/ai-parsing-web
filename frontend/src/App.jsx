@@ -722,6 +722,12 @@ function buildStoredFileUrl(filePath) {
   return `/api/files/download?filePath=${encodeURIComponent(filePath)}`;
 }
 
+// Ссылка на файл в хранилище: такой URL нельзя отдать напрямую в <img src>,
+// т.к. браузер запросит его без заголовка Authorization.
+function isStoredFileUrl(url) {
+  return String(url || "").startsWith("/api/files/download");
+}
+
 function getFileItemKey(item) {
   return String(item?.filePath || item?.downloadUrl || item?.previewUrl || item?.name || "").trim();
 }
@@ -976,6 +982,9 @@ export default function ConferenceParserPage() {
   const pollingIntervalRef = useRef(null);
   const resultRequestedRef = useRef(false);
   const taskIdRef = useRef("");
+  // id изображений, для которых превью уже запрошено, и созданные blob-URL для очистки.
+  const loadingPreviewsRef = useRef(new Set());
+  const createdPreviewUrlsRef = useRef(new Set());
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -1000,6 +1009,59 @@ export default function ConferenceParserPage() {
       error,
     });
   }, [sessionId, taskId, taskStatus, taskMessage, isPollingStatus, result, error]);
+
+  // Превью изображений из хранилища нельзя подставить в <img src> напрямую:
+  // браузер отправит запрос без Authorization и получит 401. Поэтому качаем
+  // картинку авторизованным запросом и подменяем ссылку на blob-URL.
+  useEffect(() => {
+    const pending = garageImages.filter(
+      (image) => isStoredFileUrl(image?.previewUrl) && !loadingPreviewsRef.current.has(image.id)
+    );
+
+    if (pending.length === 0) {
+      return;
+    }
+
+    pending.forEach((image) => {
+      loadingPreviewsRef.current.add(image.id);
+
+      (async () => {
+        try {
+          const response = await authFetch(image.previewUrl, {
+            method: "GET",
+            headers: { Accept: "image/*,*/*" },
+          });
+
+          if (!response.ok) {
+            throw new Error(String(response.status));
+          }
+
+          const blob = await response.blob();
+          if (!isMountedRef.current) {
+            return;
+          }
+
+          const blobUrl = URL.createObjectURL(blob);
+          createdPreviewUrlsRef.current.add(blobUrl);
+
+          setGarageImages((prev) =>
+            prev.map((item) => (item.id === image.id ? { ...item, previewUrl: blobUrl } : item))
+          );
+        } catch {
+          // Превью не критично: оставляем плашку-заглушку и не мешаем работе с файлом.
+          loadingPreviewsRef.current.delete(image.id);
+        }
+      })();
+    });
+  }, [garageImages]);
+
+  useEffect(() => {
+    const createdUrls = createdPreviewUrlsRef.current;
+    return () => {
+      createdUrls.forEach((url) => URL.revokeObjectURL(url));
+      createdUrls.clear();
+    };
+  }, []);
 
   async function loadSessionId() {
     setIsSessionLoading(true);

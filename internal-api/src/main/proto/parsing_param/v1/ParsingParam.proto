@@ -80,6 +80,7 @@ message EditParsingParamRequest {
 // Запросы на получение записи по id
 message GetParsingParamRequest {
   int64 id = 1;
+  int64 user_id = 2;
 }
 
 // Запрос на получение списка записей по фильтрам
@@ -95,6 +96,7 @@ message GetListParsingParamRequest {
 // Удалить запись по id
 message DeleteParsingParamRequest {
   int64 id = 1;
+  int64 user_id = 2;
 }
 
 // Запрос на получение списка имён параметров по id пользователя

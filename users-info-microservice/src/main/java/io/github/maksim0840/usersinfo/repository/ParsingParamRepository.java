@@ -35,4 +35,6 @@ public interface ParsingParamRepository extends
             @Param("oldName") String oldName,
             @Param("newName") String newName
     );
+
+    boolean existsByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 }

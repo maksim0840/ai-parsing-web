@@ -12,11 +12,16 @@ import {
 
 const AUTH_STORAGE_KEYS = {
   token: "conference_parser_auth_token",
+  refreshToken: "conference_parser_auth_refresh_token",
   tokenType: "conference_parser_auth_token_type",
   username: "conference_parser_auth_username",
 };
 
 const AUTH_EXPIRED_EVENT = "conference-parser-auth-expired";
+const AUTH_UPDATED_EVENT = "conference-parser-auth-updated";
+
+// Базовый путь для служебных запросов авторизации (refresh/logout).
+const AUTH_API_BASE = "/api/auth";
 
 const AuthContext = createContext(null);
 
@@ -42,15 +47,17 @@ function safeWriteStorage(key, value) {
 
 function normalizeAuthPayload(payload = {}) {
   const token = String(payload.accessToken || payload.token || "").trim();
+  const refreshToken = String(payload.refreshToken || payload.refresh_token || "").trim();
   const tokenType = String(payload.tokenType || payload.token_type || "Bearer").trim() || "Bearer";
   const username = String(payload.username || "").trim();
 
-  return { token, tokenType, username };
+  return { token, refreshToken, tokenType, username };
 }
 
 export function getStoredAuth() {
   return normalizeAuthPayload({
     token: safeReadStorage(AUTH_STORAGE_KEYS.token),
+    refreshToken: safeReadStorage(AUTH_STORAGE_KEYS.refreshToken),
     tokenType: safeReadStorage(AUTH_STORAGE_KEYS.tokenType),
     username: safeReadStorage(AUTH_STORAGE_KEYS.username),
   });
@@ -58,6 +65,7 @@ export function getStoredAuth() {
 
 export function clearStoredAuth() {
   safeWriteStorage(AUTH_STORAGE_KEYS.token, "");
+  safeWriteStorage(AUTH_STORAGE_KEYS.refreshToken, "");
   safeWriteStorage(AUTH_STORAGE_KEYS.tokenType, "");
   safeWriteStorage(AUTH_STORAGE_KEYS.username, "");
 }
@@ -65,6 +73,7 @@ export function clearStoredAuth() {
 export function storeAuth(auth) {
   const normalized = normalizeAuthPayload(auth);
   safeWriteStorage(AUTH_STORAGE_KEYS.token, normalized.token);
+  safeWriteStorage(AUTH_STORAGE_KEYS.refreshToken, normalized.refreshToken);
   safeWriteStorage(AUTH_STORAGE_KEYS.tokenType, normalized.tokenType);
   safeWriteStorage(AUTH_STORAGE_KEYS.username, normalized.username);
   return normalized;
@@ -82,26 +91,113 @@ export function buildAuthHeaders(extraHeaders = {}) {
   };
 }
 
-export async function authFetch(url, options = {}) {
-  const headers = buildAuthHeaders(options.headers || {});
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+function notifyAuthExpired(detail) {
+  clearStoredAuth();
 
-  if (response.status === 401 || response.status === 403) {
-    clearStoredAuth();
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT, { detail }));
+  }
+}
+
+// Одновременно выполняется не более одного запроса на обновление токенов:
+// на бэкенде включена ротация, поэтому параллельные вызовы отозвали бы друг друга.
+let refreshPromise = null;
+
+async function requestTokenRefresh() {
+  const current = getStoredAuth();
+  if (!current.refreshToken) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${AUTH_API_BASE}/refresh`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ refreshToken: current.refreshToken }),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json().catch(() => null);
+    if (!data?.accessToken) {
+      return null;
+    }
+
+    // Бэкенд возвращает новую пару токенов (старый refresh уже отозван).
+    const normalized = storeAuth({
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      tokenType: data.tokenType || current.tokenType || "Bearer",
+      username: current.username,
+    });
 
     if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent(AUTH_EXPIRED_EVENT, {
-          detail: {
-            status: response.status,
-            url,
-          },
-        })
-      );
+      window.dispatchEvent(new CustomEvent(AUTH_UPDATED_EVENT, { detail: normalized }));
     }
+
+    return normalized;
+  } catch {
+    return null;
+  }
+}
+
+export function ensureTokenRefresh() {
+  if (!refreshPromise) {
+    refreshPromise = requestTokenRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
+export async function requestLogout() {
+  const { refreshToken } = getStoredAuth();
+  if (!refreshToken) {
+    return;
+  }
+
+  try {
+    // Отзываем refresh на сервере; результат не критичен для выхода из интерфейса.
+    await fetch(`${AUTH_API_BASE}/logout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ refreshToken }),
+    });
+  } catch {
+    // ignore network errors on logout
+  }
+}
+
+export async function authFetch(url, options = {}) {
+  const doFetch = () =>
+    fetch(url, {
+      ...options,
+      headers: buildAuthHeaders(options.headers || {}),
+    });
+
+  let response = await doFetch();
+
+  if (response.status === 401 || response.status === 403) {
+    const refreshed = await ensureTokenRefresh();
+
+    if (refreshed?.token) {
+      // Повторяем исходный запрос уже с новым access-токеном.
+      response = await doFetch();
+
+      if (response.status !== 401 && response.status !== 403) {
+        return response;
+      }
+    }
+
+    notifyAuthExpired({ status: response.status, url });
   }
 
   return response;
@@ -310,13 +406,22 @@ function AuthOverlay({ children, apiBase = "/api/auth", onOpenProfile }) {
     return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
   }, []);
 
+  useEffect(() => {
+    // Токены могли обновиться в фоне (authFetch) — подтягиваем актуальные значения.
+    const handleAuthUpdated = () => setAuth(getStoredAuth());
+
+    window.addEventListener(AUTH_UPDATED_EVENT, handleAuthUpdated);
+    return () => window.removeEventListener(AUTH_UPDATED_EVENT, handleAuthUpdated);
+  }, []);
+
   const isAuthenticated = Boolean(auth.token);
 
   const value = useMemo(
     () => ({
       auth,
       isAuthenticated,
-      logout: () => {
+      logout: async () => {
+        await requestLogout();
         clearStoredAuth();
         setAuth(getStoredAuth());
       },
@@ -405,6 +510,7 @@ function AuthOverlay({ children, apiBase = "/api/auth", onOpenProfile }) {
       const data = await loginResponse.json();
       const normalized = storeAuth({
         accessToken: data?.accessToken,
+        refreshToken: data?.refreshToken,
         tokenType: data?.tokenType || "Bearer",
         username: trimmedUsername,
       });
@@ -485,7 +591,8 @@ function AuthOverlay({ children, apiBase = "/api/auth", onOpenProfile }) {
             ) : null}
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
+                await requestLogout();
                 clearStoredAuth();
                 setAuth(getStoredAuth());
               }}

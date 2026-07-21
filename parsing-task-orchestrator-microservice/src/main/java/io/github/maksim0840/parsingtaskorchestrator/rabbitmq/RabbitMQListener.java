@@ -33,10 +33,7 @@ public class RabbitMQListener {
 
     @RabbitListener(queues = "#{environment.getProperty('rabbitmq.text_recognition_queue.response_name')}")
     public void receiveTextRecognitionQueue(String message) throws JsonProcessingException {
-        System.out.println("receiveTextRecognitionQueue start");
-        System.out.println("receiveTextRecognitionQueue message: " + message);
         TextRecognitionResponseDTO response = JsonMapper.stringToObject(message, TextRecognitionResponseDTO.class);
-        System.out.println("receiveTextRecognitionQueue response: " + response);
         orchestratorService.distributeRequestsAfterTextRecognition(response);
     }
 }

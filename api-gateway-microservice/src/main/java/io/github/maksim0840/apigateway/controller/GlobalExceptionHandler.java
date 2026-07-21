@@ -4,6 +4,7 @@ import io.github.maksim0840.apigateway.dto.ErrorResponse;
 import io.github.maksim0840.apigateway.exception.DataNotFoundException;
 import io.github.maksim0840.apigateway.exception.DataUnavailableException;
 import io.github.maksim0840.apigateway.exception.InternalServiceException;
+import io.github.maksim0840.apigateway.exception.RefreshTokenException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -46,5 +47,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_GATEWAY)
                 .body(new ErrorResponse("BAD_GATEWAY", exception.getMessage()));
+    }
+
+    @ExceptionHandler(RefreshTokenException.class)
+    public ResponseEntity<ErrorResponse> handleRefreshTokenException(RefreshTokenException exception) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse("REFRESH_EXPIRED", exception.getMessage()));
     }
 }

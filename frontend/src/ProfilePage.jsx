@@ -7,7 +7,9 @@ import {
   Eye,
   FileText,
   Loader2,
+  Pencil,
   RefreshCw,
+  Save,
   Search,
   Trash2,
   User,
@@ -65,6 +67,15 @@ function triggerBlobDownload(blob, filename) {
   document.body.removeChild(link);
 
   URL.revokeObjectURL(objectUrl);
+}
+
+function isValidJson(text) {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function extractErrorMessage(text, status) {
@@ -293,10 +304,60 @@ function DatePickerField({ label, value, onChange }) {
   );
 }
 
-function ResultModal({ item, onClose }) {
+function ResultModal({ item, onClose, onSave }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  const itemId = item?.id ?? "";
+  const originalText = stringifyResult(item?.result);
+
+  // При смене записи (или её перезагрузке после сохранения) сбрасываем режим правки.
+  useEffect(() => {
+    setIsEditing(false);
+    setDraft(originalText);
+    setSaving(false);
+    setSaveError("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemId]);
+
   if (!item) return null;
 
-  const prettyJson = stringifyResult(item.result);
+  const isDirty = draft !== originalText;
+  // Для JSON-записей предупреждаем о невалидном тексте, но не запрещаем сохранение.
+  const jsonWarning =
+    isEditing && item.resultFormat === "JSON" && draft.trim() && !isValidJson(draft)
+      ? "Текст не является валидным JSON. Сохранить всё равно можно."
+      : "";
+
+  function startEditing() {
+    setSaveError("");
+    setDraft(originalText);
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    setSaveError("");
+    setDraft(originalText);
+    setIsEditing(false);
+  }
+
+  async function handleSaveClick() {
+    if (!isDirty || saving) return;
+
+    setSaving(true);
+    setSaveError("");
+
+    try {
+      await onSave?.(item.id, draft);
+      setIsEditing(false);
+    } catch (e) {
+      setSaveError(e.message || "Ошибка при сохранении результата.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -317,25 +378,83 @@ function ResultModal({ item, onClose }) {
           <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4">
             <div className="min-w-0">
               <h3 className="truncate text-lg font-semibold text-slate-950">
-                Полный результат
+                {isEditing ? "Редактирование результата" : "Полный результат"}
               </h3>
               <p className="mt-1 whitespace-normal break-words text-sm text-slate-500">{item.url || "Без URL"}</p>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
-              aria-label="Закрыть окно результата"
-            >
-              <X className="h-4 w-4" />
-            </button>
+
+            <div className="flex shrink-0 items-center gap-2">
+              {!isEditing ? (
+                <button
+                  type="button"
+                  onClick={startEditing}
+                  className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm text-slate-700 transition hover:bg-slate-50"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Редактировать
+                </button>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+                aria-label="Закрыть окно результата"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto px-6 py-5">
-            <pre className="whitespace-pre-wrap break-words rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-800">
-              {prettyJson || "Результат пустой."}
-            </pre>
+            {isEditing ? (
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                spellCheck={false}
+                className="min-h-[45vh] w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 p-4 font-mono text-sm leading-6 text-slate-800 outline-none transition focus:border-slate-400"
+              />
+            ) : (
+              <pre className="whitespace-pre-wrap break-words rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-800">
+                {originalText || "Результат пустой."}
+              </pre>
+            )}
+
+            {jsonWarning ? (
+              <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
+                {jsonWarning}
+              </div>
+            ) : null}
+
+            {saveError ? (
+              <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700 whitespace-pre-wrap break-words">
+                {saveError}
+              </div>
+            ) : null}
           </div>
+
+          {isEditing ? (
+            <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
+              <button
+                type="button"
+                onClick={cancelEditing}
+                disabled={saving}
+                className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveClick}
+                disabled={saving || !isDirty}
+                title={isDirty ? "Сохранить изменения" : "Изменений нет"}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Сохранить
+              </button>
+            </div>
+          ) : null}
         </motion.div>
       </motion.div>
     </AnimatePresence>
@@ -367,8 +486,8 @@ export default function ProfilePage({ onBack }) {
   const [results, setResults] = useState([]);
   const [selectedResult, setSelectedResult] = useState(null);
 
-  const [dateFrom, setDateFrom] = useState(() => getTodayInputValue());
-  const [dateTo, setDateTo] = useState(() => getMonthAgoInputValue());
+  const [dateFrom, setDateFrom] = useState(() => getMonthAgoInputValue());
+  const [dateTo, setDateTo] = useState(() => getTodayInputValue());
   const [pageNum, setPageNum] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [sortMode, setSortMode] = useState("true");
@@ -497,6 +616,43 @@ export default function ProfilePage({ onBack }) {
     }
   }
 
+  async function handleUpdateResult(id, nextText) {
+    if (!id) return;
+
+    // Эндпоинт принимает тело как сырую строку (@RequestBody String),
+    // поэтому отправляем текст как есть с text/plain.
+    const response = await authFetch(`/api/results/update/${encodeURIComponent(id)}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=UTF-8",
+        Accept: "application/json",
+      },
+      body: nextText,
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      const parsed = extractErrorMessage(text, response.status);
+      throw new Error(
+        parsed && !parsed.startsWith("Не удалось экспортировать")
+          ? parsed
+          : `Не удалось сохранить результат: ${response.status}`
+      );
+    }
+
+    // Бэкенд возвращает обновлённую запись — обновляем её локально,
+    // чтобы не сбрасывать текущую страницу и фильтры.
+    const updated = await response.json().catch(() => null);
+    const nextItem = updated && typeof updated === "object" ? updated : null;
+
+    setResults((prev) =>
+      prev.map((row) => (row.id === id ? (nextItem ?? { ...row, result: nextText }) : row))
+    );
+    setSelectedResult((prev) =>
+      prev && prev.id === id ? (nextItem ?? { ...prev, result: nextText }) : prev
+    );
+  }
+
   async function handleDelete(id) {
     if (!id) return;
 
@@ -537,8 +693,8 @@ export default function ProfilePage({ onBack }) {
   }
 
   function resetFilters() {
-    const nextDateFrom = getTodayInputValue();
-    const nextDateTo = getMonthAgoInputValue();
+    const nextDateFrom = getMonthAgoInputValue();
+    const nextDateTo = getTodayInputValue();
     setDateFrom(nextDateFrom);
     setDateTo(nextDateTo);
     setPageNum(0);
@@ -598,7 +754,11 @@ export default function ProfilePage({ onBack }) {
 
   return (
     <>
-      <ResultModal item={selectedResult} onClose={() => setSelectedResult(null)} />
+      <ResultModal
+        item={selectedResult}
+        onClose={() => setSelectedResult(null)}
+        onSave={handleUpdateResult}
+      />
 
       <div className="min-h-screen bg-slate-50 text-slate-900">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

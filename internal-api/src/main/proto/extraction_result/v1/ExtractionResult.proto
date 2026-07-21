@@ -39,7 +39,8 @@ message CreateExtractionResultRequest {
 // Запросы на получение записи по id
 message GetExtractionResultRequest {
     string id = 1;
-    ResultFormatProto result_format = 2;
+    string user_id = 2;
+    ResultFormatProto result_format = 3;
 }
 
 // Запрос на получение списка записей по фильтрам
@@ -73,8 +74,14 @@ message CountExtractionResultRequest {
 // Удалить запись по id
 message DeleteExtractionResultRequest {
     string id = 1;
+    string user_id = 2;
 }
 
+message UpdateExtractionResultRequest {
+    string id = 1;
+    string user_id = 2;
+    google.protobuf.Struct json_result = 3;
+}
 
 // ===== Ответы от сервиса extraction-results (ExtractionResult domain) =====
 
@@ -101,6 +108,11 @@ message CountExtractionResultResponse {
 message DeleteExtractionResultResponse {
 }
 
+message UpdateExtractionResultResponse {
+    ExtractionResultProto extraction_result = 1;
+}
+
+
 
 // ===== Сервис (gRPC api) =====
 
@@ -111,4 +123,5 @@ service ExtractionResultService {
   rpc GetMergedList(GetMergedListExtractionResultRequest) returns (GetMergedListExtractionResultResponse);
   rpc Count(CountExtractionResultRequest) returns (CountExtractionResultResponse);
   rpc Delete(DeleteExtractionResultRequest) returns (DeleteExtractionResultResponse);
+  rpc Update(UpdateExtractionResultRequest) returns (UpdateExtractionResultResponse);
 }

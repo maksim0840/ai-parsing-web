@@ -23,10 +23,6 @@ public class OrchestratorService {
     }
 
     public void startRequestsPipeline(TaskDTO task) throws JsonProcessingException {
-        System.out.println("startRequestsPipeline");
-        System.out.println("start task:");
-        System.out.println(task);
-
         if (task.htmlParserRequired()) {
             startHtmlParsing(task.htmlParserRequest());
         } else if (task.htmlPreprocessingRequired()) {
@@ -42,10 +38,6 @@ public class OrchestratorService {
 
 
     public void distributeRequestsAfterHtmlParser(HtmlParserResponseDTO response) throws JsonProcessingException {
-        System.out.println("distributeRequestsAfterHtmlParser");
-        System.out.println(response);
-        System.out.println();
-
         if (!response.success()) {
             endPipelineFail(response.taskId(), response.message());
             return;
@@ -88,10 +80,6 @@ public class OrchestratorService {
     }
 
     public void distributeRequestsAfterHtmlPreprocessing(HtmlPreprocessingResponseDTO response) throws JsonProcessingException {
-        System.out.println("distributeRequestsAfterHtmlPreprocessing");
-        System.out.println(response);
-        System.out.println();
-
         if (!response.success()) {
             endPipelineFail(response.taskId(), response.message());
             return;
@@ -102,7 +90,7 @@ public class OrchestratorService {
 
         // Распределяем следующий запрос
         if (task.textRecognitionRequired()) {
-            rabbitMQSender.sendToTextRecognitionQueue(task.textRecognitionRequest());
+            startTextRecognition(task.textRecognitionRequest());
         } else if (task.llmRequired()) {
             startLlmProcessing(task.llmRequest());
         } else {
@@ -111,7 +99,6 @@ public class OrchestratorService {
     }
 
     public void distributeRequestsAfterTextRecognition(TextRecognitionResponseDTO response) {
-        System.out.println("distributeRequestsAfterTextRecognition");
         if (!response.success()) {
             endPipelineFail(response.taskId(), response.message());
             return;
@@ -136,7 +123,6 @@ public class OrchestratorService {
     }
 
     public void distributeRequestsAfterLLM(LLMResponseDTO response) {
-        System.out.println("distributeRequestsAfterLLM");
         if (!response.success()) {
             endPipelineFail(response.taskId(), response.message());
             return;
@@ -150,12 +136,10 @@ public class OrchestratorService {
 
 
     private void endPipelineSuccess(String taskId) {
-        System.out.println("endPipelineSuccess");
         TaskDTO taskDTO = taskService.setStatusAndMessage(taskId, TaskStatus.DONE, "");
     }
 
     private void endPipelineFail(String taskId, String message) {
-        System.out.println("endRequestsPipelineFail");
         TaskDTO taskDTO = taskService.setStatusAndMessage(taskId, TaskStatus.FAILED, message);
     }
 
@@ -175,23 +159,28 @@ public class OrchestratorService {
     }
 
     private void startLlmProcessing(LLMRequestDTO request) {
-        System.out.println("startLlmProcessing htmlDocs");
-        System.out.println(request.htmlDocs());
         taskService.setStatusAndMessage(request.taskId(), TaskStatus.LLM_PROCESSING, "");
         LLMResponseDTO response = llmService.processLlmRequest(request);
         distributeRequestsAfterLLM(response);
     }
 
 
-    public StatusDTO getStatusInfo(String taskId) {
+    public StatusDTO getStatusInfo(String taskId, String userId) {
         if (!taskService.isTaskExists(taskId)) {
             return new StatusDTO(TaskStatus.NOT_REGISTERED, null);
         }
         TaskDTO taskDTO = taskService.getTask(taskId);
+        if (!taskDTO.userId().equals(userId)) {
+            throw new RuntimeException("Redis orchestrator's userId does not match (taskId: " + taskId + ", userId: " + userId + ")");
+        }
         return new StatusDTO(taskDTO.status(), taskDTO.message());
     }
 
-    public TaskDTO getTask(String taskId) {
-        return taskService.getTask(taskId);
+    public TaskDTO getTask(String taskId, String userId) {
+        TaskDTO taskDTO = taskService.getTask(taskId);
+        if (!taskDTO.userId().equals(userId)) {
+            throw new RuntimeException("Redis orchestrator's userId does not match (taskId: " + taskId + ", userId: " + userId + ")");
+        }
+        return taskDTO;
     }
 }

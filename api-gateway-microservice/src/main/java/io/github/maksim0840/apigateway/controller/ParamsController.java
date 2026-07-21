@@ -5,8 +5,7 @@ import io.github.maksim0840.apigateway.dto.api.ParamsEditApiRequest;
 import io.github.maksim0840.apigateway.dto.api.ParamsRenameApiRequest;
 import io.github.maksim0840.apigateway.security.JwtPrincipal;
 import io.github.maksim0840.apigateway.service.ParsingParamRemoteService;
-import io.github.maksim0840.internalapi.user.v1.dto.ParsingParamDTO;
-import io.github.maksim0840.parsing_param.v1.*;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.ParsingParamDTO;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 

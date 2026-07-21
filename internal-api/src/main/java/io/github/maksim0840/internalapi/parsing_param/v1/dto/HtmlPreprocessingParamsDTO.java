@@ -1,4 +1,4 @@
-package io.github.maksim0840.internalapi.user.v1.dto;
+package io.github.maksim0840.internalapi.parsing_param.v1.dto;
 
 import lombok.Builder;
 

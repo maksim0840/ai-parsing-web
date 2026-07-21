@@ -13,11 +13,11 @@ public class TaskService {
         this.storageGrpcClient = storageGrpcClient;
     }
 
-    public TaskStatusOrchestratorDTO getStatus(String taskId) {
-        return storageGrpcClient.getTaskStatus(taskId);
+    public TaskStatusOrchestratorDTO getStatus(String taskId, String userId) {
+        return storageGrpcClient.getTaskStatus(taskId, userId);
     }
 
-    public TaskResultOrchestratorDTO getResult(String taskId) {
-        return storageGrpcClient.getTaskResult(taskId);
+    public TaskResultOrchestratorDTO getResult(String taskId, String userId) {
+        return storageGrpcClient.getTaskResult(taskId, userId);
     }
 }

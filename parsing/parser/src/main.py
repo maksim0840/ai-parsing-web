@@ -45,7 +45,6 @@ async def handle_html_parsing(msg: str):
     task_id = msg.get("taskId")
     try:
         request = HtmlParserRequestDTO.from_dict(msg)
-        print("request:", request)
         
         r = await html_parser.download_html_content(
             url=request.url,
@@ -60,11 +59,9 @@ async def handle_html_parsing(msg: str):
         )
         response = HtmlParserResponseDTO(taskId=task_id, success=True, message="", htmlDocs=r["htmlDocs"], images=r["images"])
         await send_html_parsing_response(response)
-        print("response:", response)
     except Exception as e:
         response = HtmlParserResponseDTO(taskId=task_id, success=False, message=f"[html_parser service] {str(e)}", htmlDocs=[], images=[])
         await send_html_parsing_response(response)
-        print("response:", response)
 
 
 
@@ -74,7 +71,6 @@ async def handle_html_preprocessing(msg: str):
     task_id = msg.get("taskId")
     try:
         request = HtmlPreprocessingRequestDTO.from_dict(msg)
-        print("request:", request)
 
         r = await html_preprocessing.apply_preprocessing(
             html_docs=request.htmlDocs,
@@ -97,11 +93,9 @@ async def handle_html_preprocessing(msg: str):
         )
         response = HtmlPreprocessingResponseDTO(taskId=task_id, success=True, message="", htmlDocs=r["htmlDocs"])
         await send_html_preprocessing_response(response)
-        print("response:", response)
     except Exception as e:
         response = HtmlPreprocessingResponseDTO(taskId=task_id, success=False, message=f"[html_preprocessing service] {str(e)}", htmlDocs=[])
         await send_html_preprocessing_response(response)
-        print("response:", response)
 
 
 

@@ -20,14 +20,15 @@ public class OrchestratorStartGrpcClient {
 
     public String startParsing(
             String taskId,
+            String userId,
             HtmlParserRequestDTO htmlParserRequestDTO,
             HtmlPreprocessingRequestDTO htmlPreprocessingRequestDTO,
             TextRecognitionRequestDTO textRecognitionRequestDTO,
             LLMRequestDTO llmRequestDTO) {
 
-        System.out.println("startParsing");
         StartParsingOrchestratorRequest.Builder requestBuilder = StartParsingOrchestratorRequest.newBuilder();
         requestBuilder.setTaskId(taskId);
+        requestBuilder.setUserId(userId);
         if (htmlParserRequestDTO != null) {
             requestBuilder.setHtmlParserRequest(HtmlParserRequestProtoMapper.dtoToProto(htmlParserRequestDTO));
         }

@@ -38,9 +38,7 @@ dependencies {
     // Json Mapping
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2")
-    
-    // MongoDB
-    implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
+
     // Redis
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
@@ -64,11 +62,11 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-amqp")
     testImplementation(enforcedPlatform("org.testcontainers:testcontainers-bom:2.0.3"))
     testImplementation("org.testcontainers:testcontainers")
+    testImplementation("org.awaitility:awaitility")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-rabbitmq:2.0.4")
-    testImplementation("org.testcontainers:testcontainers-mongodb")
-    testImplementation("net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE")
+    testImplementation("com.redis:testcontainers-redis:2.2.4")
     testImplementation("net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE")
 }
 

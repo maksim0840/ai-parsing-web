@@ -1,14 +1,14 @@
 package io.github.maksim0840.apigateway.grpc;
 
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
-import io.github.maksim0840.internalapi.user.v1.dto.HtmlParserParamsDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.HtmlPreprocessingParamsDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.LLMParamsDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.ParsingParamDTO;
-import io.github.maksim0840.internalapi.user.v1.mapper.HtmlParserParamsProtoMapper;
-import io.github.maksim0840.internalapi.user.v1.mapper.HtmlPreprocessingParamsProtoMapper;
-import io.github.maksim0840.internalapi.user.v1.mapper.LLMParamsProtoMapper;
-import io.github.maksim0840.internalapi.user.v1.mapper.ParsingParamProtoMapper;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.HtmlParserParamsDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.HtmlPreprocessingParamsDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.LLMParamsDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.ParsingParamDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.mapper.HtmlParserParamsProtoMapper;
+import io.github.maksim0840.internalapi.parsing_param.v1.mapper.HtmlPreprocessingParamsProtoMapper;
+import io.github.maksim0840.internalapi.parsing_param.v1.mapper.LLMParamsProtoMapper;
+import io.github.maksim0840.internalapi.parsing_param.v1.mapper.ParsingParamProtoMapper;
 import io.github.maksim0840.parsing_param.v1.*;
 import io.grpc.StatusRuntimeException;
 import net.devh.boot.grpc.client.inject.GrpcClient;
@@ -60,9 +60,10 @@ public class ParsingParamGrpcClient {
         }
     }
 
-    public ParsingParamDTO get(Long id) {
+    public ParsingParamDTO get(Long id, Long userId) {
         GetParsingParamRequest request = GetParsingParamRequest.newBuilder()
                 .setId(id)
+                .setUserId(userId)
                 .build();
 
         try {
@@ -95,9 +96,10 @@ public class ParsingParamGrpcClient {
         }
     }
 
-    public void delete(Long id) {
+    public void delete(Long id, Long userId) {
         DeleteParsingParamRequest request = DeleteParsingParamRequest.newBuilder()
                 .setId(id)
+                .setUserId(userId)
                 .build();
 
         try {

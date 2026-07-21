@@ -25,8 +25,8 @@ public class ExtractionResultRemoteService {
         return grpcClient.create(url, userId, jsonResult);
     }
 
-    public ExtractionResultDTO getExtractionResultById(String id, ResultFormat resultFormat) {
-        return grpcClient.get(id, resultFormat);
+    public ExtractionResultDTO getExtractionResultById(String id, String userId, ResultFormat resultFormat) {
+        return grpcClient.get(id, userId, resultFormat);
     }
 
     public List<ExtractionResultDTO> getListExtractionResultByPageWithFiltering(String userId, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc, ResultFormat resultFormat) {
@@ -41,7 +41,13 @@ public class ExtractionResultRemoteService {
         return grpcClient.getMergedList(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc, resultFormat);
     }
 
-    public void deleteExtractionResultById(String id) {
-        grpcClient.delete(id);
+    public void deleteExtractionResultById(String id, String userId) {
+        grpcClient.delete(id, userId);
+    }
+
+    public ExtractionResultDTO updateExtractionResultById(String id, String userId, String jsonStr) {
+        Map<String, Object> jsonResult;
+        jsonResult = JsonStringMapper.stringToMap(jsonStr);
+        return grpcClient.update(id, userId, jsonResult);
     }
 }

@@ -1,9 +1,9 @@
 package io.github.maksim0840.usersinfo.mapper;
 
-import io.github.maksim0840.internalapi.user.v1.dto.HtmlParserParamsDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.HtmlPreprocessingParamsDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.LLMParamsDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.ParsingParamDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.HtmlParserParamsDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.HtmlPreprocessingParamsDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.LLMParamsDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.ParsingParamDTO;
 import io.github.maksim0840.usersinfo.entity.ParsingParam;
 import io.github.maksim0840.usersinfo.entity.model.HtmlParserParams;
 import io.github.maksim0840.usersinfo.entity.model.HtmlPreprocessingParams;

@@ -1,6 +1,5 @@
 package io.github.maksim0840.usersinfo.entity;
 
-import io.github.maksim0840.internalapi.user.v1.dto.HtmlPreprocessingParamsDTO;
 import io.github.maksim0840.usersinfo.entity.model.HtmlParserParams;
 import io.github.maksim0840.usersinfo.entity.model.HtmlPreprocessingParams;
 import io.github.maksim0840.usersinfo.entity.model.LLMParams;

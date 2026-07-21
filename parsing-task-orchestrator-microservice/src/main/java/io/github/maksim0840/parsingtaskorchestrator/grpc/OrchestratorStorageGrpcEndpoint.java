@@ -1,5 +1,6 @@
 package io.github.maksim0840.parsingtaskorchestrator.grpc;
 
+import com.openai.models.beta.threads.runs.Run;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TaskResultOrchestratorDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.dto.TaskStatusOrchestratorDTO;
 import io.github.maksim0840.internalapi.parsing_task_orchestrator.v1.mapper.*;
@@ -23,9 +24,13 @@ public class OrchestratorStorageGrpcEndpoint extends OrchestratorStorageServiceG
 
     @Override
     public void getTaskStatus(GetTaskStatusOrchestratorRequest request, StreamObserver<GetTaskStatusOrchestratorResponse> responseObserver) {
-        System.out.println("getTaskStatus");
-        StatusDTO statusDTO = orchestratorService.getStatusInfo(request.getTaskId());
-        System.out.println(statusDTO);
+        StatusDTO statusDTO;
+        try {
+            statusDTO = orchestratorService.getStatusInfo(request.getTaskId(), request.getUserId());
+        } catch (RuntimeException e) {
+            responseObserver.onError(error(Status.NOT_FOUND, e.getMessage()));
+            return;
+        }
 
         TaskStatusOrchestratorDTO taskStatusOrchestratorDTO = TaskStatusOrchestratorDTO.builder()
                 .taskId(request.getTaskId())
@@ -41,12 +46,14 @@ public class OrchestratorStorageGrpcEndpoint extends OrchestratorStorageServiceG
 
     @Override
     public void getTaskResult(GetTaskResultOrchestratorRequest request, StreamObserver<GetTaskResultOrchestratorResponse> responseObserver) {
-        System.out.println("getTaskResult");
         TaskDTO taskDTO;
         try {
-            taskDTO = orchestratorService.getTask(request.getTaskId());
+            taskDTO = orchestratorService.getTask(request.getTaskId(), request.getUserId());
         } catch (TaskNotFoundException e) {
             responseObserver.onError(error(Status.NOT_FOUND, e.getMessage()));
+            return;
+        } catch (RuntimeException e) {
+            responseObserver.onError(error(Status.UNAVAILABLE, e.getMessage()));
             return;
         }
 

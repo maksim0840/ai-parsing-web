@@ -18,24 +18,28 @@ import java.util.Date;
 @Service
 public class JwtService {
     private final SecretKey secretKey;
-    private final Duration lifetimeMin;
+    private final Duration accessLifetimeMin;
+    private final Duration refreshLifetimeMin;
 
     public JwtService(
             @Value("${security.jwt.secret}") String secret,
-            @Value("${security.jwt.expiration_min}") long lifetime
+            @Value("${security.jwt.access_expiration_min}") long accessLifetime,
+            @Value("${security.jwt.refresh_expiration_min}") long refreshLifetime
     ) {
         this.secretKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(secret));
-        this.lifetimeMin = Duration.ofMinutes(lifetime);
+        this.accessLifetimeMin = Duration.ofMinutes(accessLifetime);
+        this.refreshLifetimeMin = Duration.ofMinutes(refreshLifetime);
     }
 
     public String generateToken(UserDTO user) {
         Instant now = Instant.now();
-        Instant expiresAt = now.plus(lifetimeMin);
+        Instant expiresAt = now.plus(accessLifetimeMin);
 
         return Jwts.builder()
                 .subject(String.valueOf(user.id()))
                 .claim("name", user.name())
                 .claim("role", user.role().name())
+                .claim("type", "access")
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiresAt))
                 .signWith(secretKey)
@@ -70,5 +74,30 @@ public class JwtService {
         } catch (JwtException | IllegalArgumentException exception) {
             return false;
         }
+    }
+
+    public String generateRefreshToken(UserDTO user, String jti) {
+        Instant now = Instant.now();
+
+        return Jwts.builder()
+                .id(jti)
+                .subject(String.valueOf(user.id()))
+                .claim("type", "refresh")
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plus(refreshLifetimeMin)))
+                .signWith(secretKey)
+                .compact();
+    }
+
+    public String extractJti(String token) {
+        return extractClaims(token).getId();
+    }
+
+    public String extractType(String token) {
+        return extractClaims(token).get("type", String.class);
+    }
+
+    public long getRefreshLifetimeSec() {
+        return refreshLifetimeMin.toSeconds();
     }
 }

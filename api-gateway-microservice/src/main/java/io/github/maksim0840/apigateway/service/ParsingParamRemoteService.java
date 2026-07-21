@@ -1,10 +1,10 @@
 package io.github.maksim0840.apigateway.service;
 
 import io.github.maksim0840.apigateway.grpc.ParsingParamGrpcClient;
-import io.github.maksim0840.internalapi.user.v1.dto.HtmlParserParamsDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.HtmlPreprocessingParamsDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.LLMParamsDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.ParsingParamDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.HtmlParserParamsDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.HtmlPreprocessingParamsDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.LLMParamsDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.ParsingParamDTO;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -27,16 +27,16 @@ public class ParsingParamRemoteService {
         return grpcClient.edit(id, userId, name, htmlParserParams, htmlPreprocessingParams, llmParams);
     }
 
-    public ParsingParamDTO getParsingParamById(Long id) {
-        return grpcClient.get(id);
+    public ParsingParamDTO getParsingParamById(Long id, Long userId) {
+        return grpcClient.get(id, userId);
     }
 
     public List<ParsingParamDTO> getListParsingParamByPageWithFiltering(Long userId, Instant dateFrom, Instant dateTo, int pageNum, int pageSize, Boolean isSortDesc) {
         return grpcClient.getList(userId, dateFrom, dateTo, pageNum, pageSize, isSortDesc);
     }
 
-    public void deleteParsingParamById(Long id) {
-        grpcClient.delete(id);
+    public void deleteParsingParamById(Long id, Long userId) {
+        grpcClient.delete(id, userId);
     }
 
     public List<String> getNamesByUserId(Long userId) {

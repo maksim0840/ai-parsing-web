@@ -1,25 +1,21 @@
 package io.github.maksim0840.usersinfo.grpc;
 
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
-import io.github.maksim0840.internalapi.user.v1.dto.HtmlParserParamsDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.HtmlPreprocessingParamsDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.LLMParamsDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.ParsingParamDTO;
-import io.github.maksim0840.internalapi.user.v1.mapper.HtmlParserParamsProtoMapper;
-import io.github.maksim0840.internalapi.user.v1.mapper.HtmlPreprocessingParamsProtoMapper;
-import io.github.maksim0840.internalapi.user.v1.mapper.LLMParamsProtoMapper;
-import io.github.maksim0840.internalapi.user.v1.mapper.ParsingParamProtoMapper;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.HtmlParserParamsDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.HtmlPreprocessingParamsDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.LLMParamsDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.ParsingParamDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.mapper.HtmlParserParamsProtoMapper;
+import io.github.maksim0840.internalapi.parsing_param.v1.mapper.HtmlPreprocessingParamsProtoMapper;
+import io.github.maksim0840.internalapi.parsing_param.v1.mapper.LLMParamsProtoMapper;
+import io.github.maksim0840.internalapi.parsing_param.v1.mapper.ParsingParamProtoMapper;
 import io.github.maksim0840.parsing_param.v1.*;
-import io.github.maksim0840.user.v1.DeleteUserResponse;
-import io.github.maksim0840.usersinfo.entity.ParsingParam;
-import io.github.maksim0840.usersinfo.entity.model.HtmlParserParams;
 import io.github.maksim0840.usersinfo.exception.NotFoundException;
 import io.github.maksim0840.usersinfo.service.ParsingParamService;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
-import org.springframework.dao.DataAccessException;
 
 import java.time.Instant;
 import java.util.List;
@@ -83,9 +79,10 @@ public class ParsingParamGrpcEndpoint extends ParsingParamServiceGrpc.ParsingPar
     @Override
     public void get(GetParsingParamRequest request, StreamObserver<GetParsingParamResponse> observerResponse) {
         Long id = request.getId();
+        Long userId = request.getUserId();
 
         try {
-            ParsingParamDTO parsingParam = parsingParamService.getParsingParamById(id);
+            ParsingParamDTO parsingParam = parsingParamService.getParsingParamById(id, userId);
             ParsingParamProto parsingParamProto = ParsingParamProtoMapper.dtoToProto(parsingParam);
             GetParsingParamResponse response = GetParsingParamResponse.newBuilder()
                     .setParsingParam(parsingParamProto).build();
@@ -125,8 +122,10 @@ public class ParsingParamGrpcEndpoint extends ParsingParamServiceGrpc.ParsingPar
     @Override
     public void delete(DeleteParsingParamRequest request, StreamObserver<DeleteParsingParamResponse> observerResponse) {
         Long id = request.getId();
+        Long userId = request.getUserId();
+
         try {
-            parsingParamService.deleteParsingParamById(id);
+            parsingParamService.deleteParsingParamById(id, userId);
             DeleteParsingParamResponse response = DeleteParsingParamResponse.newBuilder().build();
 
             observerResponse.onNext(response);

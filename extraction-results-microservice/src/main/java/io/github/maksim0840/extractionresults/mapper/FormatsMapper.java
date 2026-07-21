@@ -54,10 +54,14 @@ public class FormatsMapper {
 
     /**
      * Преобразует Map в отформатированную XML-строку с корневым элементом &lt;result&gt;.
+     * <p>
+     * Ключи предварительно санируются (см. {@link #sanitizeXmlName}), т.к. имя XML-тега
+     * не может содержать пробелы и ряд других символов.
      */
     public static String jsonToXmlString(Map<String, Object> jsonResult) {
         try {
-            return XML_MAPPER.writer().withRootName("result").writeValueAsString(jsonResult);
+            Map<String, Object> safeMap = sanitizeKeys(jsonResult);
+            return XML_MAPPER.writer().withRootName("result").writeValueAsString(safeMap);
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Ошибка сериализации в XML", e);
         }
@@ -99,14 +103,24 @@ public class FormatsMapper {
     /**
      * Преобразует список Map в отформатированную XML-строку вида
      * &lt;results&gt;&lt;result&gt;...&lt;/result&gt;...&lt;/results&gt;.
+     * <p>
+     * Ключи предварительно санируются (см. {@link #sanitizeXmlName}).
      */
     public static String jsonListToXmlString(List<Map<String, Object>> jsonResults) {
         try {
+            // Санируем ключи каждой записи перед сериализацией
+            List<Map<String, Object>> safeResults = new ArrayList<>();
+            if (jsonResults != null) {
+                for (Map<String, Object> map : jsonResults) {
+                    safeResults.add(sanitizeKeys(map));
+                }
+            }
+
             // Оборачиваем список в Map с ключом "result", чтобы получить
             // <results><result>...</result><result>...</result></results>
             // вместо безымянных повторяющихся элементов на верхнем уровне.
             Map<String, Object> wrapper = new LinkedHashMap<>();
-            wrapper.put("result", jsonResults);
+            wrapper.put("result", safeResults);
 
             return XML_MAPPER.writer().withRootName("results").writeValueAsString(wrapper);
         } catch (JsonProcessingException e) {
@@ -184,5 +198,77 @@ public class FormatsMapper {
         }
 
         return result;
+    }
+
+    /**
+     * Рекурсивно обходит структуру и заменяет ключи Map на безопасные XML-имена.
+     * Структура (вложенность Map и List) сохраняется без изменений — меняются только ключи.
+     */
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> sanitizeKeys(Map<String, Object> map) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (map == null) {
+            return result;
+        }
+
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            String safeKey = sanitizeXmlName(entry.getKey());
+            result.put(safeKey, sanitizeValue(entry.getValue()));
+        }
+
+        return result;
+    }
+
+    /**
+     * Обрабатывает значение произвольного типа: для Map и List уходит вглубь,
+     * остальные значения возвращает как есть.
+     */
+    @SuppressWarnings("unchecked")
+    private static Object sanitizeValue(Object value) {
+        if (value instanceof Map) {
+            return sanitizeKeys((Map<String, Object>) value);
+        } else if (value instanceof List) {
+            List<Object> resultList = new ArrayList<>();
+            for (Object item : (List<?>) value) {
+                resultList.add(sanitizeValue(item));
+            }
+            return resultList;
+        } else {
+            return value;
+        }
+    }
+
+    /**
+     * Приводит произвольную строку к корректному имени XML-элемента:
+     * <ul>
+     *   <li>пробелы и любые недопустимые символы заменяются на '_';</li>
+     *   <li>если имя начинается с цифры, '.' или '-', добавляется префикс '_'
+     *       (XML-имя не может начинаться с этих символов);</li>
+     *   <li>пустое имя заменяется на "_".</li>
+     * </ul>
+     */
+    private static String sanitizeXmlName(String name) {
+        if (name == null || name.isEmpty()) {
+            return "_";
+        }
+
+        StringBuilder sb = new StringBuilder(name.length());
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            // допустимые символы внутри XML-имени: буква, цифра, '_', '-', '.'
+            if (Character.isLetterOrDigit(c) || c == '_' || c == '-' || c == '.') {
+                sb.append(c);
+            } else {
+                sb.append('_');
+            }
+        }
+
+        // XML-имя не может начинаться с цифры, '-', '.' или быть пустым
+        char first = sb.charAt(0);
+        if (Character.isDigit(first) || first == '-' || first == '.') {
+            sb.insert(0, '_');
+        }
+
+        return sb.toString();
     }
 }

@@ -132,18 +132,13 @@ class HTMLParser:
                     page.on("response", on_response)
 
                 # Переходим по url и ожидаем подгрузки контента
-                print("page goto")
                 await page.goto(url, wait_until="domcontentloaded", timeout=settings.dom_content_loaded_timeout_ms)
-                print("page goto end")
                 await asyncio.sleep(settings.sleep_before_scroll_s)
-                print("start scroll")
                 await HTMLParser.auto_scroll(page, settings)
-                print("stop scroll")
                 try:
                     await page.wait_for_load_state("networkidle", timeout=settings.network_idle_timeout_ms)
                 except: pass
                 await asyncio.sleep(additional_page_load_timeout_s) # дополнительное пользовательское ожидание
-                print("end timeout")
 
                 # Сохраняем html код страницы
                 html = await page.content()
@@ -151,9 +146,7 @@ class HTMLParser:
                 html_name = HTMLParser.get_hash(url) + ".html"
                 html_path = os.path.join(html_out_dir, html_name)
                 # await asyncio.to_thread(HTMLParser.write_file_bytes, html_path, html_bytes)
-                print("save start")
                 await self.save_file_to_s3(html_path, html_bytes)
-                print("save stop")
             except Exception as e:
                 raise e
             finally:
@@ -164,9 +157,7 @@ class HTMLParser:
                     except: pass
                 
                 # Дожидаемся завершения задач
-                print("gather start:")
                 future_task_results = await asyncio.gather(*img_task_futures, return_exceptions=True)
-                print("gather END")
                 image_info = [x for x in future_task_results if isinstance(x, dict)]
                 await context.close()
             return {

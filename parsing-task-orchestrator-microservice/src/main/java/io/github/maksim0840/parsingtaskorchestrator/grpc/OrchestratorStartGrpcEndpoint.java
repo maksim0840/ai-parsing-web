@@ -29,6 +29,7 @@ public class OrchestratorStartGrpcEndpoint extends OrchestratorStartServiceGrpc.
     @Override
     public void startParsing(StartParsingOrchestratorRequest request, StreamObserver<StartParsingOrchestratorResponse> responseObserver) {
         String taskId = request.getTaskId();
+        String userId = request.getUserId();
         HtmlParserRequestDTO htmlParserRequest =
                 request.hasHtmlParserRequest()
                     ? HtmlParserRequestProtoMapper.protoToDto(request.getHtmlParserRequest())
@@ -46,7 +47,7 @@ public class OrchestratorStartGrpcEndpoint extends OrchestratorStartServiceGrpc.
                         ? LLMRequestProtoMapper.protoToDto(request.getLlmRequest())
                         : null;
 
-        TaskDTO task = taskService.addTask(taskId, htmlParserRequest, htmlPreprocessingRequest, textRecognitionRequest, llmRequestDTO);
+        TaskDTO task = taskService.addTask(taskId, userId, htmlParserRequest, htmlPreprocessingRequest, textRecognitionRequest, llmRequestDTO);
 
         StartParsingOrchestratorResponse response = StartParsingOrchestratorResponse.newBuilder()
                 .setTaskId(task.id()).build();

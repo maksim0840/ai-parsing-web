@@ -29,6 +29,9 @@ dependencies {
     // Spring
     implementation("org.springframework.boot:spring-boot-starter-web")
 
+    // Redis
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
+
     // Security
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("io.jsonwebtoken:jjwt-api:0.13.0")

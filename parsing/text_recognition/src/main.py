@@ -38,18 +38,15 @@ async def handle_text_recognition(msg: str):
     task_id = msg.get("taskId")
     try:
         request = TextRecognitionRequestDTO.from_dict(msg)
-        print("request:", request)
 
         r = await text_recognition_model.run_ocr(
             images=request.images
         )
         response = TextRecognitionResponseDTO(taskId=task_id, success=True, message="", images=r["images"])
         await send_text_recognition_response(response)
-        print("response:", response)
     except Exception as e:
         response = TextRecognitionResponseDTO(taskId=task_id, success=False, message=f"[text_recognition service] {str(e)}", images=[])
         await send_text_recognition_response(response)
-        print("response:", response)
 
 
 async def send_text_recognition_response(response: TextRecognitionResponseDTO):

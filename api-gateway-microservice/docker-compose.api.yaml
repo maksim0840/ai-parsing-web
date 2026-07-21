@@ -11,13 +11,32 @@ services:
     ports:
       - "8080:8080"
     networks:
+      - redis-api-net
       - garage-net
       - grpc-orchestrator-api-net
       - grpc-results-api-net
       - grpc-users-api-net
       - api-frontend-net
-      
+    depends_on:
+      - redis_api
+
+  redis_api:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6378:6379"
+    command: redis-server --appendonly yes    # включать запись данных в журнал операций (при перезапуске состояние восстанавливается из него)
+    networks:
+      - redis-api-net
+    volumes:
+      - redis_api_data:/data
+
+
+volumes:
+  redis_api_data:
+
 networks:
+  redis-api-net:
   garage-net:
     external: true
     name: garage-net

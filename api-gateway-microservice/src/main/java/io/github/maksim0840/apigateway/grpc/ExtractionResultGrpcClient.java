@@ -37,9 +37,10 @@ public class ExtractionResultGrpcClient {
         }
     }
 
-    public ExtractionResultDTO get(String id, ResultFormat resultFormat) {
+    public ExtractionResultDTO get(String id, String userId, ResultFormat resultFormat) {
         GetExtractionResultRequest request = GetExtractionResultRequest.newBuilder()
                 .setId(id)
+                .setUserId(userId)
                 .setResultFormat(ResultFormatProtoMapper.enumToProto(resultFormat))
                 .build();
 
@@ -108,13 +109,30 @@ public class ExtractionResultGrpcClient {
         }
     }
 
-    public void delete(String id) {
+    public void delete(String id, String userId) {
         DeleteExtractionResultRequest request = DeleteExtractionResultRequest.newBuilder()
                 .setId(id)
+                .setUserId(userId)
                 .build();
 
         try {
             DeleteExtractionResultResponse response = blockingStub.delete(request);
+        } catch (StatusRuntimeException e) {
+            throw GrpcExceptionMapper.map(e);
+        }
+    }
+
+    public ExtractionResultDTO update(String id, String userId, Map<String, Object> jsonResult) {
+        UpdateExtractionResultRequest request = UpdateExtractionResultRequest.newBuilder()
+                .setId(id)
+                .setUserId(userId)
+                .setJsonResult(ProtoJsonMapper.mapToStruct(jsonResult))
+                .build();
+
+        try {
+            UpdateExtractionResultResponse response = blockingStub.update(request);
+            ExtractionResultProto extractionResultProto = response.getExtractionResult();
+            return ExtractionResultProtoMapper.protoToDto(extractionResultProto);
         } catch (StatusRuntimeException e) {
             throw GrpcExceptionMapper.map(e);
         }

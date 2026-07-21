@@ -1,31 +1,21 @@
 package io.github.maksim0840.usersinfo.service;
 
-import io.github.maksim0840.internalapi.user.v1.dto.HtmlParserParamsDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.HtmlPreprocessingParamsDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.LLMParamsDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.ParsingParamDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.HtmlParserParamsDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.HtmlPreprocessingParamsDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.LLMParamsDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.ParsingParamDTO;
 import io.github.maksim0840.usersinfo.entity.ParsingParam;
 import io.github.maksim0840.usersinfo.entity.User;
-import io.github.maksim0840.usersinfo.entity.model.HtmlParserParams;
-import io.github.maksim0840.usersinfo.entity.model.HtmlPreprocessingParams;
-import io.github.maksim0840.usersinfo.entity.model.LLMParams;
 import io.github.maksim0840.usersinfo.exception.NotFoundException;
 import io.github.maksim0840.usersinfo.mapper.ParsingParamMapper;
-import io.github.maksim0840.usersinfo.mapper.UserMapper;
 import io.github.maksim0840.usersinfo.repository.ParsingParamRepository;
 import io.github.maksim0840.usersinfo.repository.ParsingParamSpecification;
 import io.github.maksim0840.usersinfo.repository.UserRepository;
-import jakarta.persistence.Column;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 import org.springframework.dao.DataAccessException;
-import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -64,8 +54,10 @@ public class ParsingParamService {
     }
 
     public ParsingParamDTO editParsingParam(Long id, Long userId, String name, HtmlParserParamsDTO htmlParserParams, HtmlPreprocessingParamsDTO htmlPreprocessingParams, LLMParamsDTO llmParams) {
+        User user = getUserRaw(userId);
         ParsingParam parsingParam = parsingParamRepository.findById(id).orElseThrow(() ->
                 new NotFoundException("PostgreSQL parsingParam not found (id: " + id + ")"));
+        parsingParam.setUser(user);
         parsingParam.setName(name);
         parsingParam.setHtmlParserParams(parsingParamMapper.toEntity(htmlParserParams));
         parsingParam.setHtmlPreprocessingParams(parsingParamMapper.toEntity(htmlPreprocessingParams));
@@ -80,10 +72,13 @@ public class ParsingParamService {
 
     }
 
-    public ParsingParamDTO getParsingParamById(Long id) {
+    public ParsingParamDTO getParsingParamById(Long id, Long userId) {
         try {
             ParsingParam parsingParam = parsingParamRepository.findById(id).orElseThrow(() ->
                     new NotFoundException("PostgreSQL parsingParam not found (id: " + id + ")"));
+            if (!parsingParam.getUser().getId().equals(userId)) {
+                throw new RuntimeException("PostgreSQL parsingParam's userId does not match (id: " + id + ", userId: " + userId + ")");
+            }
             return parsingParamMapper.toDto(parsingParam);
         } catch (DataAccessException e) {
             throw new RuntimeException("PostgreSQL parsingParam read failed", e);
@@ -114,9 +109,9 @@ public class ParsingParamService {
         }
     }
 
-    public void deleteParsingParamById(Long id) {
-        if (!checkExistenceParsingParamById(id)) {
-            throw new NotFoundException("PostgreSQL parsingParam didn't exist (id: " + id + ")");
+    public void deleteParsingParamById(Long id, Long userId) {
+        if (!checkExistenceParsingParam(id, userId)) {
+            throw new NotFoundException("PostgreSQL parsingParam didn't exist (id: " + id + ", userId: " + userId + ")");
         }
         try {
             parsingParamRepository.deleteById(id);
@@ -165,9 +160,9 @@ public class ParsingParamService {
         }
     }
 
-    private boolean checkExistenceParsingParamById(Long id) {
+    private boolean checkExistenceParsingParam(Long id, Long userId) {
         try {
-            return parsingParamRepository.existsById(id);
+            return parsingParamRepository.existsByIdAndUserId(id, userId);
         } catch (DataAccessException e) {
             throw new RuntimeException("PostgreSQL parsingParam check existence failed", e);
         }

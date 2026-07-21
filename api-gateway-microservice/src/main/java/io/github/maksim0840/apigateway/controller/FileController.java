@@ -31,14 +31,12 @@ public class FileController {
             @RequestParam FileType fileType,
             @RequestPart("file") MultipartFile file
     ) throws IOException {
-        System.out.println("s3UploadFile");
         FileInfoDTO fileInfo = fileService.upload(sessionId, fileType, file);
         return fileInfo;
     }
 
     @GetMapping("/download")
     public ResponseEntity<byte[]> s3DownloadFile(@RequestParam String filePath) {
-        System.out.println("s3DownloadFile: " + filePath);
         FileWithContent info = fileService.download(filePath);
         return ResponseEntity.ok()
 //                .contentType(MediaType.APPLICATION_OCTET_STREAM)

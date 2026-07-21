@@ -151,7 +151,7 @@ nano parsing/text_recognition/recognition_settings.env
 
 ## 9. Настройка сервиса-шлюза пользовательских запросов
 
-Опционально можно изменить время действия JWT-токена без обновления:
+Опционально можно изменить время действия JWT-токенов и их обновления:
 
 ```bash
 nano api-gateway-microservice/security.env

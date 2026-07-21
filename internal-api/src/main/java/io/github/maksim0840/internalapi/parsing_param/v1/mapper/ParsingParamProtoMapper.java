@@ -1,10 +1,8 @@
-package io.github.maksim0840.internalapi.user.v1.mapper;
+package io.github.maksim0840.internalapi.parsing_param.v1.mapper;
 
 import io.github.maksim0840.internalapi.common.v1.mapper.ProtoTimeMapper;
-import io.github.maksim0840.internalapi.user.v1.dto.ParsingParamDTO;
-import io.github.maksim0840.internalapi.user.v1.dto.UserDTO;
+import io.github.maksim0840.internalapi.parsing_param.v1.dto.ParsingParamDTO;
 import io.github.maksim0840.parsing_param.v1.ParsingParamProto;
-import io.github.maksim0840.user.v1.UserProto;
 
 public class ParsingParamProtoMapper {
 

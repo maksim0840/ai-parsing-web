@@ -18,6 +18,8 @@ public class Task {
     @Id
     private String id;
 
+    private String userId;
+
     private boolean htmlParserRequired;
     private HtmlParserRequest htmlParserRequest;
 
@@ -42,6 +44,7 @@ public class Task {
 
 
     public Task(String id,
+                String userId,
                 boolean htmlParserRequired,
                 HtmlParserRequest htmlParserRequest,
                 boolean htmlPreprocessingRequired,
@@ -52,6 +55,7 @@ public class Task {
                 LLMRequest llmRequest) {
 
         this.id = id;
+        this.userId = userId;
         this.htmlParserRequired = htmlParserRequired;
         this.htmlParserRequest = htmlParserRequest;
         this.htmlPreprocessingRequired = htmlPreprocessingRequired;

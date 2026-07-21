@@ -68,7 +68,6 @@ public class LLMService {
             String output = sendRequestToModel(request.modelName(), request.systemMessage(), request.userMessage(), request.temperature(), request.maxOutputTokens(), request.htmlDocs(), request.images());
             return new LLMResponseDTO(request.taskId(), true, "", output);
         } catch (Exception e) {
-            System.out.println(e.getMessage());
             return new LLMResponseDTO(request.taskId(), false, "[llm service] " + e.getMessage(), null);
         }
     }

@@ -42,6 +42,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        // в защищённые эндпоинты пускаем только access-токены
+        if (!"access".equals(jwtService.extractType(token))) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         Long userId = jwtService.extractUserId(token);
         String name = jwtService.extractName(token);
         UserRole role = jwtService.extractRole(token);

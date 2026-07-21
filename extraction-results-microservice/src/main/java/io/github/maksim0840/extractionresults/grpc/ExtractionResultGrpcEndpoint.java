@@ -61,6 +61,7 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
     public void get(GetExtractionResultRequest request,
                     StreamObserver<GetExtractionResultResponse> observerResponse) {
         String id = request.getId();
+        String userId = request.getUserId();
         ResultFormat resultFormat = ResultFormatProtoMapper.protoToEnum(request.getResultFormat());
 
         if (id.isBlank()) {
@@ -69,7 +70,7 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
         }
 
         try {
-            ExtractionResultDTO extractionResult = extractionResultService.getExtractionResultById(id, resultFormat);
+            ExtractionResultDTO extractionResult = extractionResultService.getExtractionResultById(id, userId, resultFormat);
             ExtractionResultProto extractionResultProto = ExtractionResultProtoMapper.dtoToProto(extractionResult);
             GetExtractionResultResponse response = GetExtractionResultResponse.newBuilder()
                     .setExtractionResult(extractionResultProto).build();
@@ -155,13 +156,14 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
     public void delete(DeleteExtractionResultRequest request,
                        StreamObserver<DeleteExtractionResultResponse> observerResponse) {
         String id = request.getId();
+        String userId = request.getUserId();
         if (id.isBlank()) {
             observerResponse.onError(error(Status.INVALID_ARGUMENT, "id must not be blank"));
             return;
         }
 
         try {
-            extractionResultService.deleteExtractionResultById(id);
+            extractionResultService.deleteExtractionResultById(id, userId);
             DeleteExtractionResultResponse response = DeleteExtractionResultResponse.newBuilder().build();
 
             observerResponse.onNext(response);
@@ -175,5 +177,38 @@ public class ExtractionResultGrpcEndpoint extends ExtractionResultServiceGrpc.Ex
 
     private StatusRuntimeException error(Status status, String description) {
         return status.withDescription(description).asRuntimeException();
+    }
+
+    @Override
+    public void update(UpdateExtractionResultRequest request,
+                       StreamObserver<UpdateExtractionResultResponse> observerResponse) {
+        String id = request.getId();
+        String userId = request.getUserId();
+        Map<String, Object> jsonResult;
+        try {
+            jsonResult = ProtoJsonMapper.structToMap(request.getJsonResult());
+        } catch (RuntimeException e) {
+            observerResponse.onError(error(Status.INVALID_ARGUMENT, e.getMessage()));
+            return;
+        }
+
+        if (id.isBlank()) {
+            observerResponse.onError(error(Status.INVALID_ARGUMENT, "id must not be blank"));
+            return;
+        }
+
+        try {
+            ExtractionResultDTO extractionResult = extractionResultService.updateExtractionResultById(id, userId, jsonResult);
+            ExtractionResultProto extractionResultProto = ExtractionResultProtoMapper.dtoToProto(extractionResult);
+            UpdateExtractionResultResponse response  = UpdateExtractionResultResponse.newBuilder()
+                    .setExtractionResult(extractionResultProto).build();
+
+            observerResponse.onNext(response);
+            observerResponse.onCompleted();
+        } catch (NotFoundException e) {
+            observerResponse.onError(error(Status.NOT_FOUND, e.getMessage()));
+        } catch (RuntimeException e) {
+            observerResponse.onError(error(Status.UNAVAILABLE, e.getMessage()));
+        }
     }
 }

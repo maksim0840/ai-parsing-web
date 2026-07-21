@@ -9,4 +9,6 @@ import org.springframework.data.mongodb.repository.MongoRepository;
  */
 public interface ExtractionResultRepository extends
         MongoRepository<ExtractionResult, String>, ExtractionResultRepositoryCustom {
+
+    boolean existsByIdAndUserId(String id, String userId);
 }
