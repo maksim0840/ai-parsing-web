@@ -6,6 +6,8 @@
 
 Заменяет ручной сбор данных и написание парсера под каждый отдельный сайт.
 
+## Навигация
+
 - [Микросервисы](#микросервисы)
 - [Пайплайн обработки](#пайплайн-обработки)
 - [Структура работы](#структура-работы)
@@ -18,6 +20,8 @@
 ---
 
 ## Микросервисы
+
+<img width="3020" height="1425" alt="ai-parsing-web drawio (1)" src="https://github.com/user-attachments/assets/1946da8e-233c-421d-8653-ec8274a4da6e" />
 
 | Сервис | Назначение | Технологии |
 |---|---|---|
@@ -32,11 +36,11 @@
 
 Инфраструктура: Docker Compose, S3-совместимое хранилище Garage, RabbitMQ для асинхронного обмена, gRPC для синхронного.
 
-<img width="3020" height="1425" alt="ai-parsing-web drawio (1)" src="https://github.com/user-attachments/assets/1946da8e-233c-421d-8653-ec8274a4da6e" />
-
 ---
 
 ## Пайплайн обработки
+
+<img width="3865" height="2915" alt="uml sequence ai-parsing-web drawio (2)" src="https://github.com/user-attachments/assets/83072707-3cde-49b9-b58e-2c450e9e09f7" />
 
 ```
 Парсинг → Предобработка HTML → Распознавание текста → LLM → Результат
@@ -51,8 +55,6 @@
 4. **LLM.** Очищенный HTML и тексты с изображений собираются в единый контекст и уходят в модель (YandexGPT или GigaChat) вместе с пользовательским промптом.
 
 Оркестратор ведёт задачу через все этапы, хранит её состояние в Redis и отдаёт статус клиенту. Любой этап можно отключить.
-
-<img width="3865" height="2915" alt="uml sequence ai-parsing-web drawio (2)" src="https://github.com/user-attachments/assets/83072707-3cde-49b9-b58e-2c450e9e09f7" />
 
 ---
 
