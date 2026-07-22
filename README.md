@@ -8,16 +8,25 @@
 
 ---
 
-## Микросервисы
+- [Микросервисы](#микросервисы)
+- [Пайплайн обработки](#пайплайн-обработки)
+- [Структура работы](#структура-работы)
+  - [Регистрация и авторизация](#регистрация-и-авторизация)
+  - [Настройка и запуск парсинга](#настройка-и-запуск-парсинга)
+  - [Результаты](#результаты)
+- [Настройка сервисов](#настройка-сервисов)
+- [Запуск](#запуск)
 
-<img width="3020" height="1425" alt="ai-parsing-web drawio (1)" src="https://github.com/user-attachments/assets/1946da8e-233c-421d-8653-ec8274a4da6e" />
+---
+
+## Микросервисы
 
 | Сервис | Назначение | Технологии |
 |---|---|---|
 | `api-gateway-microservice` | Шлюз, точка входа для клиента, аутентификация | Java, Spring Boot, Spring Security, JWT, Redis |
 | `users-info-microservice` | Пользователи, роли, пресеты параметров парсинга | Java, Spring Boot, PostgreSQL, JPA, BCrypt |
-| `parsing-task-orchestrator-microservice` | Координация этапов обработки, запросы к LLM | Java, Spring Boot, Redis, RabbitMQ, gRPC |
 | `extraction-results-microservice` | Хранение и выдача результатов | Java, Spring Boot, MongoDB |
+| `parsing-task-orchestrator-microservice` | Координация этапов обработки, запросы к LLM | Java, Spring Boot, Redis, RabbitMQ, gRPC |
 | `parsing/parser` | Получение HTML и изображений, предобработка HTML | Python, Playwright |
 | `parsing/text_recognition` | Распознавание текста на изображениях | Python, PaddleOCR (PP-OCRv5) |
 | `internal-api` | Общие контракты и DTO для Java-модулей | Java, Protobuf, gRPC |
@@ -25,11 +34,11 @@
 
 Инфраструктура: Docker Compose, S3-совместимое хранилище Garage, RabbitMQ для асинхронного обмена, gRPC для синхронного.
 
+<img width="3020" height="1425" alt="ai-parsing-web drawio (1)" src="https://github.com/user-attachments/assets/1946da8e-233c-421d-8653-ec8274a4da6e" />
+
 ---
 
 ## Пайплайн обработки
-
-<img width="3865" height="2915" alt="uml sequence ai-parsing-web drawio (2)" src="https://github.com/user-attachments/assets/83072707-3cde-49b9-b58e-2c450e9e09f7" />
 
 ```
 Парсинг → Предобработка HTML → Распознавание текста → LLM → Результат
@@ -45,33 +54,37 @@
 
 Оркестратор ведёт задачу через все этапы, хранит её состояние в Redis и отдаёт статус клиенту. Любой этап можно отключить.
 
+<img width="3865" height="2915" alt="uml sequence ai-parsing-web drawio (2)" src="https://github.com/user-attachments/assets/83072707-3cde-49b9-b58e-2c450e9e09f7" />
+
 ---
 
 ## Структура работы
 
 ### Регистрация и авторизация
 
-<img width="2560" height="1694" alt="Screenshot 2026-07-20 at 00-25-07 AI parse" src="https://github.com/user-attachments/assets/63f8d36c-4844-4f87-95d3-09ee9d6f9728" />
-
 Отдельный микросервис хранит данные пользователей в PostgreSQL, пароли — в виде BCrypt-хешей. Авторизация через JWT: короткоживущий access-токен для запросов и refresh-токен для продления сессии без повторного входа. Refresh-токены лежат в Redis с TTL и отзываются при выходе. Настроены роли пользователя и администратора.
 
-### Настройка и запуск парсинга
+<img width="2560" height="1694" alt="Screenshot 2026-07-20 at 00-25-07 AI parse" src="https://github.com/user-attachments/assets/63f8d36c-4844-4f87-95d3-09ee9d6f9728" />
 
-<img width="3292" height="1694" alt="Screenshot 2026-07-20 at 00-27-12 AI parse" src="https://github.com/user-attachments/assets/89efe88f-abcc-44e6-ae84-39057d05838f" />
+### Настройка и запуск парсинга
 
 Каждый этап включается и отключается независимо — можно ограничиться только парсингом, или сразу отдать в LLM свои документы. Настраивается почти всё: уровень «сложности» страницы и таймауты, скачивание изображений, заголовки и прокси, набор правил очистки HTML, модель и параметры генерации (температура, лимит токенов).
 
 Задание нейросети пишет сам пользователь — отдельно системное сообщение (как анализировать) и пользовательское (что именно извлечь). Наборы настроек сохраняются как именованные пресеты.
 
-### Результаты
+<img width="3292" height="1694" alt="Screenshot 2026-07-20 at 00-27-12 AI parse" src="https://github.com/user-attachments/assets/89efe88f-abcc-44e6-ae84-39057d05838f" />
 
-<img width="2021" height="1526" alt="Screenshot 2026-07-22 at 00-19-18 AI parse" src="https://github.com/user-attachments/assets/34a79408-38cd-4e83-b170-b51ae7eb7b83" />
+### Результаты
 
 Ответ модели сохраняется в MongoDB в формате JSON. В профиле доступна вся история запросов с фильтрацией по датам и пагинацией; отдельные результаты можно открыть, изменить, удалить или выгрузить в JSON, XML либо CSV — как по одному, так и одним объединённым файлом.
 
+<img width="2021" height="1526" alt="Screenshot 2026-07-22 at 00-19-18 AI parse" src="https://github.com/user-attachments/assets/34a79408-38cd-4e83-b170-b51ae7eb7b83" />
+
 ---
 
-## Установка зависимостей
+## Настройка сервисов
+
+### 0. Установка зависимостей
 
 Необходимо установить:
 
@@ -105,9 +118,7 @@ sudo nano /etc/docker/daemon.json
 }
 ```
 
-# Первый запуск и настройка сервисов
-
-## 1. Загрузка проекта из репозитория
+### 1. Загрузка проекта из репозитория
 
 Склонируйте репозиторий и перейдите в директорию проекта:
 
@@ -116,7 +127,7 @@ git clone https://github.com/maksim0840/ai-parsing-web
 cd ai-parsing-web
 ```
 
-## 2. Создание docker-сетей
+### 2. Создание docker-сетей
 
 Запустите скрипт создания docker-сетей для взаимодействия микросервисов между собой
 
@@ -129,7 +140,7 @@ docker network create grpc-users-api-net
 docker network create api-frontend-net
 ```
 
-## 3. Настройка Garage S3
+### 3. Настройка Garage S3
 
 Опционально можно изменить время автоматического удаления файлов из бакета `garage-custom-ttl-bucket`:
 
@@ -153,7 +164,7 @@ nano garage/custom-lifecycle.json
 - настройку TTL для бакета `garage-custom-ttl-bucket`;
 - подключение сервисов приложения к S3-хранилищу.
 
-## 4. Генерация рандомных значений
+### 4. Генерация рандомных значений
 
 Запустите скрипт генерации случайных значений для `.env`-файлов модулей:
 
@@ -163,7 +174,7 @@ nano garage/custom-lifecycle.json
 
 Скрипт генерирует внутренние секреты приложения, такие как секретный ключ для JWT.
 
-## 5. Установка секретов
+### 5. Установка секретов
 
 Запустите скрипт ручной настройки внешних секретов:
 
@@ -179,7 +190,7 @@ nano garage/custom-lifecycle.json
 
 После ввода значений скрипт создаст или обновит необходимые `.env`-файлы сервисов.
 
-## 6. Установка моделей распознования текста
+### 6. Установка моделей распознования текста
 
 Запустите скрипт для скачивания моделей распознования текста
 
@@ -189,7 +200,7 @@ nano garage/custom-lifecycle.json
 
 В папке `parsing/text_recognition/models` появятся две директории: `PP-OCRv5_mobile_det_infer` (модель детекции текста) и `eslav_PP-OCRv5_mobile_rec_infer` (модель распознавания кириллицы).
 
-## 7. Настройка сервиса-оркестратора
+### 7. Настройка сервиса-оркестратора
 
 Опционально можно изменить начальные параметры работы с LLM-моделями:
 
@@ -203,7 +214,7 @@ nano parsing-task-orchestrator-microservice/llm.env
 - количество выходных токенов;
 - таймауты запросов к LLM-моделям.
 
-## 8. Настройка сервисов парсинга и распознавания текста
+### 8. Настройка сервисов парсинга и распознавания текста
 
 Опционально можно изменить настройки парсинга и предобработки HTML:
 
@@ -221,7 +232,7 @@ nano parsing/text_recognition/recognition_settings.env
 
 В этом файле можно настроить количество запущенных моделей распознавания текста.
 
-## 9. Настройка сервиса-шлюза пользовательских запросов
+### 9. Настройка сервиса-шлюза пользовательских запросов
 
 Опционально можно изменить время действия JWT-токенов и их обновления:
 
@@ -229,9 +240,9 @@ nano parsing/text_recognition/recognition_settings.env
 nano api-gateway-microservice/security.env
 ```
 
+---
 
-
-# Запуск
+## Запуск
 
 ```bash
 docker compose -f garage/docker-compose.garage.yaml -p garage --project-directory garage up
