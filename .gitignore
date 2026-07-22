@@ -12,6 +12,9 @@ replay_pid*
 *.iml
 out/
 
+# frontend build
+frontend/node_modules/
+
 
 # Garage
 garage/data/
@@ -29,3 +32,7 @@ api-gateway-microservice/security.env
 
 # Файлы с настраиваемыми ключами
 parsing-task-orchestrator-microservice/llm.env
+
+# Игнорировать содержимое папки models, но не саму папку
+parsing/text_recognition/models/*
+!parsing/text_recognition/models/.gitkeep
